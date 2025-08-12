@@ -13,8 +13,12 @@ https://github.com/Saturation-IO/saturation-js/blob/main/README.md
 Then create a simple Next.js application in the CURRENT DIRECTORY (do NOT create a new folder) with:
 - Next.js 14+ with App Router
 - TypeScript
-- @saturation-api/js SDK for API calls
+- @saturation-api/js SDK for API calls (use the latest published version from npm)
 - Environment variables for secure API key storage
+
+When installing dependencies:
+- Check npm for the latest version of @saturation-api/js
+- Install it using: npm install @saturation-api/js@latest
 
 Create a minimal app that:
 1. Connects to the Saturation API using server-side API calls
