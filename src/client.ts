@@ -98,10 +98,7 @@ export class Saturation {
 
   // Budget
 
-  async getProjectBudget(
-    projectId: string,
-    params?: Types.GetBudgetData['query'],
-  ): Promise<Types.Budget> {
+  async getBudget(projectId: string, params?: Types.GetBudgetData['query']): Promise<Types.Budget> {
     const result = await sdk.getBudget({
       client: this.client,
       path: { projectId },
@@ -159,7 +156,7 @@ export class Saturation {
 
   // Actuals
 
-  async listProjectActuals(
+  async listActuals(
     projectId: string,
     params?: Types.ListActualsData['query'],
   ): Promise<{ actuals: Types.Actual[]; totalAmount: number }> {
@@ -479,7 +476,7 @@ export class Saturation {
 
   // Project Tags
 
-  async listProjectTags(
+  async listTags(
     projectId: string,
     params?: Types.ListTagsData['query'],
   ): Promise<Types.TagsResponse> {
@@ -491,7 +488,7 @@ export class Saturation {
     return result.data as Types.TagsResponse;
   }
 
-  async getProjectTag(
+  async getTag(
     projectId: string,
     tagId: string,
     idMode?: 'user' | 'system',
@@ -504,10 +501,7 @@ export class Saturation {
     return result.data as Types.TagResponse;
   }
 
-  async createProjectTag(
-    projectId: string,
-    data: Types.CreateTagRequest,
-  ): Promise<Types.TagResponse> {
+  async createTag(projectId: string, data: Types.CreateTagRequest): Promise<Types.TagResponse> {
     const result = await sdk.createTag({
       client: this.client,
       path: { projectId },
@@ -516,7 +510,7 @@ export class Saturation {
     return result.data as Types.TagResponse;
   }
 
-  async updateProjectTag(
+  async updateTag(
     projectId: string,
     tagId: string,
     data: Types.UpdateTagRequest,
@@ -529,7 +523,7 @@ export class Saturation {
     return result.data as Types.TagResponse;
   }
 
-  async deleteProjectTag(projectId: string, tagId: string): Promise<void> {
+  async deleteTag(projectId: string, tagId: string): Promise<void> {
     await sdk.deleteTag({
       client: this.client,
       path: { projectId, tagId },
@@ -647,7 +641,7 @@ export class Saturation {
 
   // Comments
 
-  async listProjectComments(
+  async listComments(
     projectId: string,
     params?: Types.ListCommentsData['query'],
   ): Promise<{ comments: Types.Comment[] }> {
@@ -693,5 +687,94 @@ export class Saturation {
       body: data,
     });
     return result.data as Types.Rate;
+  }
+
+  // Public Rates
+
+  async listPublicRates(
+    params?: Types.ListPublicRatesData['query'],
+  ): Promise<{ rates: Types.PublicRate[] }> {
+    const result = await sdk.listPublicRates({
+      client: this.client,
+      query: params,
+    });
+    return result.data as { rates: Types.PublicRate[] };
+  }
+
+  async getPublicRatepackRates(
+    ratepackId: string,
+    params?: Types.GetPublicRatesData['query'],
+  ): Promise<{ rates: Types.Rate[] }> {
+    const result = await sdk.getPublicRates({
+      client: this.client,
+      path: { ratepackId },
+      query: params,
+    });
+    return result.data as { rates: Types.Rate[] };
+  }
+
+  // Transactions
+
+  async listTransactions(
+    params?: Types.ListTransactionsData['query'],
+  ): Promise<{ transactions: Types.Transaction[] }> {
+    const result = await sdk.listTransactions({
+      client: this.client,
+      query: params,
+    });
+    return result.data as { transactions: Types.Transaction[] };
+  }
+
+  async getTransaction(
+    transactionId: string,
+    params?: Types.GetTransactionData['query'],
+  ): Promise<Types.Transaction> {
+    const result = await sdk.getTransaction({
+      client: this.client,
+      path: { transactionId },
+      query: params,
+    });
+    return result.data as Types.Transaction;
+  }
+
+  async updateTransaction(
+    transactionId: string,
+    data: Types.UpdateTransactionInput,
+  ): Promise<Types.Transaction> {
+    const result = await sdk.updateTransaction({
+      client: this.client,
+      path: { transactionId },
+      body: data,
+    });
+    return result.data as Types.Transaction;
+  }
+
+  async uploadTransactionAttachment(transactionId: string, file: File | Blob): Promise<Types.File> {
+    const result = await sdk.uploadTransactionAttachment({
+      client: this.client,
+      path: { transactionId },
+      body: { file },
+    });
+    return result.data as Types.File;
+  }
+
+  // Contact Attachments
+
+  async uploadContactTaxDocument(contactId: string, file: File | Blob): Promise<Types.File> {
+    const result = await sdk.uploadContactTaxDocument({
+      client: this.client,
+      path: { contactId },
+      body: { file },
+    });
+    return result.data as Types.File;
+  }
+
+  async uploadContactAttachment(contactId: string, file: File | Blob): Promise<Types.File> {
+    const result = await sdk.uploadContactAttachment({
+      client: this.client,
+      path: { contactId },
+      body: { file },
+    });
+    return result.data as Types.File;
   }
 }

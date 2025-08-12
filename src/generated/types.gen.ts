@@ -5095,13 +5095,13 @@ export type ListPublicRatesResponses = {
 
 export type ListPublicRatesResponse = ListPublicRatesResponses[keyof ListPublicRatesResponses];
 
-export type GetPublicRatepackRatesData = {
+export type GetPublicRatesData = {
     body?: never;
     path: {
         /**
          * Public ratepack identifier (ID or alias)
          */
-        rateId: string;
+        ratepackId: string;
     };
     query?: {
         /**
@@ -5117,10 +5117,10 @@ export type GetPublicRatepackRatesData = {
          */
         offset?: number;
     };
-    url: '/public/rates/{rateId}';
+    url: '/public/rates/{ratepackId}';
 };
 
-export type GetPublicRatepackRatesErrors = {
+export type GetPublicRatesErrors = {
     /**
      * Unauthorized - invalid or missing API key
      */
@@ -5135,9 +5135,9 @@ export type GetPublicRatepackRatesErrors = {
     500: _Error;
 };
 
-export type GetPublicRatepackRatesError = GetPublicRatepackRatesErrors[keyof GetPublicRatepackRatesErrors];
+export type GetPublicRatesError = GetPublicRatesErrors[keyof GetPublicRatesErrors];
 
-export type GetPublicRatepackRatesResponses = {
+export type GetPublicRatesResponses = {
     /**
      * List of rates from public ratepack
      */
@@ -5146,7 +5146,7 @@ export type GetPublicRatepackRatesResponses = {
     };
 };
 
-export type GetPublicRatepackRatesResponse = GetPublicRatepackRatesResponses[keyof GetPublicRatepackRatesResponses];
+export type GetPublicRatesResponse = GetPublicRatesResponses[keyof GetPublicRatesResponses];
 
 export type ClientOptions = {
     baseUrl: 'https://api.saturation.io/api/v1' | (string & {});

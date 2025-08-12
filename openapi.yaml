@@ -2808,15 +2808,15 @@
           '500':
             $ref: '#/components/responses/InternalServerError'
 
-    /public/rates/{rateId}:
+    /public/rates/{ratepackId}:
       get:
-        operationId: getPublicRatepackRates
+        operationId: getPublicRates
         summary: Get rates from public ratepack
         description: Retrieve all rates from a public ratepack (read-only access)
         tags:
           - Public Rates
         parameters:
-          - name: rateId
+          - name: ratepackId
             in: path
             required: true
             description: Public ratepack identifier (ID or alias)
