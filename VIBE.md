@@ -30,20 +30,27 @@ When installing dependencies:
 - Install it using: npm install @saturation-api/js@latest
 
 Create a minimal app that:
-1. Connects to the Saturation API using server-side API calls
-2. Fetches the list of projects
-3. Displays "Hello World! You have X projects" where X is the actual count
-4. Lists the project names as simple bullet points
+1. Uses Next.js API routes (app/api/projects/route.ts) to handle Saturation API calls
+2. The API route creates the Saturation client with the API key (server-side only)
+3. The API route fetches projects and returns them as JSON
+4. The page component fetches from your API route (not directly from Saturation)
+5. Displays "Hello World! You have X projects" where X is the actual count
+6. Lists the project names as simple bullet points
 
 Set up the API configuration:
 - Create a .env.local file with SATURATION_API_KEY environment variable
+- CRITICAL: Only access the API key in server components/server-side code
+- Never pass the API key to client components or expose it in browser code
 - Use the API key from the environment variable (never hardcode it)
 - Base URL: https://api.saturation.io/api/v1
 - Add .env.local to .gitignore
 
 The app should have:
-- A single page at app/page.tsx
-- Server component for data fetching (no client-side API calls)
+- A single page at app/page.tsx that fetches from your API route
+- An API route at app/api/projects/route.ts that:
+  - Creates the Saturation client with process.env.SATURATION_API_KEY
+  - Fetches projects from Saturation
+  - Returns projects as JSON response
 - Basic HTML and minimal Tailwind CSS styles (Next.js includes it by default)
 - KEEP IT MINIMAL: No error handling, no try/catch blocks, no debugging code
 - Just the bare minimum to display the data
