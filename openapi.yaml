@@ -123,6 +123,7 @@
             style: form
             explode: true
             example: ["nike-swoosh-commercial"]
+            x-example-description: "Use as: id[]=nike-swoosh-commercial&id[]=another-project"
           - name: spaceId
             in: query
             description: Return projects belonging to these space IDs or aliases

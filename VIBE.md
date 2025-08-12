@@ -266,7 +266,7 @@ Please read and understand the full Saturation SDK reference by examining these 
 https://raw.githubusercontent.com/Saturation-IO/saturation-js/refs/heads/main/src/client.ts
 
 2. TypeScript types and interfaces:
-https://raw.githubusercontent.com/Saturation-IO/saturation-js/refs/heads/main/src/types/index.ts
+https://raw.githubusercontent.com/Saturation-IO/saturation-js/refs/heads/main/src/generated/types.gen.ts
 
 After reading both files, you'll have complete knowledge of:
 - All available SDK methods and their parameters
@@ -304,7 +304,7 @@ When you need to understand the data structures:
 
 ```
 Show me all the TypeScript interfaces and types available in the Saturation SDK:
-https://raw.githubusercontent.com/Saturation-IO/saturation-js/refs/heads/main/src/types/index.ts
+https://raw.githubusercontent.com/Saturation-IO/saturation-js/refs/heads/main/src/generated/types.gen.ts
 
 Focus on:
 - Main data models (Project, Actual, Budget, etc.)
