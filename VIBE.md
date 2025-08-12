@@ -18,11 +18,12 @@ Copy and paste this entire prompt into Claude Code or v0.app:
 First, read the Saturation SDK README to understand the library:
 https://raw.githubusercontent.com/Saturation-IO/saturation-js/refs/heads/main/README.md
 
-Then create a simple Next.js application in the CURRENT DIRECTORY (do NOT create a new folder) with:
+Then create a MINIMAL Next.js application in the CURRENT DIRECTORY (do NOT create a new folder) with:
 - Next.js 14+ with App Router
 - TypeScript
 - @saturation-api/js SDK for API calls (use the latest published version from npm)
 - Environment variables for secure API key storage
+- IMPORTANT: Keep the code as minimal as possible - this is a Hello World example
 
 When installing dependencies:
 - Check npm for the latest version of @saturation-api/js
@@ -44,8 +45,8 @@ The app should have:
 - A single page at app/page.tsx
 - Server component for data fetching (no client-side API calls)
 - Basic HTML and minimal Tailwind CSS styles (Next.js includes it by default)
-- Show "Loading..." state while fetching
-- Proper error handling with error boundaries
+- KEEP IT MINIMAL: No error handling, no try/catch blocks, no debugging code
+- Just the bare minimum to display the data
 
 IMPORTANT: Handle missing API key gracefully:
 - When SATURATION_API_KEY is not set, display a friendly setup screen
