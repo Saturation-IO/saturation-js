@@ -2739,53 +2739,30 @@
 
     /public/rates:
       get:
-        operationId: listPublicRates
-        summary: List public rates
-        description: Retrieve all public rates accessible across workspaces
+        operationId: listPublicRatepacks
+        summary: List public ratepacks
+        description: Retrieve all public ratepacks accessible across workspaces
         tags:
           - Public Rates
         parameters:
           - name: search
             in: query
-            description: Search rates by name or description
+            description: Search ratepacks by name
             schema:
               type: string
-            example: "Grip"
-          - name: includeArchived
-            in: query
-            description: Include archived/deleted rates
-            schema:
-              type: boolean
-              default: false
-            example: false
-          - name: sortBy
-            in: query
-            description: Field to sort results by
-            schema:
-              type: string
-              enum: [name, createdAt, updatedAt]
-              default: name
-            example: name
-          - name: sortOrder
-            in: query
-            description: Sort order direction
-            schema:
-              type: string
-              enum: [asc, desc]
-              default: asc
-            example: asc
+            example: "IATSE"
         responses:
           '200':
-            description: List of public rates
+            description: List of public ratepacks
             content:
               application/json:
                 schema:
                   type: object
                   properties:
-                    rates:
+                    ratepacks:
                       type: array
                       items:
-                        $ref: '#/components/schemas/PublicRate'
+                        $ref: '#/components/schemas/PublicRatepack'
           '401':
             $ref: '#/components/responses/Unauthorized'
           '500':
@@ -2794,8 +2771,8 @@
     /public/rates/{ratepackId}:
       get:
         operationId: getPublicRates
-        summary: Get rates from public ratepack
-        description: Retrieve all rates from a public ratepack (read-only access)
+        summary: Get public rates
+        description: Retrieve all rates from a public ratepack
         tags:
           - Public Rates
         parameters:
@@ -2805,7 +2782,7 @@
             description: Public ratepack identifier (ID or alias)
             schema:
               type: string
-            example: rate-001
+            example: "iatse-local-600"
           - name: search
             in: query
             description: Search rates by name, description, or note
@@ -2831,7 +2808,7 @@
             example: 0
         responses:
           '200':
-            description: List of rates from public ratepack
+            description: List of rates from the public ratepack
             content:
               application/json:
                 schema:
@@ -2840,7 +2817,7 @@
                     rates:
                       type: array
                       items:
-                        $ref: '#/components/schemas/Rate'
+                        $ref: '#/components/schemas/PublicRate'
           '401':
             $ref: '#/components/responses/Unauthorized'
           '404':
@@ -4671,28 +4648,33 @@
       # DATAPACK SCHEMAS
       # ========================================
       
-      RateMetadata:
+      PublicRatepack:
         type: object
-        description: Rate metadata containing reusable rate/cost data
+        description: Public ratepack containing reusable rate/cost data
         properties:
           id:
             type: string
-            description: Unique rate identifier
-            example: rate-2024-standard
+            description: Unique ratepack identifier
+            example: ratepack-2024-standard
           name:
             type: string
-            description: Rate display name
-            example: 2024 Film Production Rates
+            description: Ratepack display name
+            example: IATSE Local 600 Rates
+          alias:
+            type: string
+            nullable: true
+            description: URL-safe alias for the ratepack
+            example: iatse-local-600
           description:
             type: string
             nullable: true
-            description: Optional rate description
-            example: Standard crew and equipment rates for film productions
+            description: Optional ratepack description
+            example: Standard union rates for camera department
           versions:
             type: array
             items:
               type: string
-            description: List of available rate versions
+            description: List of available ratepack versions
             example: ["v1.0", "v1.1", "v2.0"]
           latestVersion:
             type: string
@@ -4702,12 +4684,12 @@
           createdAt:
             type: string
             format: date-time
-            description: Rate creation timestamp
+            description: Ratepack creation timestamp
             example: "2024-01-01T00:00:00Z"
           updatedAt:
             type: string
             format: date-time
-            description: Rate last update timestamp
+            description: Ratepack last update timestamp
             example: "2024-03-15T12:00:00Z"
         required:
           - id
@@ -4717,13 +4699,90 @@
           - updatedAt
 
       PublicRate:
-        allOf:
-          - $ref: '#/components/schemas/RateMetadata'
-        description: Public rate accessible across workspaces
+        type: object
+        description: Individual rate item from a public ratepack
+        properties:
+          id:
+            type: string
+            description: Unique rate identifier
+            example: rate-dp-001
+          name:
+            type: string
+            nullable: true
+            description: Rate display name
+            example: Director of Photography
+          emoji:
+            type: string
+            nullable: true
+            description: Rate emoji or icon
+            example: "📷"
+          description:
+            type: string
+            nullable: true
+            description: Rate description
+            example: Cinematography and camera operation
+          note:
+            type: string
+            nullable: true
+            description: Additional notes about the rate
+            example: Includes equipment setup and operation
+          quantity:
+            type: number
+            nullable: true
+            description: Rate quantity
+            example: 10
+          rate:
+            type: number
+            nullable: true
+            description: Rate amount per unit
+            example: 1750.00
+          unit:
+            type: string
+            nullable: true
+            enum: [hour, day, week, month, year, each, sqft, sqm, lnft, lnm]
+            description: Unit of measurement
+            example: day
+          multiplier:
+            type: number
+            nullable: true
+            description: Rate multiplier
+            example: 1.0
+          contactId:
+            type: string
+            nullable: true
+            description: Associated contact ID (usually null for public rates)
+            example: null
+          # Public rate specific fields
+          agreement:
+            type: string
+            description: Agreement or contract reference
+            example: "IATSE Basic Agreement 2024"
+          local:
+            type: string
+            description: Local/regional identifier
+            example: "Local 600"
+          effectiveDate:
+            type: string
+            format: date-time
+            description: Rate effective date
+            example: "2024-01-01T00:00:00Z"
+          expirationDate:
+            type: string
+            format: date-time
+            description: Rate expiration date
+            example: "2024-12-31T23:59:59Z"
+          labels:
+            type: array
+            items:
+              type: string
+            description: Categorization labels
+            example: ["union", "camera", "above-the-line"]
+        required:
+          - id
 
       Rate:
         type: object
-        description: Individual item within a rate containing rate/cost information
+        description: Individual rate item within a workspace ratepack
         properties:
           id:
             type: string
@@ -4775,42 +4834,12 @@
             nullable: true
             description: Associated contact ID
             example: contact-dp-001
-          sort:
-            type: string
-            description: Sort order for item positioning
-            example: "001"
-          # Public rate specific fields (optional)
-          agreement:
-            type: string
-            description: Agreement reference for public rates
-            example: AGR-2024-001
-          local:
-            type: string
-            description: Local identifier for public rates
-            example: LOCAL-123
-          effectiveDate:
-            type: string
-            format: date-time
-            description: Effective date for public rate rates
-            example: "2024-01-01T00:00:00Z"
-          expirationDate:
-            type: string
-            format: date-time
-            description: Expiration date for public rate rates
-            example: "2024-12-31T23:59:59Z"
-          labels:
-            type: array
-            items:
-              type: string
-            description: Categorization labels for public rates
-            example: ["crew", "equipment", "union"]
           # Expandable fields
           contact:
             $ref: '#/components/schemas/Contact'
             description: "Expanded contact information (only when expands includes 'contact')"
         required:
           - id
-          - sort
 
       CreateRateInput:
         type: object

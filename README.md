@@ -705,16 +705,16 @@ await client.createActual('my-project', {
 Access public rate libraries shared across workspaces.
 
 ```typescript
-// Search and list public rate libraries
-const { rates } = await client.listPublicRates({
-  search: 'camera',
-  includeArchived: false,
-  sortBy: 'name',
-  sortOrder: 'asc',
+// List all public ratepacks
+const { ratepacks } = await client.listPublicRatepacks();
+
+// Search for specific ratepacks
+const { ratepacks: iatseRatepacks } = await client.listPublicRatepacks({
+  search: 'IATSE',
 });
 
 // Get all rates from a specific ratepack
-const { rates: ratepackRates } = await client.getPublicRates('ratepack-123', {
+const { rates } = await client.getPublicRates('ratepack-123', {
   search: 'grip',
   includeArchived: false,
 });

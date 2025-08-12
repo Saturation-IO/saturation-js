@@ -1403,23 +1403,27 @@ export type Comment = {
 };
 
 /**
- * Rate metadata containing reusable rate/cost data
+ * Public ratepack containing reusable rate/cost data
  */
-export type RateMetadata = {
+export type PublicRatepack = {
     /**
-     * Unique rate identifier
+     * Unique ratepack identifier
      */
     id: string;
     /**
-     * Rate display name
+     * Ratepack display name
      */
     name: string;
     /**
-     * Optional rate description
+     * URL-safe alias for the ratepack
+     */
+    alias?: string | null;
+    /**
+     * Optional ratepack description
      */
     description?: string | null;
     /**
-     * List of available rate versions
+     * List of available ratepack versions
      */
     versions: Array<string>;
     /**
@@ -1427,22 +1431,83 @@ export type RateMetadata = {
      */
     latestVersion?: string | null;
     /**
-     * Rate creation timestamp
+     * Ratepack creation timestamp
      */
     createdAt: string;
     /**
-     * Rate last update timestamp
+     * Ratepack last update timestamp
      */
     updatedAt: string;
 };
 
 /**
- * Public rate accessible across workspaces
+ * Individual rate item from a public ratepack
  */
-export type PublicRate = RateMetadata;
+export type PublicRate = {
+    /**
+     * Unique rate identifier
+     */
+    id: string;
+    /**
+     * Rate display name
+     */
+    name?: string | null;
+    /**
+     * Rate emoji or icon
+     */
+    emoji?: string | null;
+    /**
+     * Rate description
+     */
+    description?: string | null;
+    /**
+     * Additional notes about the rate
+     */
+    note?: string | null;
+    /**
+     * Rate quantity
+     */
+    quantity?: number | null;
+    /**
+     * Rate amount per unit
+     */
+    rate?: number | null;
+    /**
+     * Unit of measurement
+     */
+    unit?: 'hour' | 'day' | 'week' | 'month' | 'year' | 'each' | 'sqft' | 'sqm' | 'lnft' | 'lnm';
+    /**
+     * Rate multiplier
+     */
+    multiplier?: number | null;
+    /**
+     * Associated contact ID (usually null for public rates)
+     */
+    contactId?: string | null;
+    /**
+     * Agreement or contract reference
+     */
+    agreement?: string;
+    /**
+     * Local/regional identifier
+     */
+    local?: string;
+    /**
+     * Rate effective date
+     */
+    effectiveDate?: string;
+    /**
+     * Rate expiration date
+     */
+    expirationDate?: string;
+    /**
+     * Categorization labels
+     */
+    labels?: Array<string>;
+};
 
 /**
- * Individual item within a rate containing rate/cost information
+ * Individual rate item within a workspace ratepack
  */
 export type Rate = {
     /**
@@ -1485,30 +1550,6 @@ export type Rate = {
      * Associated contact ID
      */
     contactId?: string | null;
-    /**
-     * Sort order for item positioning
-     */
-    sort: string;
-    /**
-     * Agreement reference for public rates
-     */
-    agreement?: string;
-    /**
-     * Local identifier for public rates
-     */
-    local?: string;
-    /**
-     * Effective date for public rate rates
-     */
-    effectiveDate?: string;
-    /**
-     * Expiration date for public rate rates
-     */
-    expirationDate?: string;
-    /**
-     * Categorization labels for public rates
-     */
-    labels?: Array<string>;
     contact?: Contact;
 };
 
@@ -5039,31 +5080,19 @@ export type UpdateWorkspaceRateResponses = {
 
 export type UpdateWorkspaceRateResponse = UpdateWorkspaceRateResponses[keyof UpdateWorkspaceRateResponses];
 
-export type ListPublicRatesData = {
+export type ListPublicRatepacksData = {
     body?: never;
     path?: never;
     query?: {
         /**
-         * Search rates by name or description
+         * Search ratepacks by name
          */
         search?: string;
-        /**
-         * Include archived/deleted rates
-         */
-        includeArchived?: boolean;
-        /**
-         * Field to sort results by
-         */
-        sortBy?: 'name' | 'createdAt' | 'updatedAt';
-        /**
-         * Sort order direction
-         */
-        sortOrder?: 'asc' | 'desc';
     };
     url: '/public/rates';
 };
 
-export type ListPublicRatesErrors = {
+export type ListPublicRatepacksErrors = {
     /**
      * Unauthorized - invalid or missing API key
      */
@@ -5074,18 +5103,18 @@ export type ListPublicRatesErrors = {
     500: _Error;
 };
 
-export type ListPublicRatesError = ListPublicRatesErrors[keyof ListPublicRatesErrors];
+export type ListPublicRatepacksError = ListPublicRatepacksErrors[keyof ListPublicRatepacksErrors];
 
-export type ListPublicRatesResponses = {
+export type ListPublicRatepacksResponses = {
     /**
-     * List of public rates
+     * List of public ratepacks
      */
     200: {
-        rates?: Array<PublicRate>;
+        ratepacks?: Array<PublicRatepack>;
     };
 };
 
-export type ListPublicRatesResponse = ListPublicRatesResponses[keyof ListPublicRatesResponses];
+export type ListPublicRatepacksResponse = ListPublicRatepacksResponses[keyof ListPublicRatepacksResponses];
 
 export type GetPublicRatesData = {
     body?: never;
@@ -5131,10 +5160,10 @@ export type GetPublicRatesError = GetPublicRatesErrors[keyof GetPublicRatesError
 
 export type GetPublicRatesResponses = {
     /**
-     * List of rates from public ratepack
+     * List of rates from the public ratepack
      */
     200: {
-        rates?: Array<Rate>;
+        rates?: Array<PublicRate>;
     };
 };
 

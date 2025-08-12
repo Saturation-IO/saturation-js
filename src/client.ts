@@ -691,14 +691,14 @@ export class Saturation {
 
   // Public Rates
 
-  async listPublicRates(
-    params?: Types.ListPublicRatesData['query'],
-  ): Promise<{ rates: Types.PublicRate[] }> {
-    const result = await sdk.listPublicRates({
+  async listPublicRatepacks(
+    params?: Types.ListPublicRatepacksData['query'],
+  ): Promise<{ ratepacks: Types.PublicRatepack[] }> {
+    const result = await sdk.listPublicRatepacks({
       client: this.client,
       query: params,
     });
-    return result.data as { rates: Types.PublicRate[] };
+    return result.data as { ratepacks: Types.PublicRatepack[] };
   }
 
   async getPublicRates(
