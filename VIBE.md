@@ -253,6 +253,66 @@ Starting with a Hello World app helps you:
 - ✅ Learn the data structure
 - ✅ Build confidence before adding complexity
 
+## Full SDK Reference for AI
+
+When you need to understand the complete Saturation SDK API, use this prompt with your AI coding assistant:
+
+### Complete SDK Reference Prompt
+
+```
+Please read and understand the full Saturation SDK reference by examining these two files:
+
+1. Client implementation with all methods:
+https://raw.githubusercontent.com/Saturation-IO/saturation-js/refs/heads/main/src/client.ts
+
+2. TypeScript types and interfaces:
+https://raw.githubusercontent.com/Saturation-IO/saturation-js/refs/heads/main/src/types/index.ts
+
+After reading both files, you'll have complete knowledge of:
+- All available SDK methods and their parameters
+- Complete TypeScript type definitions
+- Request/response structures for all API endpoints
+- Authentication patterns
+- Error handling approaches
+- Data models for projects, actuals, budgets, etc.
+
+This will help you:
+- Write type-safe code using the SDK
+- Understand all available API operations
+- Know the exact shape of request and response data
+- Build robust applications with proper error handling
+```
+
+### Quick Reference Prompt
+
+For a quick overview without diving into implementation details:
+
+```
+Give me a summary of all available methods in the Saturation SDK by reading:
+https://raw.githubusercontent.com/Saturation-IO/saturation-js/refs/heads/main/src/client.ts
+
+List each method with:
+- Method name
+- Purpose
+- Required parameters
+- Return type
+```
+
+### Type Reference Prompt
+
+When you need to understand the data structures:
+
+```
+Show me all the TypeScript interfaces and types available in the Saturation SDK:
+https://raw.githubusercontent.com/Saturation-IO/saturation-js/refs/heads/main/src/types/index.ts
+
+Focus on:
+- Main data models (Project, Actual, Budget, etc.)
+- Input types for creating/updating resources
+- Response types from API calls
+- Enum values and constants
+```
+
 ---
 
 **Remember**: Every great app starts with Hello World. Get the basics working first, then build your dream dashboard! 🚀

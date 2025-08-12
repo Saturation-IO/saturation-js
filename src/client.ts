@@ -1,110 +1,103 @@
-import { HTTPClient } from './http-client.js';
-import { FormData, Blob } from './fetch-wrapper.js';
-import type * as Types from './types/index.js';
+import { createClient, type Config } from './generated/client/index.js';
+import * as sdk from './generated/sdk.gen.js';
+import type * as Types from './generated/types.gen.js';
 
 export interface SaturationOptions {
   apiKey: string;
   baseURL?: string;
 }
 
-export interface ListProjectsParams {
-  id?: string | string[];
-  spaceId?: string | string[];
-  status?: 'active' | 'archived';
-  name?: string | string[];
-  spaceName?: string | string[];
-  labels?: string | string[];
-  [key: string]: string | string[] | undefined;
-}
-
-export interface ListActualsParams {
-  lineItemId?: string | string[];
-  contactId?: string | string[];
-  tags?: string | string[];
-  date?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  hasAttachments?: boolean;
-  expands?: string[];
-  [key: string]: string | string[] | boolean | undefined;
-}
-
-export interface ListPurchaseOrdersParams {
-  lineItemId?: string | string[];
-  contactId?: string | string[];
-  tags?: string | string[];
-  date?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  hasAttachments?: boolean;
-  expands?: string[];
-  [key: string]: string | string[] | boolean | undefined;
-}
-
-export interface ListTransactionsParams {
-  type?: 'actual' | 'purchase_order';
-  lineItemId?: string | string[];
-  contactId?: string | string[];
-  tags?: string | string[];
-  date?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  hasAttachments?: boolean;
-  expands?: string[];
-  [key: string]: string | string[] | boolean | undefined;
-}
-
-export interface BudgetExpandParams {
-  expands?: string[];
-  idMode?: 'user' | 'system';
-  [key: string]: string | string[] | undefined;
-}
-
 export class Saturation {
-  private http: HTTPClient;
+  private client: ReturnType<typeof createClient>;
 
   constructor(options: SaturationOptions) {
-    this.http = new HTTPClient(options.apiKey, options.baseURL);
+    const config: Config = {
+      baseUrl: options.baseURL || 'https://api.saturation.io/api/v1',
+      headers: {
+        'X-API-Key': options.apiKey,
+      },
+    };
+    this.client = createClient(config);
   }
 
   // Projects
 
-  async listProjects(params?: ListProjectsParams): Promise<{ projects: Types.Project[] }> {
-    return this.http.get('/projects', params);
+  async listProjects(
+    params?: Types.ListProjectsData['query'],
+  ): Promise<{ projects: Types.Project[] }> {
+    const result = await sdk.listProjects({
+      client: this.client,
+      query: params,
+    });
+    return result.data as { projects: Types.Project[] };
   }
 
   async getProject(projectId: string): Promise<Types.Project> {
-    return this.http.get(`/projects/${projectId}`);
+    const result = await sdk.getProject({
+      client: this.client,
+      path: { projectId },
+    });
+    return result.data as Types.Project;
   }
 
   async createProject(data: Types.CreateProjectInput): Promise<Types.Project> {
-    return this.http.post('/projects', data);
+    const result = await sdk.createProject({
+      client: this.client,
+      body: data,
+    });
+    return result.data as Types.Project;
   }
 
   async updateProject(projectId: string, data: Types.UpdateProjectInput): Promise<Types.Project> {
-    return this.http.patch(`/projects/${projectId}`, data);
+    const result = await sdk.updateProject({
+      client: this.client,
+      path: { projectId },
+      body: data,
+    });
+    return result.data as Types.Project;
   }
 
   async deleteProject(projectId: string): Promise<void> {
-    return this.http.delete(`/projects/${projectId}`);
+    await sdk.deleteProject({
+      client: this.client,
+      path: { projectId },
+    });
   }
 
   // Budget
 
-  async getProjectBudget(projectId: string, params?: BudgetExpandParams): Promise<Types.Budget> {
-    return this.http.get(`/projects/${projectId}/budget`, params);
+  async getProjectBudget(
+    projectId: string,
+    params?: Types.GetProjectBudgetData['query'],
+  ): Promise<Types.Budget> {
+    const result = await sdk.getProjectBudget({
+      client: this.client,
+      path: { projectId },
+      query: params,
+    });
+    return result.data as Types.Budget;
   }
 
   async createBudgetLines(projectId: string, data: Types.CreateBudgetInput): Promise<Types.Budget> {
-    return this.http.post(`/projects/${projectId}/budget`, data);
+    const result = await sdk.createBudgetLines({
+      client: this.client,
+      path: { projectId },
+      body: data,
+    });
+    return result.data as Types.Budget;
   }
 
   async getBudgetLine(
     projectId: string,
     lineId: string,
-    params?: BudgetExpandParams,
-  ): Promise<Types.Account> {
-    return this.http.get(`/projects/${projectId}/budget/line/${lineId}`, params);
+    params?: Types.GetBudgetLineData['query'],
+  ): Promise<Types.BudgetLine> {
+    const result = await sdk.getBudgetLine({
+      client: this.client,
+      path: { projectId, lineId },
+      query: params,
+    });
+    return result.data as Types.BudgetLine;
   }
 
   async updateBudgetLine(
@@ -112,116 +105,64 @@ export class Saturation {
     lineId: string,
     data: Types.UpdateBudgetLineRequest,
   ): Promise<Types.BudgetLine> {
-    return this.http.patch(`/projects/${projectId}/budget/line/${lineId}`, data);
+    const result = await sdk.updateBudgetLine({
+      client: this.client,
+      path: { projectId, lineId },
+      body: data,
+    });
+    return result.data as Types.BudgetLine;
   }
 
-  async deleteBudgetLine(projectId: string, lineId: string): Promise<void> {
-    return this.http.delete(`/projects/${projectId}/budget/line/${lineId}`);
-  }
-
-  // Budget Phases
-
-  async listBudgetPhases(projectId: string): Promise<{ phases: Types.Phase[] }> {
-    return this.http.get(`/projects/${projectId}/budget/phases`);
-  }
-
-  async createBudgetPhase(projectId: string, data: Types.CreatePhaseRequest): Promise<Types.Phase> {
-    return this.http.post(`/projects/${projectId}/budget/phases`, data);
-  }
-
-  async getBudgetPhase(projectId: string, phaseId: string): Promise<Types.Phase> {
-    return this.http.get(`/projects/${projectId}/budget/phases/${phaseId}`);
-  }
-
-  async updateBudgetPhase(
+  async deleteBudgetLine(
     projectId: string,
-    phaseId: string,
-    data: Types.UpdatePhaseRequest,
-  ): Promise<Types.Phase> {
-    return this.http.patch(`/projects/${projectId}/budget/phases/${phaseId}`, data);
-  }
-
-  async deleteBudgetPhase(projectId: string, phaseId: string): Promise<void> {
-    return this.http.delete(`/projects/${projectId}/budget/phases/${phaseId}`);
-  }
-
-  // Budget Fringes
-
-  async listBudgetFringes(projectId: string): Promise<{ fringes: Types.Fringe[] }> {
-    return this.http.get(`/projects/${projectId}/budget/fringes`);
-  }
-
-  async createBudgetFringe(
-    projectId: string,
-    data: Types.CreateFringeRequest,
-  ): Promise<Types.Fringe> {
-    return this.http.post(`/projects/${projectId}/budget/fringes`, data);
-  }
-
-  async getBudgetFringe(projectId: string, fringeId: string): Promise<Types.Fringe> {
-    return this.http.get(`/projects/${projectId}/budget/fringes/${fringeId}`);
-  }
-
-  async updateBudgetFringe(
-    projectId: string,
-    fringeId: string,
-    data: Types.UpdateFringeRequest,
-  ): Promise<Types.Fringe> {
-    return this.http.patch(`/projects/${projectId}/budget/fringes/${fringeId}`, data);
-  }
-
-  async deleteBudgetFringe(projectId: string, fringeId: string): Promise<void> {
-    return this.http.delete(`/projects/${projectId}/budget/fringes/${fringeId}`);
-  }
-
-  // Budget Globals
-
-  async listBudgetGlobals(projectId: string): Promise<{ globals: Types.Global[] }> {
-    return this.http.get(`/projects/${projectId}/budget/globals`);
-  }
-
-  async createBudgetGlobal(
-    projectId: string,
-    data: Types.CreateGlobalRequest,
-  ): Promise<Types.Global> {
-    return this.http.post(`/projects/${projectId}/budget/globals`, data);
-  }
-
-  async getBudgetGlobal(projectId: string, globalId: string): Promise<Types.Global> {
-    return this.http.get(`/projects/${projectId}/budget/globals/${globalId}`);
-  }
-
-  async updateBudgetGlobal(
-    projectId: string,
-    globalId: string,
-    data: Types.UpdateGlobalRequest,
-  ): Promise<Types.Global> {
-    return this.http.patch(`/projects/${projectId}/budget/globals/${globalId}`, data);
-  }
-
-  async deleteBudgetGlobal(projectId: string, globalId: string): Promise<void> {
-    return this.http.delete(`/projects/${projectId}/budget/globals/${globalId}`);
+    lineId: string,
+    idMode?: 'user' | 'system',
+  ): Promise<void> {
+    await sdk.deleteBudgetLine({
+      client: this.client,
+      path: { projectId, lineId },
+      query: { idMode },
+    });
   }
 
   // Actuals
 
   async listProjectActuals(
     projectId: string,
-    params?: ListActualsParams,
-  ): Promise<{ actuals: Types.Actual[] }> {
-    return this.http.get(`/projects/${projectId}/actuals`, params);
+    params?: Types.ListActualsData['query'],
+  ): Promise<{ actuals: Types.Actual[]; totalAmount: number }> {
+    const result = await sdk.listActuals({
+      client: this.client,
+      path: { projectId },
+      query: params,
+    });
+    return result.data as { actuals: Types.Actual[]; totalAmount: number };
   }
 
   async getActual(
     projectId: string,
     actualId: string,
-    params?: { expands?: string[] },
+    params?: Types.GetActualData['query'],
   ): Promise<Types.Actual> {
-    return this.http.get(`/projects/${projectId}/actuals/${actualId}`, params);
+    const result = await sdk.getActual({
+      client: this.client,
+      path: { projectId, actualId },
+      query: params,
+    });
+    return result.data as Types.Actual;
   }
 
-  async createActual(projectId: string, data: Types.CreateActualInput): Promise<Types.Actual> {
-    return this.http.post(`/projects/${projectId}/actuals`, data);
+  async createActual(
+    projectId: string,
+    actualId: string,
+    data: Types.CreateActualInput,
+  ): Promise<Types.Actual> {
+    const result = await sdk.createActual({
+      client: this.client,
+      path: { projectId, actualId },
+      body: data,
+    });
+    return result.data as Types.Actual;
   }
 
   async updateActual(
@@ -229,54 +170,72 @@ export class Saturation {
     actualId: string,
     data: Types.UpdateActualInput,
   ): Promise<Types.Actual> {
-    return this.http.patch(`/projects/${projectId}/actuals/${actualId}`, data);
+    const result = await sdk.updateActual({
+      client: this.client,
+      path: { projectId, actualId },
+      body: data,
+    });
+    return result.data as Types.Actual;
   }
 
   async deleteActual(projectId: string, actualId: string): Promise<void> {
-    return this.http.delete(`/projects/${projectId}/actuals/${actualId}`);
+    await sdk.deleteActual({
+      client: this.client,
+      path: { projectId, actualId },
+    });
   }
 
   async uploadActualAttachment(
     projectId: string,
     actualId: string,
-    file: Buffer | Blob,
-    filename: string,
-  ): Promise<Types.Attachment> {
-    const formData = new FormData();
-    formData.append('file', file instanceof Buffer ? new Blob([file]) : file, filename);
-
-    return this.http.request({
-      method: 'POST',
-      path: `/projects/${projectId}/actuals/${actualId}/attachments`,
-      data: formData,
-      headers: {
-        // Remove Content-Type to let fetch set it with boundary
-      },
+    file: File | Blob,
+  ): Promise<Types.File> {
+    const result = await sdk.uploadActualAttachment({
+      client: this.client,
+      path: { projectId, actualId },
+      body: { file },
     });
+    return result.data as Types.File;
   }
 
   // Purchase Orders
 
   async listPurchaseOrders(
     projectId: string,
-    params?: ListPurchaseOrdersParams,
+    params?: Types.ListPurchaseOrdersData['query'],
   ): Promise<{ purchaseOrders: Types.PurchaseOrder[] }> {
-    return this.http.get(`/projects/${projectId}/purchase-orders`, params);
+    const result = await sdk.listPurchaseOrders({
+      client: this.client,
+      path: { projectId },
+      query: params,
+    });
+    return result.data as { purchaseOrders: Types.PurchaseOrder[] };
   }
 
   async getPurchaseOrder(
     projectId: string,
     purchaseOrderId: string,
-    params?: { expands?: string[] },
+    params?: Types.GetPurchaseOrderData['query'],
   ): Promise<Types.PurchaseOrder> {
-    return this.http.get(`/projects/${projectId}/purchase-orders/${purchaseOrderId}`, params);
+    const result = await sdk.getPurchaseOrder({
+      client: this.client,
+      path: { projectId, purchaseOrderId },
+      query: params,
+    });
+    return result.data as Types.PurchaseOrder;
   }
 
   async createPurchaseOrder(
     projectId: string,
+    purchaseOrderId: string,
     data: Types.CreatePurchaseOrderInput,
   ): Promise<Types.PurchaseOrder> {
-    return this.http.post(`/projects/${projectId}/purchase-orders`, data);
+    const result = await sdk.createPurchaseOrder({
+      client: this.client,
+      path: { projectId, purchaseOrderId },
+      body: data,
+    });
+    return result.data as Types.PurchaseOrder;
   }
 
   async updatePurchaseOrder(
@@ -284,29 +243,373 @@ export class Saturation {
     purchaseOrderId: string,
     data: Types.UpdatePurchaseOrderInput,
   ): Promise<Types.PurchaseOrder> {
-    return this.http.patch(`/projects/${projectId}/purchase-orders/${purchaseOrderId}`, data);
+    const result = await sdk.updatePurchaseOrder({
+      client: this.client,
+      path: { projectId, purchaseOrderId },
+      body: data,
+    });
+    return result.data as Types.PurchaseOrder;
   }
 
   async deletePurchaseOrder(projectId: string, purchaseOrderId: string): Promise<void> {
-    return this.http.delete(`/projects/${projectId}/purchase-orders/${purchaseOrderId}`);
+    await sdk.deletePurchaseOrder({
+      client: this.client,
+      path: { projectId, purchaseOrderId },
+    });
   }
 
   async uploadPurchaseOrderAttachment(
     projectId: string,
     purchaseOrderId: string,
-    file: Buffer | Blob,
-    filename: string,
-  ): Promise<Types.Attachment> {
-    const formData = new FormData();
-    formData.append('file', file instanceof Buffer ? new Blob([file]) : file, filename);
+    file: File | Blob,
+  ): Promise<Types.File> {
+    const result = await sdk.uploadPurchaseOrderAttachment({
+      client: this.client,
+      path: { projectId, purchaseOrderId },
+      body: { file },
+    });
+    return result.data as Types.File;
+  }
 
-    return this.http.request({
-      method: 'POST',
-      path: `/projects/${projectId}/purchase-orders/${purchaseOrderId}/attachments`,
-      data: formData,
-      headers: {
-        // Remove Content-Type to let fetch set it with boundary
-      },
+  // Budget Phases
+
+  async listBudgetPhases(
+    projectId: string,
+    idMode?: 'user' | 'system',
+  ): Promise<{ phases: Types.Phase[] }> {
+    const result = await sdk.listBudgetPhases({
+      client: this.client,
+      path: { projectId },
+      query: { idMode },
+    });
+    return result.data as { phases: Types.Phase[] };
+  }
+
+  async getBudgetPhase(
+    projectId: string,
+    phaseId: string,
+    idMode?: 'user' | 'system',
+  ): Promise<Types.Phase> {
+    const result = await sdk.getBudgetPhase({
+      client: this.client,
+      path: { projectId, phaseId },
+      query: { idMode },
+    });
+    return result.data as Types.Phase;
+  }
+
+  async createBudgetPhase(projectId: string, data: Types.CreatePhaseRequest): Promise<Types.Phase> {
+    const result = await sdk.createBudgetPhase({
+      client: this.client,
+      path: { projectId },
+      body: data,
+    });
+    return result.data as Types.Phase;
+  }
+
+  async updateBudgetPhase(
+    projectId: string,
+    phaseId: string,
+    data: Types.UpdatePhaseRequest,
+  ): Promise<Types.Phase> {
+    const result = await sdk.updateBudgetPhase({
+      client: this.client,
+      path: { projectId, phaseId },
+      body: data,
+    });
+    return result.data as Types.Phase;
+  }
+
+  async deleteBudgetPhase(projectId: string, phaseId: string): Promise<void> {
+    await sdk.deleteBudgetPhase({
+      client: this.client,
+      path: { projectId, phaseId },
+    });
+  }
+
+  // Budget Fringes
+
+  async listBudgetFringes(
+    projectId: string,
+    idMode?: 'user' | 'system',
+  ): Promise<{ fringes: Types.Fringe[] }> {
+    const result = await sdk.listBudgetFringes({
+      client: this.client,
+      path: { projectId },
+      query: { idMode },
+    });
+    return result.data as { fringes: Types.Fringe[] };
+  }
+
+  async getBudgetFringe(
+    projectId: string,
+    fringeId: string,
+    idMode?: 'user' | 'system',
+  ): Promise<Types.Fringe> {
+    const result = await sdk.getBudgetFringe({
+      client: this.client,
+      path: { projectId, fringeId },
+      query: { idMode },
+    });
+    return result.data as Types.Fringe;
+  }
+
+  async createBudgetFringe(
+    projectId: string,
+    data: Types.CreateFringeRequest,
+  ): Promise<Types.Fringe> {
+    const result = await sdk.createBudgetFringe({
+      client: this.client,
+      path: { projectId },
+      body: data,
+    });
+    return result.data as Types.Fringe;
+  }
+
+  async updateBudgetFringe(
+    projectId: string,
+    fringeId: string,
+    data: Types.UpdateFringeRequest,
+  ): Promise<Types.Fringe> {
+    const result = await sdk.updateBudgetFringe({
+      client: this.client,
+      path: { projectId, fringeId },
+      body: data,
+    });
+    return result.data as Types.Fringe;
+  }
+
+  async deleteBudgetFringe(projectId: string, fringeId: string): Promise<void> {
+    await sdk.deleteBudgetFringe({
+      client: this.client,
+      path: { projectId, fringeId },
+    });
+  }
+
+  // Budget Globals
+
+  async listBudgetGlobals(
+    projectId: string,
+    idMode?: 'user' | 'system',
+  ): Promise<{ globals: Types.Global[] }> {
+    const result = await sdk.listBudgetGlobals({
+      client: this.client,
+      path: { projectId },
+      query: { idMode },
+    });
+    return result.data as { globals: Types.Global[] };
+  }
+
+  async getBudgetGlobal(
+    projectId: string,
+    globalId: string,
+    idMode?: 'user' | 'system',
+  ): Promise<Types.Global> {
+    const result = await sdk.getBudgetGlobal({
+      client: this.client,
+      path: { projectId, globalId },
+      query: { idMode },
+    });
+    return result.data as Types.Global;
+  }
+
+  async createBudgetGlobal(
+    projectId: string,
+    data: Types.CreateGlobalRequest,
+  ): Promise<Types.Global> {
+    const result = await sdk.createBudgetGlobal({
+      client: this.client,
+      path: { projectId },
+      body: data,
+    });
+    return result.data as Types.Global;
+  }
+
+  async updateBudgetGlobal(
+    projectId: string,
+    globalId: string,
+    data: Types.UpdateGlobalRequest,
+  ): Promise<Types.Global> {
+    const result = await sdk.updateBudgetGlobal({
+      client: this.client,
+      path: { projectId, globalId },
+      body: data,
+    });
+    return result.data as Types.Global;
+  }
+
+  async deleteBudgetGlobal(projectId: string, globalId: string): Promise<void> {
+    await sdk.deleteBudgetGlobal({
+      client: this.client,
+      path: { projectId, globalId },
+    });
+  }
+
+  // Project Tags
+
+  async listProjectTags(
+    projectId: string,
+    params?: Types.ListTagsData['query'],
+  ): Promise<Types.TagsResponse> {
+    const result = await sdk.listTags({
+      client: this.client,
+      path: { projectId },
+      query: params,
+    });
+    return result.data as Types.TagsResponse;
+  }
+
+  async getProjectTag(
+    projectId: string,
+    tagId: string,
+    idMode?: 'user' | 'system',
+  ): Promise<Types.TagResponse> {
+    const result = await sdk.getTag({
+      client: this.client,
+      path: { projectId, tagId },
+      query: { idMode },
+    });
+    return result.data as Types.TagResponse;
+  }
+
+  async createProjectTag(
+    projectId: string,
+    data: Types.CreateTagRequest,
+  ): Promise<Types.TagResponse> {
+    const result = await sdk.createTag({
+      client: this.client,
+      path: { projectId },
+      body: data,
+    });
+    return result.data as Types.TagResponse;
+  }
+
+  async updateProjectTag(
+    projectId: string,
+    tagId: string,
+    data: Types.UpdateTagRequest,
+  ): Promise<Types.TagResponse> {
+    const result = await sdk.updateTag({
+      client: this.client,
+      path: { projectId, tagId },
+      body: data,
+    });
+    return result.data as Types.TagResponse;
+  }
+
+  async deleteProjectTag(projectId: string, tagId: string): Promise<void> {
+    await sdk.deleteTag({
+      client: this.client,
+      path: { projectId, tagId },
+    });
+  }
+
+  // Contacts
+
+  async listContacts(
+    params?: Types.ListContactsData['query'],
+  ): Promise<{ contacts: Types.Contact[] }> {
+    const result = await sdk.listContacts({
+      client: this.client,
+      query: params,
+    });
+    return result.data as { contacts: Types.Contact[] };
+  }
+
+  async getContact(
+    contactId: string,
+    params?: Types.GetContactData['query'],
+  ): Promise<Types.Contact> {
+    const result = await sdk.getContact({
+      client: this.client,
+      path: { contactId },
+      query: params,
+    });
+    return result.data as Types.Contact;
+  }
+
+  async createContact(data: Types.CreateContactInput): Promise<Types.Contact> {
+    const result = await sdk.createContact({
+      client: this.client,
+      body: data,
+    });
+    return result.data as Types.Contact;
+  }
+
+  async updateContact(contactId: string, data: Types.UpdateContactInput): Promise<Types.Contact> {
+    const result = await sdk.updateContact({
+      client: this.client,
+      path: { contactId },
+      body: data,
+    });
+    return result.data as Types.Contact;
+  }
+
+  // Spaces
+
+  async listSpaces(params?: Types.ListSpacesData['query']): Promise<{ spaces: Types.Space[] }> {
+    const result = await sdk.listSpaces({
+      client: this.client,
+      query: params,
+    });
+    return result.data as { spaces: Types.Space[] };
+  }
+
+  async getSpace(spaceId: string, params?: Types.GetSpaceData['query']): Promise<Types.Space> {
+    const result = await sdk.getSpace({
+      client: this.client,
+      path: { spaceId },
+      query: params,
+    });
+    return result.data as Types.Space;
+  }
+
+  async createSpace(data: Types.CreateSpaceInput): Promise<Types.Space> {
+    const result = await sdk.createSpace({
+      client: this.client,
+      body: data,
+    });
+    return result.data as Types.Space;
+  }
+
+  async updateSpace(spaceId: string, data: Types.UpdateSpaceInput): Promise<Types.Space> {
+    const result = await sdk.updateSpace({
+      client: this.client,
+      path: { spaceId },
+      body: data,
+    });
+    return result.data as Types.Space;
+  }
+
+  async deleteSpace(spaceId: string): Promise<void> {
+    await sdk.deleteSpace({
+      client: this.client,
+      path: { spaceId },
+    });
+  }
+
+  // Files
+
+  async uploadFile(file: File | Blob, projectId?: string, type?: string): Promise<Types.File> {
+    const result = await sdk.uploadFile({
+      client: this.client,
+      body: { file, projectId, type },
+    });
+    return result.data as Types.File;
+  }
+
+  async downloadFile(fileId: string): Promise<Blob> {
+    const result = await sdk.downloadFile({
+      client: this.client,
+      path: { fileId },
+    });
+    return result.data as Blob;
+  }
+
+  async deleteFile(fileId: string): Promise<void> {
+    await sdk.deleteFile({
+      client: this.client,
+      path: { fileId },
     });
   }
 
@@ -314,230 +617,49 @@ export class Saturation {
 
   async listProjectComments(
     projectId: string,
-    params?: { lineId?: string },
+    params?: Types.ListCommentsData['query'],
   ): Promise<{ comments: Types.Comment[] }> {
-    return this.http.get(`/projects/${projectId}/comments`, params);
-  }
-
-  // Spaces
-
-  async listSpaces(params?: { name?: string | string[] }): Promise<{ spaces: Types.Space[] }> {
-    return this.http.get('/spaces', params);
-  }
-
-  async createSpace(data: Types.CreateSpaceInput): Promise<Types.Space> {
-    return this.http.post('/spaces', data);
-  }
-
-  async getSpace(spaceId: string): Promise<Types.Space> {
-    return this.http.get(`/spaces/${spaceId}`);
-  }
-
-  async updateSpace(spaceId: string, data: Types.UpdateSpaceInput): Promise<Types.Space> {
-    return this.http.patch(`/spaces/${spaceId}`, data);
-  }
-
-  async deleteSpace(spaceId: string): Promise<void> {
-    return this.http.delete(`/spaces/${spaceId}`);
-  }
-
-  // Files
-
-  async uploadFile(file: Buffer | Blob, filename: string): Promise<Types.UploadResponse> {
-    const formData = new FormData();
-    formData.append('file', file instanceof Buffer ? new Blob([file]) : file, filename);
-
-    return this.http.request({
-      method: 'POST',
-      path: '/files/upload',
-      data: formData,
-      headers: {
-        // Remove Content-Type to let fetch set it with boundary
-      },
+    const result = await sdk.listComments({
+      client: this.client,
+      path: { projectId },
+      query: params,
     });
+    return result.data as { comments: Types.Comment[] };
   }
 
-  async downloadFile(fileId: string): Promise<Buffer> {
-    return this.http.get(`/files/${fileId}`);
-  }
+  // Workspace Rates
 
-  async deleteFile(fileId: string): Promise<void> {
-    return this.http.delete(`/files/${fileId}`);
-  }
-
-  // Tags
-
-  async listProjectTags(
-    projectId: string,
-    params?: { name?: string | string[] },
-  ): Promise<{ tags: Types.Tag[] }> {
-    return this.http.get(`/projects/${projectId}/tags`, params);
-  }
-
-  async createProjectTag(
-    projectId: string,
-    data: Types.CreateTagInput,
-  ): Promise<Types.TagResponse> {
-    return this.http.post(`/projects/${projectId}/tags`, data);
-  }
-
-  async getProjectTag(projectId: string, tagId: string): Promise<Types.TagResponse> {
-    return this.http.get(`/projects/${projectId}/tags/${tagId}`);
-  }
-
-  async updateProjectTag(
-    projectId: string,
-    tagId: string,
-    data: Types.UpdateTagInput,
-  ): Promise<Types.TagResponse> {
-    return this.http.patch(`/projects/${projectId}/tags/${tagId}`, data);
-  }
-
-  async deleteProjectTag(projectId: string, tagId: string): Promise<void> {
-    return this.http.delete(`/projects/${projectId}/tags/${tagId}`);
-  }
-
-  // Contacts
-
-  async listContacts(params?: {
-    name?: string | string[];
-    email?: string | string[];
-    phone?: string | string[];
-    companyName?: string | string[];
-    type?: 'individual' | 'company';
-  }): Promise<{ contacts: Types.Contact[] }> {
-    return this.http.get('/contacts', params);
-  }
-
-  async createContact(data: Types.CreateContactInput): Promise<Types.Contact> {
-    return this.http.post('/contacts', data);
-  }
-
-  async getContact(contactId: string): Promise<Types.Contact> {
-    return this.http.get(`/contacts/${contactId}`);
-  }
-
-  async updateContact(contactId: string, data: Types.UpdateContactInput): Promise<Types.Contact> {
-    return this.http.patch(`/contacts/${contactId}`, data);
-  }
-
-  async uploadContactTaxDocument(
-    contactId: string,
-    file: Buffer | Blob,
-    filename: string,
-  ): Promise<Types.TaxDocument> {
-    const formData = new FormData();
-    formData.append('file', file instanceof Buffer ? new Blob([file]) : file, filename);
-
-    return this.http.request({
-      method: 'POST',
-      path: `/contacts/${contactId}/tax-documents`,
-      data: formData,
-      headers: {
-        // Remove Content-Type to let fetch set it with boundary
-      },
+  async listWorkspaceRates(
+    params?: Types.ListWorkspaceRatesData['query'],
+  ): Promise<{ rates: Types.Rate[] }> {
+    const result = await sdk.listWorkspaceRates({
+      client: this.client,
+      query: params,
     });
+    return result.data as { rates: Types.Rate[] };
   }
 
-  async uploadContactAttachment(
-    contactId: string,
-    file: Buffer | Blob,
-    filename: string,
-  ): Promise<Types.Attachment> {
-    const formData = new FormData();
-    formData.append('file', file instanceof Buffer ? new Blob([file]) : file, filename);
-
-    return this.http.request({
-      method: 'POST',
-      path: `/contacts/${contactId}/attachments`,
-      data: formData,
-      headers: {
-        // Remove Content-Type to let fetch set it with boundary
-      },
+  async createWorkspaceRate(data: Types.CreateRateInput): Promise<Types.Rate> {
+    const result = await sdk.createWorkspaceRate({
+      client: this.client,
+      body: data,
     });
-  }
-
-  // Transactions
-
-  async listTransactions(
-    params?: ListTransactionsParams,
-  ): Promise<{ transactions: Types.Transaction[] }> {
-    return this.http.get('/transactions', params);
-  }
-
-  async getTransaction(
-    transactionId: string,
-    params?: { expands?: string[] },
-  ): Promise<Types.Transaction> {
-    return this.http.get(`/transactions/${transactionId}`, params);
-  }
-
-  async updateTransaction(
-    transactionId: string,
-    data: Types.UpdateTransactionInput,
-  ): Promise<Types.Transaction> {
-    return this.http.patch(`/transactions/${transactionId}`, data);
-  }
-
-  async uploadTransactionAttachment(
-    transactionId: string,
-    file: Buffer | Blob,
-    filename: string,
-  ): Promise<Types.Attachment> {
-    const formData = new FormData();
-    formData.append('file', file instanceof Buffer ? new Blob([file]) : file, filename);
-
-    return this.http.request({
-      method: 'POST',
-      path: `/transactions/${transactionId}/attachments`,
-      data: formData,
-      headers: {
-        // Remove Content-Type to let fetch set it with boundary
-      },
-    });
-  }
-
-  // Rates
-
-  async listWorkspaceRates(params?: {
-    lineItemId?: string | string[];
-    contactId?: string | string[];
-    tags?: string | string[];
-  }): Promise<{ rates: Types.WorkspaceRate[] }> {
-    return this.http.get('/rates', params);
-  }
-
-  async createWorkspaceRate(data: Types.CreateWorkspaceRateInput): Promise<Types.WorkspaceRate> {
-    return this.http.post('/rates', data);
-  }
-
-  async updateWorkspaceRate(
-    rateId: string,
-    data: Types.UpdateWorkspaceRateInput,
-  ): Promise<Types.WorkspaceRate> {
-    return this.http.patch(`/rates/${rateId}`, data);
+    return result.data as Types.Rate;
   }
 
   async deleteWorkspaceRate(rateId: string): Promise<void> {
-    return this.http.delete(`/rates/${rateId}`);
+    await sdk.deleteWorkspaceRate({
+      client: this.client,
+      path: { rateId },
+    });
   }
 
-  // Public Rates
-
-  async listPublicRates(params?: {
-    search?: string;
-    country?: string;
-    state?: string;
-    city?: string;
-    union?: string;
-    position?: string;
-    page?: number;
-    limit?: number;
-  }): Promise<{ rates: Types.PublicRate[] }> {
-    return this.http.get('/public-rates', params);
-  }
-
-  async getPublicRatepackRates(ratepackId: string): Promise<{ rates: Types.PublicRate[] }> {
-    return this.http.get(`/public-rates/ratepacks/${ratepackId}`);
+  async updateWorkspaceRate(rateId: string, data: Types.UpdateRateInput): Promise<Types.Rate> {
+    const result = await sdk.updateWorkspaceRate({
+      client: this.client,
+      path: { rateId },
+      body: data,
+    });
+    return result.data as Types.Rate;
   }
 }

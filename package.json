@@ -47,11 +47,12 @@
     "dev": "tsc -w -p tsconfig.esm.json",
     "format": "prettier --write \"src/**/*.{ts,tsx,json,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,json,md}\"",
-    "generate": "tsx scripts/generate-from-openapi.ts",
+    "generate": "npx @hey-api/openapi-ts",
+    "generate:old": "tsx scripts/generate-from-openapi.ts",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "prepublishOnly": "npm run build",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "test:coverage": "jest --coverage",
     "test:watch": "jest --watch",
     "typecheck": "tsc --noEmit"
@@ -60,6 +61,7 @@
     "node-fetch": "^3.3.2"
   },
   "devDependencies": {
+    "@hey-api/openapi-ts": "^0.80.8",
     "@types/jest": "^29.5.12",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.11.30",

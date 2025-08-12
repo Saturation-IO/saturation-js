@@ -1,15 +1,6 @@
+// Main SDK client
 export { Saturation } from './client.js';
 export type { SaturationOptions } from './client.js';
-export { SaturationError } from './http-client.js';
 
-// Export all types
-export * from './types/index.js';
-
-// Export parameter types
-export type {
-  ListProjectsParams,
-  ListActualsParams,
-  ListPurchaseOrdersParams,
-  ListTransactionsParams,
-  BudgetExpandParams,
-} from './client.js';
+// Re-export all types from the generated types file
+export * from './generated/types.gen.js';

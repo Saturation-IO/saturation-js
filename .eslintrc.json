@@ -32,7 +32,7 @@
       }
     ]
   },
-  "ignorePatterns": ["dist", "node_modules", "scripts", "*.js", "*.cjs", "*.mjs"],
+  "ignorePatterns": ["dist", "node_modules", "scripts", "src/generated", "*.js", "*.cjs", "*.mjs"],
   "overrides": [
     {
       "files": ["**/*.test.ts", "**/__tests__/**/*.ts", "**/__mocks__/**/*.ts"],

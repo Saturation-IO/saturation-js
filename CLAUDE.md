@@ -25,13 +25,15 @@ After making any code changes, ALWAYS run these commands in order:
 
 ## Code Generation
 
-The SDK includes auto-generated code from the OpenAPI specification:
+The SDK uses @hey-api/openapi-ts to generate TypeScript code from the OpenAPI specification:
 
-- **DO NOT manually edit** files marked with "Do not edit manually"
+- **DO NOT manually edit** files in the `src/generated/` directory
 - To update generated code: `npm run generate`
 - Generated files:
-  - `src/generated-api.ts` - API method stubs
-  - `src/types/index.ts` - TypeScript interfaces (partially generated)
+  - `src/generated/sdk.gen.ts` - API function implementations
+  - `src/generated/types.gen.ts` - TypeScript interfaces and types
+  - `src/generated/client/` - HTTP client implementation
+  - `src/generated/core/` - Core utilities
 
 ## Development Workflow
 
@@ -73,31 +75,26 @@ The SDK includes auto-generated code from the OpenAPI specification:
 ```
 src/
 ├── client.ts           # Main SDK client class (Saturation)
-├── http-client.ts      # HTTP request handling
-├── fetch-wrapper.ts    # Cross-platform fetch implementation
-├── generated-api.ts    # Auto-generated API methods (DO NOT EDIT)
-├── types/
-│   └── index.ts       # TypeScript interfaces (partially generated)
+├── generated/          # Auto-generated code (DO NOT EDIT)
+│   ├── sdk.gen.ts     # Generated API functions
+│   ├── types.gen.ts   # Generated TypeScript types
+│   ├── client/        # Generated HTTP client
+│   └── core/          # Generated utilities
 └── index.ts           # Main export file
 ```
 
 ## API Implementation Pattern
 
-When implementing API methods in `client.ts`:
+The SDK wraps the generated API functions in `client.ts` to provide a clean interface:
 
 ```typescript
-async methodName(param: string, data: Types.SomeInput): Promise<Types.SomeOutput> {
-  // Always validate required parameters
-  if (!param) {
-    throw new Error('param is required');
-  }
-  
-  // Use the http client for requests
-  return this.http.request<Types.SomeOutput>({
-    method: 'POST',
-    path: `/api/path/${param}`,
-    data
+async methodName(projectId: string, data: Types.SomeInput): Promise<Types.SomeOutput> {
+  const result = await sdk.someMethod({
+    client: this.client,
+    path: { projectId },
+    body: data,
   });
+  return result.data as Types.SomeOutput;
 }
 ```
 
@@ -111,8 +108,9 @@ async methodName(param: string, data: Types.SomeInput): Promise<Types.SomeOutput
 5. Run `npm run typecheck && npm test`
 
 ### Updating types
-1. For generated types: Update `openapi.yaml` and run `npm run generate`
-2. For SDK-specific types: Add to the "Additional type exports" section in `scripts/generate-from-openapi.ts`
+1. All types are now generated from `openapi.yaml`
+2. Run `npm run generate` to update types after OpenAPI spec changes
+3. The client.ts file uses the generated types directly
 
 ### Publishing (Internal Use)
 See `PUBLISHING.md` for detailed publishing instructions.

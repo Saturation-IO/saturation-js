@@ -572,7 +572,7 @@
         - $ref: '#/components/parameters/ProjectId'
       
       get:
-        operationId: listProjectActuals
+        operationId: listActuals
         summary: List actuals
         description: Retrieve actual spending data for a project
         tags:
@@ -1533,8 +1533,8 @@
         - $ref: '#/components/parameters/ProjectId'
       
       get:
-        operationId: listProjectComments
-        summary: List project comments
+        operationId: listComments
+        summary: List comments
         description: Retrieve all comments for a project's budget
         tags:
           - Comments
@@ -1849,8 +1849,8 @@
         - $ref: '#/components/parameters/ProjectId'
       
       get:
-        operationId: listProjectTags
-        summary: List project tags
+        operationId: listTags
+        summary: List tags
         description: |
           Retrieve all tags for a project with optional filtering and sorting.
           
@@ -1898,8 +1898,8 @@
             $ref: '#/components/responses/InternalServerError'
       
       post:
-        operationId: createProjectTag
-        summary: Create project tag
+        operationId: createTag
+        summary: Create tag
         description: |
           Create a new tag for the project. Tags are used to categorize budget line items
           and enable advanced filtering capabilities.
@@ -1941,8 +1941,8 @@
             example: "Post-Production"
       
       get:
-        operationId: getProjectTag
-        summary: Get project tag
+        operationId: getTag
+        summary: Get tag
         description: |
           Retrieve a specific tag by ID, including its financial totals aggregated
           from all associated budget line items.
@@ -1965,8 +1965,8 @@
             $ref: '#/components/responses/InternalServerError'
       
       put:
-        operationId: updateProjectTag
-        summary: Update project tag
+        operationId: updateTag
+        summary: Update tag
         description: |
           Update a tag's properties. Currently, only the color can be updated.
           Tag names and descriptions cannot be modified after creation.
@@ -1995,8 +1995,8 @@
             $ref: '#/components/responses/InternalServerError'
       
       delete:
-        operationId: deleteProjectTag
-        summary: Delete project tag
+        operationId: deleteTag
+        summary: Delete tag
         description: |
           Delete a tag and remove all its assignments from budget line items.
           This operation cannot be undone.

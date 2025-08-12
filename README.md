@@ -29,7 +29,7 @@ pnpm add @saturation-api/js
 ## Quick Start
 
 ```typescript
-import { Saturation } from '@saturation-api/js';
+import { Saturation, type Project, type Budget } from '@saturation-api/js';
 
 // Initialize the client
 const client = new Saturation({
@@ -42,7 +42,7 @@ const { projects } = await client.listProjects({ status: 'active' });
 console.log('Active projects:', projects);
 
 // Get a specific project with its budget
-const budget = await client.getProjectBudget('nike-swoosh-commercial', {
+const budget: Budget = await client.getProjectBudget('nike-swoosh-commercial', {
   expands: ['phases', 'fringes', 'lines.contact', 'lines.phaseData'],
 });
 console.log('Project budget:', budget);
@@ -59,6 +59,38 @@ Get your API key from the Saturation web app:
 const client = new Saturation({
   apiKey: process.env.SATURATION_API_KEY!,
 });
+```
+
+## TypeScript Support
+
+All types are auto-generated from the OpenAPI specification and available for import:
+
+```typescript
+import { 
+  Saturation,
+  type Project,
+  type Budget,
+  type BudgetLine,
+  type Actual,
+  type PurchaseOrder,
+  type Contact,
+  type CreateProjectInput,
+  type UpdateProjectInput,
+  type ListProjectsData,
+  // ... and many more
+} from '@saturation-api/js';
+
+// Use types for better type safety
+function processProject(project: Project): void {
+  console.log(`Processing ${project.name}`);
+}
+
+// Use query parameter types
+const params: ListProjectsData['query'] = {
+  status: 'active',
+  labels: ['nike'],
+};
+const { projects } = await client.listProjects(params);
 ```
 
 ## Core Concepts
@@ -616,27 +648,12 @@ export default async function handler(
 The SDK provides detailed error information with proper TypeScript types.
 
 ```typescript
-import { SaturationError } from '@saturation-api/js';
-
 try {
   const project = await client.getProject('non-existent');
 } catch (error) {
-  if (error instanceof SaturationError) {
-    console.error(`API Error ${error.statusCode}: ${error.message}`);
-    console.error('Details:', error.details);
-    
-    switch (error.statusCode) {
-      case 401:
-        // Handle authentication error
-        break;
-      case 404:
-        // Handle not found
-        break;
-      case 429:
-        // Handle rate limiting
-        break;
-    }
-  }
+  console.error('API Error:', error);
+  // The generated client handles errors internally
+  // Check error.response for details if available
 }
 ```
 
