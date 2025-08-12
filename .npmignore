@@ -1,0 +1,40 @@
+# Source files (only publish built files)
+src/
+scripts/
+
+# Configuration files
+.eslintrc.json
+.prettierrc.json
+jest.config.js
+tsconfig*.json
+.gitignore
+.npmignore
+
+# Development files
+.github/
+coverage/
+__tests__/
+*.test.ts
+*.spec.ts
+
+# Temporary files
+tmp/
+temp/
+.cache/
+*.log
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Environment
+.env
+.env.*
+
+# Documentation source
+docs/
+
+# Package files
+*.tgz
