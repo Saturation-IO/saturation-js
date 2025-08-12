@@ -1,53 +1,62 @@
 # 🚀 Quick Start: Build a Saturation App with Claude Code
 
-Want to quickly test the Saturation SDK in a React app? Copy this prompt into Claude Code to create a simple "Hello World" app that connects to your Saturation workspace. The app will be created in your current directory.
+Want to quickly test the Saturation SDK in a Next.js app? Copy this prompt into Claude Code to create a simple "Hello World" app that connects to your Saturation workspace and is ready to deploy on Vercel. The app will be created in your current directory.
 
 ## The Simple Prompt
 
-Copy and paste this entire prompt into Claude Code, replacing `YOUR_API_KEY_HERE` with your actual Saturation API key:
+Copy and paste this entire prompt into Claude Code:
 
 ```
 First, read the Saturation SDK README to understand the library:
 https://github.com/Saturation-IO/saturation-js/blob/main/README.md
 
-Then create a simple single-page React application in the CURRENT DIRECTORY (do NOT create a new folder) with:
-- Vite as the build tool
-- React with TypeScript
+Then create a simple Next.js application in the CURRENT DIRECTORY (do NOT create a new folder) with:
+- Next.js 14+ with App Router
+- TypeScript
 - @saturation-api/js SDK for API calls
+- Environment variables for secure API key storage
 
 Create a minimal app that:
-1. Connects to the Saturation API
+1. Connects to the Saturation API using server-side API calls
 2. Fetches the list of projects
 3. Displays "Hello World! You have X projects" where X is the actual count
 4. Lists the project names as simple bullet points
 
-Use this Saturation API configuration:
-- API Key: YOUR_API_KEY_HERE
+Set up the API configuration:
+- Create a .env.local file with SATURATION_API_KEY environment variable
+- Use the API key from the environment variable (never hardcode it)
 - Base URL: https://api.saturation.io/api/v1
+- Add .env.local to .gitignore
 
-The entire app should be in a single App.tsx file with:
-- No routing, no multiple pages
-- No fancy UI libraries
-- Just basic HTML and minimal inline styles
-- Show "Loading..." while fetching
-- Show any errors if they occur
+The app should have:
+- A single page at app/page.tsx
+- Server component for data fetching (no client-side API calls)
+- Basic HTML and minimal Tailwind CSS styles (Next.js includes it by default)
+- Show "Loading..." state while fetching
+- Proper error handling with error boundaries
 
-Make it as simple as possible - like a true Hello World example.
+Make it production-ready for Vercel deployment:
+- Ensure all API calls are server-side
+- Include proper TypeScript types
+- Add a .env.example file showing required environment variables
 
 After creating the app, provide clear instructions on:
-1. How to configure the API key (where to find it in the code)
+1. How to set up the .env.local file with the API key
 2. How to install dependencies and run the development server
-3. What the app does and what the user should expect to see
-4. Any troubleshooting tips for common issues
+3. How to deploy to Vercel (including environment variable setup)
+4. What the app does and what the user should expect to see
+5. Security best practices for API key management
 ```
 
 ## What You'll Get
 
 This prompt will create a minimal "Hello World" app with:
 
-- ✨ **Simple Setup**: React + TypeScript + Vite (no complexity)
+- ✨ **Production-Ready**: Next.js + TypeScript with server-side rendering
+- 🔒 **Secure**: API key stored in environment variables, never exposed to client
 - 📝 **Basic Output**: Just text showing your project count and names
-- 🔌 **API Integration**: Working connection to your Saturation workspace
+- 🔌 **API Integration**: Server-side connection to your Saturation workspace
+- ☁️ **Deploy-Ready**: Configured for one-click Vercel deployment
 - 🎯 **Learning Friendly**: Perfect for testing the SDK or starting development
 
 ## Before You Start
@@ -57,14 +66,18 @@ This prompt will create a minimal "Hello World" app with:
    - Go to Settings → API Keys
    - Create a new key and copy it
 
-2. **Replace the Placeholder**:
-   - Find `YOUR_API_KEY_HERE` in the prompt
-   - Replace it with your actual API key
+2. **Have Node.js Ready**:
+   - Ensure you have Node.js 18+ installed
+   - npm or yarn package manager available
 
 3. **Paste into Claude Code**:
-   - Open Claude Code
+   - Open Claude Code in your project directory
    - Paste the entire prompt
    - Let Claude build your app!
+   
+4. **Set Up Your API Key**:
+   - After the app is created, add your API key to `.env.local`
+   - Never commit this file to version control
 
 ## Next Steps
 
@@ -72,65 +85,73 @@ After Claude creates your Hello World app, you can expand it:
 
 ### Show More Project Details
 ```
-Also display:
+Update the app/page.tsx server component to also display:
 - Project status (active/archived)
 - Project labels
 - Creation date
 - Total budget for each project
+Keep the data fetching server-side.
 ```
 
 ### Add Budget Information
 ```
-For each project, fetch and show:
+In the server component, for each project also fetch and show:
 - Total budget estimate
 - Total actuals spent
 - Remaining budget
+Use Promise.all for parallel fetching to optimize performance.
 ```
 
 ### Add Basic Interactivity
 ```
-Add a button to:
-- Refresh the project list
-- Filter to show only active projects
+Convert to a client component with 'use client' and add:
+- A refresh button using router.refresh()
+- Client-side filtering for active/archived projects
 - Sort projects alphabetically
+Fetch data in a server component and pass it as props.
 ```
 
 ### Add a Simple Form
 ```
-Add an input field to:
+Create a server action in app/actions.ts to:
 - Create a new project with a name
-- Show success/error messages
+- Show success/error messages using toast or inline
+- Revalidate the page after creation
+Use Next.js server actions for form submission.
 ```
 
 ## Building From Here
 
 Once you have the Hello World working, you can build a real app:
 
-### Add Tailwind CSS for Styling
+### Improve Styling with Tailwind
 ```
-Add Tailwind CSS and make it look better with:
-- A centered container
-- Card layout for projects
-- Proper spacing and typography
+Next.js includes Tailwind by default. Update the styling with:
+- A centered container using max-w-4xl mx-auto
+- Card layout for projects using shadow and rounded borders
+- Proper spacing with p-4 and space-y-4
 - A header with your company name
+- Responsive design with sm: and md: breakpoints
 ```
 
 ### Create a Simple Dashboard
 ```
-Transform it into a one-page dashboard showing:
-- Project count summary
-- List of projects with budgets
-- Total workspace budget
-- Recent actuals (last 10)
+Transform app/page.tsx into a dashboard with multiple server components:
+- Create app/components/ProjectSummary.tsx for counts
+- Create app/components/ProjectList.tsx for project cards
+- Create app/components/BudgetOverview.tsx for totals
+- Create app/components/RecentActuals.tsx for latest entries
+Compose them in the main page using Suspense boundaries.
 ```
 
-### Add React Router for Multiple Pages
+### Add Multiple Pages with App Router
 ```
-Add routing and create separate pages for:
-- Projects list
-- Budget viewer (click a project to see its budget)
-- Actuals list
-Keep it simple with just these three pages.
+Create separate routes using Next.js App Router:
+- app/projects/page.tsx - Projects list
+- app/projects/[id]/page.tsx - Project detail with budget
+- app/actuals/page.tsx - Actuals list
+- app/layout.tsx - Shared navigation
+Use Link components for navigation and dynamic routes for project details.
 ```
 
 ## Tips for Best Results
@@ -147,21 +168,35 @@ If something doesn't work:
 ### API Key Issues
 ```
 I'm getting a 401 error. Make sure:
-- The API key is correct
-- It's properly set in the code
-- Show me the exact error message
+- The API key is in .env.local as SATURATION_API_KEY=your_key
+- You've restarted the dev server after adding the key
+- The key has proper permissions in Saturation
+- Show me the server console error (not browser console)
 ```
 
-### CORS Errors
+### Environment Variable Not Loading
 ```
-I'm getting CORS errors in the browser.
-Check if the API URL is correct (should be https://api.saturation.io/api/v1)
+The app can't find the API key. Check:
+- File is named .env.local (not .env)
+- Format is SATURATION_API_KEY=your_actual_key
+- No quotes around the key value
+- Restart Next.js after adding the file
 ```
 
 ### No Projects Showing
 ```
 The app says "You have 0 projects" but I have projects.
-Try fetching both active and archived projects.
+- Check the server logs for API responses
+- Verify the API key has read permissions
+- Try fetching both active and archived projects
+```
+
+### Vercel Deployment Issues
+```
+The app works locally but not on Vercel:
+- Add SATURATION_API_KEY to Vercel environment variables
+- Redeploy after adding the environment variable
+- Check Function logs in Vercel dashboard
 ```
 
 ## Why Start Simple?
