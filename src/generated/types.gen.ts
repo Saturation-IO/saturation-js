@@ -5052,14 +5052,6 @@ export type ListPublicRatesData = {
          */
         includeArchived?: boolean;
         /**
-         * Maximum number of results to return
-         */
-        limit?: number;
-        /**
-         * Number of results to skip for pagination
-         */
-        offset?: number;
-        /**
          * Field to sort results by
          */
         sortBy?: 'name' | 'createdAt' | 'updatedAt';

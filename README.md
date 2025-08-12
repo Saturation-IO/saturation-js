@@ -211,8 +211,7 @@ const { actuals } = await client.listProjectActuals('my-project', {
 const attachment = await client.uploadActualAttachment(
   'my-project',
   actual.id,
-  fileBuffer,
-  'invoice-12345.pdf'
+  fileBuffer
 );
 ```
 
@@ -274,8 +273,7 @@ const { contacts } = await client.listContacts({
 // Upload tax documents
 const taxDoc = await client.uploadContactTaxDocument(
   contact.id,
-  w9Buffer,
-  'W9-2024.pdf'
+  w9Buffer
 );
 ```
 
@@ -702,16 +700,23 @@ await client.createActual('my-project', {
 });
 ```
 
-### Pagination
+### Public Rates
 
-Handle large datasets with pagination parameters.
+Access public rate libraries shared across workspaces.
 
 ```typescript
-// Paginate through public rates
+// Search and list public rate libraries
 const { rates } = await client.listPublicRates({
   search: 'camera',
-  page: 1,
-  limit: 50,
+  includeArchived: false,
+  sortBy: 'name',
+  sortOrder: 'asc',
+});
+
+// Get all rates from a specific ratepack
+const { rates: ratepackRates } = await client.getPublicRates('ratepack-123', {
+  search: 'grip',
+  includeArchived: false,
 });
 ```
 
