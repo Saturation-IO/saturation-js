@@ -701,7 +701,7 @@ export class Saturation {
     return result.data as { rates: Types.PublicRate[] };
   }
 
-  async getPublicRatepackRates(
+  async getPublicRates(
     ratepackId: string,
     params?: Types.GetPublicRatesData['query'],
   ): Promise<{ rates: Types.Rate[] }> {
