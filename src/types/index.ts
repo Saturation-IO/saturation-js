@@ -8,14 +8,14 @@ export interface Project {
   imageUrl?: string | null;
   spaceId?: string | null;
   space?: {
-  id?: string;
-  name?: string;
-} | null;
+    id?: string;
+    name?: string;
+  } | null;
   templateId?: string | null;
   template?: {
-  id?: string;
-  name?: string;
-} | null;
+    id?: string;
+    name?: string;
+  } | null;
   status: 'active' | 'archived';
   labels?: string[];
   createdAt: string;
@@ -44,15 +44,15 @@ export interface UpdateProjectInput {
 export interface CreateBudgetInput {
   accountId?: string;
   lines?: {
-  type?: 'line' | 'account' | 'subtotal' | 'markup';
-  accountId?: string;
-  description?: string;
-  phaseData?: Record<string, unknown>;
-}[];
+    type?: 'line' | 'account' | 'subtotal' | 'markup';
+    accountId?: string;
+    description?: string;
+    phaseData?: Record<string, unknown>;
+  }[];
   insert?: {
-  mode?: 'append' | 'prepend' | 'after' | 'before';
-  lineId?: string;
-};
+    mode?: 'append' | 'prepend' | 'after' | 'before';
+    lineId?: string;
+  };
   idMode?: 'user' | 'system';
 }
 
@@ -103,9 +103,9 @@ export interface LinePhaseData {
   multiplier?: number | null;
   fringes?: string[];
   date?: {
-  startDate?: string | null;
-  endDate?: string | null;
-};
+    startDate?: string | null;
+    endDate?: string | null;
+  };
   overtime?: number | null;
   overtimeDetail?: OvertimeDetail;
   quantityFormula?: string;
@@ -127,9 +127,9 @@ export interface OvertimeDetail {
   overtimeHours?: number;
   baseHours: number;
   multipliers?: {
-  threshold?: number;
-  multiplier?: number;
-}[];
+    threshold?: number;
+    multiplier?: number;
+  }[];
 }
 
 export interface Phase {
@@ -140,10 +140,10 @@ export interface Phase {
   isHidden: boolean;
   isLocked: boolean;
   currency?: {
-  code?: string | null;
-  symbol?: string | null;
-  exchangeRate?: number | null;
-} | null;
+    code?: string | null;
+    symbol?: string | null;
+    exchangeRate?: number | null;
+  } | null;
   operation?: 'sum' | 'difference';
   phaseIds?: string[];
 }
@@ -376,7 +376,16 @@ export interface PurchaseOrderItem {
 
 export interface Transaction {
   id: string;
-  type: 'bank.deposit' | 'bank.withdrawal' | 'bank.ach' | 'bank.wire' | 'card.spend' | 'card.payment' | 'card.dispute' | 'card.refund' | 'card.cashback';
+  type:
+    | 'bank.deposit'
+    | 'bank.withdrawal'
+    | 'bank.ach'
+    | 'bank.wire'
+    | 'card.spend'
+    | 'card.payment'
+    | 'card.dispute'
+    | 'card.refund'
+    | 'card.cashback';
   status: 'posted' | 'pending' | 'void';
   subStatus?: 'settled' | 'refund' | 'reverse' | 'rejected' | null;
   description: string;
@@ -437,10 +446,10 @@ export interface Comment {
   accountId?: string | null;
   lineId?: string | null;
   author: {
-  id?: string;
-  name?: string;
-  email?: string;
-};
+    id?: string;
+    name?: string;
+    email?: string;
+  };
   createdAt: string;
   updatedAt?: string;
 }
@@ -465,7 +474,18 @@ export interface Rate {
   note?: string | null;
   quantity?: number | null;
   rate?: number | null;
-  unit?: 'hour' | 'day' | 'week' | 'month' | 'year' | 'each' | 'sqft' | 'sqm' | 'lnft' | 'lnm' | null;
+  unit?:
+    | 'hour'
+    | 'day'
+    | 'week'
+    | 'month'
+    | 'year'
+    | 'each'
+    | 'sqft'
+    | 'sqm'
+    | 'lnft'
+    | 'lnm'
+    | null;
   multiplier?: number | null;
   contactId?: string | null;
   sort: string;
@@ -521,12 +541,27 @@ export interface UpdateTagRequest {
 export interface CreatePhaseRequest {
   name: string;
   type: 'estimate' | 'actual' | 'rollup' | 'committed';
-  color?: 'red' | 'rose' | 'pink' | 'fuchsia' | 'purple' | 'violet' | 'indigo' | 'blue' | 'sky' | 'cyan' | 'teal' | 'green' | 'yellow' | 'amber' | 'orange';
+  color?:
+    | 'red'
+    | 'rose'
+    | 'pink'
+    | 'fuchsia'
+    | 'purple'
+    | 'violet'
+    | 'indigo'
+    | 'blue'
+    | 'sky'
+    | 'cyan'
+    | 'teal'
+    | 'green'
+    | 'yellow'
+    | 'amber'
+    | 'orange';
   currency?: {
-  code?: string | null;
-  symbol?: string | null;
-  exchangeRate?: number | null;
-} | null;
+    code?: string | null;
+    symbol?: string | null;
+    exchangeRate?: number | null;
+  } | null;
   copyPhase?: string;
   isHidden?: boolean;
   phaseIds?: string[];
@@ -536,12 +571,27 @@ export interface CreatePhaseRequest {
 
 export interface UpdatePhaseRequest {
   name?: string;
-  color?: 'red' | 'rose' | 'pink' | 'fuchsia' | 'purple' | 'violet' | 'indigo' | 'blue' | 'sky' | 'cyan' | 'teal' | 'green' | 'yellow' | 'amber' | 'orange';
+  color?:
+    | 'red'
+    | 'rose'
+    | 'pink'
+    | 'fuchsia'
+    | 'purple'
+    | 'violet'
+    | 'indigo'
+    | 'blue'
+    | 'sky'
+    | 'cyan'
+    | 'teal'
+    | 'green'
+    | 'yellow'
+    | 'amber'
+    | 'orange';
   currency?: {
-  code?: string | null;
-  symbol?: string | null;
-  exchangeRate?: number | null;
-} | null;
+    code?: string | null;
+    symbol?: string | null;
+    exchangeRate?: number | null;
+  } | null;
   isHidden?: boolean;
   idMode?: 'user' | 'system';
 }

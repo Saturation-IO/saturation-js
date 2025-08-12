@@ -1,5 +1,6 @@
 // Generated API methods
 // Do not edit manually
+/* eslint-disable @typescript-eslint/require-await */
 
 import type * as Types from './types/index.js';
 
@@ -16,8 +17,8 @@ export class GeneratedAPI {
     spaceName?: string | string[];
     labels?: string | string[];
   }): Promise<{
-  projects?: Types.Project[];
-}> {
+    projects?: Types.Project[];
+  }> {
     // Implementation will be added
     throw new Error('Not implemented');
   }
@@ -145,9 +146,9 @@ The lineId parameter accepts both ID formats:
     sourceIds?: string[];
     expands?: 'contact' | 'subactual' | 'account' | 'subactual.account'[];
   }): Promise<{
-  actuals?: Types.Actual[];
-  totalAmount?: number;
-}> {
+    actuals?: Types.Actual[];
+    totalAmount?: number;
+  }> {
     // Implementation will be added
     throw new Error('Not implemented');
   }
@@ -206,11 +207,11 @@ Accepts PDF or image files up to 10&nbsp;MB.
    */
   async listPurchaseOrders(_params?: {
     accountId?: string | string[];
-    status?: 'draft' | 'approved' | 'rejected' | 'pending' | 'paid' | 'draft' | 'approved' | 'rejected' | 'pending' | 'paid'[];
+    status?: 'draft' | 'approved' | 'rejected' | 'pending' | 'paid' | 'paid'[];
     expands?: 'contact' | 'actuals' | 'purchaseOrderItems' | 'purchaseOrderItems.account'[];
   }): Promise<{
-  purchaseOrders?: Types.PurchaseOrder[];
-}> {
+    purchaseOrders?: Types.PurchaseOrder[];
+  }> {
     // Implementation will be added
     throw new Error('Not implemented');
   }
@@ -268,8 +269,8 @@ Accepts PDF or image files up to 10&nbsp;MB.
    * Retrieve all budget phases for a project
    */
   async listBudgetPhases(): Promise<{
-  phases?: Types.Phase[];
-}> {
+    phases?: Types.Phase[];
+  }> {
     // Implementation will be added
     throw new Error('Not implemented');
   }
@@ -315,8 +316,8 @@ Accepts PDF or image files up to 10&nbsp;MB.
    * Retrieve all fringe benefits for a project
    */
   async listBudgetFringes(): Promise<{
-  fringes?: Types.Fringe[];
-}> {
+    fringes?: Types.Fringe[];
+  }> {
     // Implementation will be added
     throw new Error('Not implemented');
   }
@@ -362,8 +363,8 @@ Accepts PDF or image files up to 10&nbsp;MB.
    * Retrieve all global variables for a project
    */
   async listBudgetGlobals(): Promise<{
-  globals?: Types.Global[];
-}> {
+    globals?: Types.Global[];
+  }> {
     // Implementation will be added
     throw new Error('Not implemented');
   }
@@ -408,12 +409,9 @@ Accepts PDF or image files up to 10&nbsp;MB.
    * List project comments
    * Retrieve all comments for a project's budget
    */
-  async listProjectComments(_params?: {
-    accountId?: string;
-    lineId?: string;
-  }): Promise<{
-  comments?: Types.Comment[];
-}> {
+  async listProjectComments(_params?: { accountId?: string; lineId?: string }): Promise<{
+    comments?: Types.Comment[];
+  }> {
     // Implementation will be added
     throw new Error('Not implemented');
   }
@@ -427,8 +425,8 @@ Accepts PDF or image files up to 10&nbsp;MB.
     search?: string;
     expands?: 'projects'[];
   }): Promise<{
-  spaces?: Types.Space[];
-}> {
+    spaces?: Types.Space[];
+  }> {
     // Implementation will be added
     throw new Error('Not implemented');
   }
@@ -446,9 +444,7 @@ Accepts PDF or image files up to 10&nbsp;MB.
    * Get space
    * Retrieve a specific space by ID or alias
    */
-  async getSpace(_params?: {
-    expands?: 'projects'[];
-  }): Promise<Types.Space> {
+  async getSpace(_params?: { expands?: 'projects'[] }): Promise<Types.Space> {
     // Implementation will be added
     throw new Error('Not implemented');
   }
@@ -574,10 +570,19 @@ This operation cannot be undone.
     hasTaxDocuments?: boolean;
     email?: string;
     title?: string;
-    expands?: 'secureInfo' | 'origin' | 'projects' | 'projects.accounts' | 'startwork' | 'taxDocuments' | 'attachments' | 'bankInfo' | 'linkedUser'[];
+    expands?:
+      | 'secureInfo'
+      | 'origin'
+      | 'projects'
+      | 'projects.accounts'
+      | 'startwork'
+      | 'taxDocuments'
+      | 'attachments'
+      | 'bankInfo'
+      | 'linkedUser'[];
   }): Promise<{
-  contacts?: Types.Contact[];
-}> {
+    contacts?: Types.Contact[];
+  }> {
     // Implementation will be added
     throw new Error('Not implemented');
   }
@@ -634,7 +639,16 @@ Accepts PDF or image files up to 10&nbsp;MB.
    * Retrieve financial transactions with comprehensive filtering
    */
   async listTransactions(_params?: {
-    type?: 'bank.deposit' | 'bank.withdrawal' | 'bank.ach' | 'bank.wire' | 'card.spend' | 'card.payment' | 'card.dispute' | 'card.refund' | 'card.cashback'[];
+    type?:
+      | 'bank.deposit'
+      | 'bank.withdrawal'
+      | 'bank.ach'
+      | 'bank.wire'
+      | 'card.spend'
+      | 'card.payment'
+      | 'card.dispute'
+      | 'card.refund'
+      | 'card.cashback'[];
     status?: 'posted' | 'pending' | 'void'[];
     subStatus?: 'settled' | 'refund' | 'reverse' | 'rejected'[];
     projectId?: string | string[];
@@ -649,8 +663,8 @@ Accepts PDF or image files up to 10&nbsp;MB.
     hasContact?: boolean;
     expands?: 'project' | 'contact' | 'account' | 'actual' | 'attachments'[];
   }): Promise<{
-  transactions?: Types.Transaction[];
-}> {
+    transactions?: Types.Transaction[];
+  }> {
     // Implementation will be added
     throw new Error('Not implemented');
   }
@@ -692,8 +706,8 @@ Accepts PDF or image files up to 10&nbsp;MB.
     limit?: number;
     offset?: number;
   }): Promise<{
-  rates?: Types.Rate[];
-}> {
+    rates?: Types.Rate[];
+  }> {
     // Implementation will be added
     throw new Error('Not implemented');
   }
@@ -737,8 +751,8 @@ Accepts PDF or image files up to 10&nbsp;MB.
     sortBy?: 'name' | 'createdAt' | 'updatedAt';
     sortOrder?: 'asc' | 'desc';
   }): Promise<{
-  rates?: Types.PublicRate[];
-}> {
+    rates?: Types.PublicRate[];
+  }> {
     // Implementation will be added
     throw new Error('Not implemented');
   }
@@ -747,13 +761,16 @@ Accepts PDF or image files up to 10&nbsp;MB.
    * Get rates from public ratepack
    * Retrieve all rates from a public ratepack (read-only access)
    */
-  async getPublicRatepackRates(_rateId: string, _params?: {
-    search?: string;
-    limit?: number;
-    offset?: number;
-  }): Promise<{
-  rates?: Types.Rate[];
-}> {
+  async getPublicRatepackRates(
+    _rateId: string,
+    _params?: {
+      search?: string;
+      limit?: number;
+      offset?: number;
+    },
+  ): Promise<{
+    rates?: Types.Rate[];
+  }> {
     // Implementation will be added
     throw new Error('Not implemented');
   }
