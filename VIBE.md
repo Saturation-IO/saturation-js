@@ -10,7 +10,7 @@ Copy and paste this entire prompt into Claude Code, replacing `YOUR_API_KEY_HERE
 Create a simple single-page React application called "saturation-hello" with:
 - Vite as the build tool
 - React with TypeScript
-- @saturation/js SDK for API calls
+- @saturation-api/js SDK for API calls
 
 Create a minimal app that:
 1. Connects to the Saturation API
