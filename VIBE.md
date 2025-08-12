@@ -40,7 +40,7 @@ Create a minimal app that:
 6. Lists the project names as simple bullet points
 
 Set up the API configuration:
-- Create a .env.local file with SATURATION_API_KEY environment variable (unless v0, then default to v0's env management)
+- Create a .env.local file with SATURATION_API_KEY environment variable
 - CRITICAL: Only access the API key in server side code
 - Never pass the API key to client components or expose it in browser code
 - Use the API key from the environment variable (never hardcode it)
