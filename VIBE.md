@@ -1,10 +1,18 @@
-# 🚀 Quick Start: Build a Saturation App with Claude Code
+# 🚀 Quick Start: Build a Saturation App with AI
 
-Want to quickly test the Saturation SDK in a Next.js app? Copy this prompt into Claude Code to create a simple "Hello World" app that connects to your Saturation workspace and is ready to deploy on Vercel. The app will be created in your current directory.
+Want to quickly test the Saturation SDK in a Next.js app? Use this prompt with your favorite AI coding tool to create a simple "Hello World" app that connects to your Saturation workspace and is ready to deploy on Vercel.
+
+## Choose Your Tool
+
+### Option 1: Claude Code (Local Development)
+Use [Claude Code](https://claude.ai/code) to create the app in your local environment. The app will be created in your current directory.
+
+### Option 2: v0.app (Instant Deploy-Ready App)
+Use [v0.app](https://v0.app) by Vercel to get an instantly deployable app with live preview and one-click deployment to Vercel.
 
 ## The Simple Prompt
 
-Copy and paste this entire prompt into Claude Code:
+Copy and paste this entire prompt into Claude Code or v0.app:
 
 ```
 First, read the Saturation SDK README to understand the library:
@@ -74,10 +82,10 @@ This prompt will create a minimal "Hello World" app with:
    - Ensure you have Node.js 18+ installed
    - npm or yarn package manager available
 
-3. **Paste into Claude Code**:
-   - Open Claude Code in your project directory
-   - Paste the entire prompt
-   - Let Claude build your app!
+3. **Choose Your Tool and Paste**:
+   - **For Claude Code**: Open Claude Code in your project directory and paste the prompt
+   - **For v0.app**: Go to v0.app and paste the prompt for instant preview
+   - Let the AI build your app!
    
 4. **Set Up Your API Key**:
    - After the app is created, add your API key to `.env.local`
