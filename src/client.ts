@@ -2,7 +2,7 @@ import { HTTPClient } from './http-client.js';
 import { FormData, Blob } from './fetch-wrapper.js';
 import type * as Types from './types/index.js';
 
-export interface SaturationClientOptions {
+export interface SaturationOptions {
   apiKey: string;
   baseURL?: string;
 }
@@ -60,10 +60,10 @@ export interface BudgetExpandParams {
   [key: string]: string | string[] | undefined;
 }
 
-export class SaturationClient {
+export class Saturation {
   private http: HTTPClient;
 
-  constructor(options: SaturationClientOptions) {
+  constructor(options: SaturationOptions) {
     this.http = new HTTPClient(options.apiKey, options.baseURL);
   }
 

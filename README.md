@@ -1,9 +1,9 @@
-# @saturation/js
+# @saturation-api/js
 
 Official TypeScript SDK for the Saturation API. Build powerful integrations with your workspace data including projects, budgets, actuals, contacts, purchase orders, and attachments.
 
-[![npm version](https://badge.fury.io/js/%40saturation%2Fjs.svg)](https://www.npmjs.com/package/@saturation/js)
-[![CI](https://github.com/saturation/saturation-js/actions/workflows/ci.yml/badge.svg)](https://github.com/saturation/saturation-js/actions/workflows/ci.yml)
+[![npm version](https://badge.fury.io/js/%40saturation-api%2Fjs.svg)](https://www.npmjs.com/package/@saturation-api/js)
+[![CI](https://github.com/saturation-api/saturation-js/actions/workflows/ci.yml/badge.svg)](https://github.com/saturation-api/saturation-js/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Features
@@ -19,20 +19,20 @@ Official TypeScript SDK for the Saturation API. Build powerful integrations with
 ## Installation
 
 ```bash
-npm install @saturation/js
+npm install @saturation-api/js
 # or
-yarn add @saturation/js
+yarn add @saturation-api/js
 # or
-pnpm add @saturation/js
+pnpm add @saturation-api/js
 ```
 
 ## Quick Start
 
 ```typescript
-import { SaturationClient } from '@saturation/js';
+import { Saturation } from '@saturation-api/js';
 
 // Initialize the client
-const client = new SaturationClient({
+const client = new Saturation({
   apiKey: 'YOUR_API_KEY',
   baseURL: 'https://api.saturation.io/api/v1', // Optional, this is the default
 });
@@ -56,7 +56,7 @@ Get your API key from the Saturation web app:
 3. Copy the key and use it in your application
 
 ```typescript
-const client = new SaturationClient({
+const client = new Saturation({
   apiKey: process.env.SATURATION_API_KEY!,
 });
 ```
@@ -292,9 +292,9 @@ The SDK works seamlessly in React applications. Here are some common patterns:
 
 ```tsx
 import { useState, useEffect } from 'react';
-import { SaturationClient, Project } from '@saturation/js';
+import { Saturation, Project } from '@saturation-api/js';
 
-const client = new SaturationClient({
+const client = new Saturation({
   apiKey: process.env.REACT_APP_SATURATION_API_KEY!,
 });
 
@@ -336,7 +336,7 @@ function ProjectList() {
 
 ```tsx
 import React, { useState, useEffect } from 'react';
-import { SaturationClient, Budget } from '@saturation/js';
+import { Saturation, Budget } from '@saturation-api/js';
 
 interface BudgetDashboardProps {
   projectId: string;
@@ -348,7 +348,7 @@ export function BudgetDashboard({ projectId, apiKey }: BudgetDashboardProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const client = new SaturationClient({ apiKey });
+    const client = new Saturation({ apiKey });
 
     client.getProjectBudget(projectId, {
       expands: ['phases', 'fringes', 'lines.contact'],
@@ -399,11 +399,11 @@ export function BudgetDashboard({ projectId, apiKey }: BudgetDashboardProps) {
 
 ```tsx
 import React, { useState } from 'react';
-import { SaturationClient, CreateActualInput } from '@saturation/js';
+import { Saturation, CreateActualInput } from '@saturation-api/js';
 
 interface ActualFormProps {
   projectId: string;
-  client: SaturationClient;
+  client: Saturation;
   onSuccess: () => void;
 }
 
@@ -480,9 +480,9 @@ export function CreateActualForm({ projectId, client, onSuccess }: ActualFormPro
 
 ```tsx
 import React, { createContext, useContext, ReactNode } from 'react';
-import { SaturationClient } from '@saturation/js';
+import { Saturation } from '@saturation-api/js';
 
-const SaturationContext = createContext<SaturationClient | null>(null);
+const SaturationContext = createContext<Saturation | null>(null);
 
 interface SaturationProviderProps {
   apiKey: string;
@@ -492,7 +492,7 @@ interface SaturationProviderProps {
 
 export function SaturationProvider({ apiKey, baseURL, children }: SaturationProviderProps) {
   const client = React.useMemo(
-    () => new SaturationClient({ apiKey, baseURL }),
+    () => new Saturation({ apiKey, baseURL }),
     [apiKey, baseURL]
   );
 
@@ -582,9 +582,9 @@ For server-side usage in Next.js:
 ```typescript
 // pages/api/projects.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { SaturationClient } from '@saturation/js';
+import { Saturation } from '@saturation-api/js';
 
-const client = new SaturationClient({
+const client = new Saturation({
   apiKey: process.env.SATURATION_API_KEY!,
 });
 
@@ -616,7 +616,7 @@ export default async function handler(
 The SDK provides detailed error information with proper TypeScript types.
 
 ```typescript
-import { SaturationError } from '@saturation/js';
+import { SaturationError } from '@saturation-api/js';
 
 try {
   const project = await client.getProject('non-existent');
@@ -732,7 +732,7 @@ import type {
   CreateProjectInput,
   UpdateProjectInput,
   ListProjectsParams,
-} from '@saturation/js';
+} from '@saturation-api/js';
 
 // Type-safe function
 async function getProjectBudgetTotal(projectId: string): Promise<number> {
@@ -803,7 +803,7 @@ For complete API documentation, see the [API Reference](https://api.saturation.i
 
 ```bash
 # Clone the repository
-git clone https://github.com/saturation/saturation-js.git
+git clone https://github.com/saturation-api/saturation-js.git
 cd saturation-js
 
 # Install dependencies
@@ -844,5 +844,5 @@ MIT - see [LICENSE](LICENSE) file for details.
 
 - [Documentation](https://docs.saturation.io)
 - [API Reference](https://api.saturation.io/docs)
-- [GitHub Issues](https://github.com/saturation/saturation-js/issues)
+- [GitHub Issues](https://github.com/saturation-api/saturation-js/issues)
 - [Support Email](mailto:support@saturation.io)

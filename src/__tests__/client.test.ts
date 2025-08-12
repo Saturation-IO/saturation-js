@@ -1,15 +1,15 @@
-import { SaturationClient } from '../client';
+import { Saturation } from '../client';
 import type { HTTPClient } from '../http-client';
 
 jest.mock('../http-client');
 
-describe('SaturationClient', () => {
-  let client: SaturationClient;
+describe('Saturation', () => {
+  let client: Saturation;
   let mockHttpClient: jest.Mocked<HTTPClient>;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    client = new SaturationClient({ apiKey: 'test-api-key' });
+    client = new Saturation({ apiKey: 'test-api-key' });
     mockHttpClient = (client as any).http as jest.Mocked<HTTPClient>;
     mockHttpClient.get = jest.fn();
     mockHttpClient.post = jest.fn();

@@ -3,19 +3,19 @@
 
 export interface Project {
   id: string;
-  name: string | null;
-  icon: string | null;
-  imageUrl: string | null;
-  spaceId: string | null;
-  space: {
-    id?: string;
-    name?: string;
-  } | null;
-  templateId: string | null;
-  template: {
-    id?: string;
-    name?: string;
-  } | null;
+  name?: string | null;
+  icon?: string | null;
+  imageUrl?: string | null;
+  spaceId?: string | null;
+  space?: {
+  id?: string;
+  name?: string;
+} | null;
+  templateId?: string | null;
+  template?: {
+  id?: string;
+  name?: string;
+} | null;
   status: 'active' | 'archived';
   labels?: string[];
   createdAt: string;
@@ -23,20 +23,20 @@ export interface Project {
 }
 
 export interface CreateProjectInput {
-  name: string | null;
-  icon: string | null;
-  imageUrl: string | null;
-  spaceId: string | null;
+  name?: string | null;
+  icon?: string | null;
+  imageUrl?: string | null;
+  spaceId?: string | null;
   status?: 'active' | 'archived';
-  templateId: string | null;
+  templateId?: string | null;
   labels?: string[];
 }
 
 export interface UpdateProjectInput {
-  name: string | null;
-  icon: string | null;
-  imageUrl: string | null;
-  spaceId: string | null;
+  name?: string | null;
+  icon?: string | null;
+  imageUrl?: string | null;
+  spaceId?: string | null;
   status?: 'active' | 'archived';
   labels?: string[];
 }
@@ -44,15 +44,15 @@ export interface UpdateProjectInput {
 export interface CreateBudgetInput {
   accountId?: string;
   lines?: {
-    type?: 'line' | 'account' | 'subtotal' | 'markup';
-    accountId?: string;
-    description?: string;
-    phaseData?: Record<string, unknown>;
-  }[];
+  type?: 'line' | 'account' | 'subtotal' | 'markup';
+  accountId?: string;
+  description?: string;
+  phaseData?: Record<string, unknown>;
+}[];
   insert?: {
-    mode?: 'append' | 'prepend' | 'after' | 'before';
-    lineId?: string;
-  };
+  mode?: 'append' | 'prepend' | 'after' | 'before';
+  lineId?: string;
+};
   idMode?: 'user' | 'system';
 }
 
@@ -66,8 +66,8 @@ export interface Budget {
 
 export interface Account {
   id: string;
-  accountId: string | null;
-  description: string | null;
+  accountId?: string | null;
+  description?: string | null;
   path: string;
   lines: BudgetLine[];
   totals: Record<string, unknown>;
@@ -77,8 +77,8 @@ export interface Account {
 export interface BudgetLine {
   type: 'line' | 'account' | 'subtotal' | 'markup' | 'fringes';
   id: string;
-  accountId: string | null;
-  description: string | null;
+  accountId?: string | null;
+  description?: string | null;
   path: string;
   totals: Record<string, unknown>;
   tags?: string[];
@@ -97,16 +97,16 @@ export type BudgetMarkupLine = unknown;
 export type BudgetFringeLine = unknown;
 
 export interface LinePhaseData {
-  quantity: number | null;
-  unit: string | null;
-  rate: number | null;
-  multiplier: number | null;
+  quantity?: number | null;
+  unit?: string | null;
+  rate?: number | null;
+  multiplier?: number | null;
   fringes?: string[];
   date?: {
-    startDate: string | null;
-    endDate: string | null;
-  };
-  overtime: number | null;
+  startDate?: string | null;
+  endDate?: string | null;
+};
+  overtime?: number | null;
   overtimeDetail?: OvertimeDetail;
   quantityFormula?: string;
   rateFormula?: string;
@@ -117,7 +117,7 @@ export interface LinePhaseData {
 
 export interface FringeBreakdown {
   id: string;
-  code: string | null;
+  code?: string | null;
   amount: number;
 }
 
@@ -127,60 +127,60 @@ export interface OvertimeDetail {
   overtimeHours?: number;
   baseHours: number;
   multipliers?: {
-    threshold?: number;
-    multiplier?: number;
-  }[];
+  threshold?: number;
+  multiplier?: number;
+}[];
 }
 
 export interface Phase {
   type: 'estimate' | 'actual' | 'rollup' | 'committed';
   id: string;
   alias: string;
-  name: string | null;
+  name?: string | null;
   isHidden: boolean;
   isLocked: boolean;
-  currency: {
-    code: string | null;
-    symbol: string | null;
-    exchangeRate: number | null;
-  } | null;
+  currency?: {
+  code?: string | null;
+  symbol?: string | null;
+  exchangeRate?: number | null;
+} | null;
   operation?: 'sum' | 'difference';
   phaseIds?: string[];
 }
 
 export interface Fringe {
   id: string;
-  code: string | null;
-  description: string | null;
+  code?: string | null;
+  description?: string | null;
   units: 'percent' | 'flat';
-  rate: number | null;
-  cutoff: number | null;
+  rate?: number | null;
+  cutoff?: number | null;
 }
 
 export interface Global {
   id: string;
-  symbol: string | null;
-  description: string | null;
-  unit: string | null;
-  formula: string | null;
+  symbol?: string | null;
+  description?: string | null;
+  unit?: string | null;
+  formula?: string | null;
 }
 
 export interface Actual {
   id: string;
-  description: string | null;
-  amount: number | null;
-  date: string | null;
+  description?: string | null;
+  amount?: number | null;
+  date?: string | null;
   accountId?: string | string[];
   expanded: boolean;
   type?: string;
   attachments?: File[];
-  ref: string | null;
-  payId: string | null;
+  ref?: string | null;
+  payId?: string | null;
   status?: string;
-  notes: string | null;
+  notes?: string | null;
   tags?: string[];
-  purchaseOrderId: string | null;
-  transactionId: string | null;
+  purchaseOrderId?: string | null;
+  transactionId?: string | null;
   contact?: Contact;
   subactuals?: SubActual[];
   account?: BudgetLine;
@@ -188,22 +188,22 @@ export interface Actual {
 
 export interface SubActual {
   id: string;
-  description: string | null;
+  description?: string | null;
   amount: number;
-  date: string | null;
-  accountId: string | null;
+  date?: string | null;
+  accountId?: string | null;
   account?: BudgetLine;
 }
 
 export interface Contact {
   id: string;
-  contactTitle: string | null;
-  name: string | null;
-  email: string | null;
-  company: string | null;
-  type: string | null;
-  jobTitle: string | null;
-  rate: number | null;
+  contactTitle?: string | null;
+  name?: string | null;
+  email?: string | null;
+  company?: string | null;
+  type?: string | null;
+  jobTitle?: string | null;
+  rate?: number | null;
   secureInfo?: ContactSecureInfo;
   origin?: ContactOrigin;
   startwork?: ContactStartwork[];
@@ -215,14 +215,14 @@ export interface Contact {
 }
 
 export interface ContactSecureInfo {
-  address: string | null;
-  phone: string | null;
-  taxIdLast4: string | null;
+  address?: string | null;
+  phone?: string | null;
+  taxIdLast4?: string | null;
 }
 
 export interface ContactOrigin {
-  origin: 'onboarding' | 'manual' | null;
-  createdAt: string | null;
+  origin?: 'onboarding' | 'manual' | null;
+  createdAt?: string | null;
   createdByUser?: ContactUser;
 }
 
@@ -284,14 +284,14 @@ export interface ContactProjectAccount {
 
 export interface PurchaseOrder {
   id: string;
-  purchaseOrderId: string | null;
-  title: string | null;
-  date: string | null;
+  purchaseOrderId?: string | null;
+  title?: string | null;
+  date?: string | null;
   amount: number;
   paidAmount: number;
   status: 'draft' | 'approved' | 'rejected' | 'pending' | 'paid';
   attachments?: File[];
-  notes: string | null;
+  notes?: string | null;
   items?: PurchaseOrderItem[];
   contact?: Contact;
   actuals?: Actual[];
@@ -366,32 +366,23 @@ export interface UpdateTransactionInput {
 
 export interface PurchaseOrderItem {
   id: string;
-  description: string | null;
+  description?: string | null;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
-  accountId: string | null;
+  accountId?: string | null;
   account?: BudgetLine;
 }
 
 export interface Transaction {
   id: string;
-  type:
-    | 'bank.deposit'
-    | 'bank.withdrawal'
-    | 'bank.ach'
-    | 'bank.wire'
-    | 'card.spend'
-    | 'card.payment'
-    | 'card.dispute'
-    | 'card.refund'
-    | 'card.cashback';
+  type: 'bank.deposit' | 'bank.withdrawal' | 'bank.ach' | 'bank.wire' | 'card.spend' | 'card.payment' | 'card.dispute' | 'card.refund' | 'card.cashback';
   status: 'posted' | 'pending' | 'void';
-  subStatus: 'settled' | 'refund' | 'reverse' | 'rejected' | null;
+  subStatus?: 'settled' | 'refund' | 'reverse' | 'rejected' | null;
   description: string;
   amount: number;
   date: string;
-  projectId: string | null;
+  projectId?: string | null;
   hasAccount: boolean;
   isActualized: boolean;
   source?: TransactionSource;
@@ -420,7 +411,7 @@ export interface Space {
   id: string;
   alias: string;
   name: string;
-  image: string | null;
+  image?: string | null;
   archived: boolean;
   projectCount?: number;
   projects?: Project[];
@@ -430,26 +421,26 @@ export interface Space {
 
 export interface CreateSpaceInput {
   name: string;
-  image: string | null;
+  image?: string | null;
   archived?: boolean;
 }
 
 export interface UpdateSpaceInput {
   name?: string;
-  image: string | null;
+  image?: string | null;
   archived?: boolean;
 }
 
 export interface Comment {
   id: string;
   content: string;
-  accountId: string | null;
-  lineId: string | null;
+  accountId?: string | null;
+  lineId?: string | null;
   author: {
-    id?: string;
-    name?: string;
-    email?: string;
-  };
+  id?: string;
+  name?: string;
+  email?: string;
+};
   createdAt: string;
   updatedAt?: string;
 }
@@ -457,9 +448,9 @@ export interface Comment {
 export interface RateMetadata {
   id: string;
   name: string;
-  description: string | null;
+  description?: string | null;
   versions: string[];
-  latestVersion: string | null;
+  latestVersion?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -468,26 +459,15 @@ export type PublicRate = unknown;
 
 export interface Rate {
   id: string;
-  name: string | null;
-  emoji: string | null;
-  description: string | null;
-  note: string | null;
-  quantity: number | null;
-  rate: number | null;
-  unit:
-    | 'hour'
-    | 'day'
-    | 'week'
-    | 'month'
-    | 'year'
-    | 'each'
-    | 'sqft'
-    | 'sqm'
-    | 'lnft'
-    | 'lnm'
-    | null;
-  multiplier: number | null;
-  contactId: string | null;
+  name?: string | null;
+  emoji?: string | null;
+  description?: string | null;
+  note?: string | null;
+  quantity?: number | null;
+  rate?: number | null;
+  unit?: 'hour' | 'day' | 'week' | 'month' | 'year' | 'each' | 'sqft' | 'sqm' | 'lnft' | 'lnm' | null;
+  multiplier?: number | null;
+  contactId?: string | null;
   sort: string;
   agreement?: string;
   local?: string;
@@ -541,27 +521,12 @@ export interface UpdateTagRequest {
 export interface CreatePhaseRequest {
   name: string;
   type: 'estimate' | 'actual' | 'rollup' | 'committed';
-  color?:
-    | 'red'
-    | 'rose'
-    | 'pink'
-    | 'fuchsia'
-    | 'purple'
-    | 'violet'
-    | 'indigo'
-    | 'blue'
-    | 'sky'
-    | 'cyan'
-    | 'teal'
-    | 'green'
-    | 'yellow'
-    | 'amber'
-    | 'orange';
-  currency: {
-    code: string | null;
-    symbol: string | null;
-    exchangeRate: number | null;
-  } | null;
+  color?: 'red' | 'rose' | 'pink' | 'fuchsia' | 'purple' | 'violet' | 'indigo' | 'blue' | 'sky' | 'cyan' | 'teal' | 'green' | 'yellow' | 'amber' | 'orange';
+  currency?: {
+  code?: string | null;
+  symbol?: string | null;
+  exchangeRate?: number | null;
+} | null;
   copyPhase?: string;
   isHidden?: boolean;
   phaseIds?: string[];
@@ -571,27 +536,12 @@ export interface CreatePhaseRequest {
 
 export interface UpdatePhaseRequest {
   name?: string;
-  color?:
-    | 'red'
-    | 'rose'
-    | 'pink'
-    | 'fuchsia'
-    | 'purple'
-    | 'violet'
-    | 'indigo'
-    | 'blue'
-    | 'sky'
-    | 'cyan'
-    | 'teal'
-    | 'green'
-    | 'yellow'
-    | 'amber'
-    | 'orange';
-  currency: {
-    code: string | null;
-    symbol: string | null;
-    exchangeRate: number | null;
-  } | null;
+  color?: 'red' | 'rose' | 'pink' | 'fuchsia' | 'purple' | 'violet' | 'indigo' | 'blue' | 'sky' | 'cyan' | 'teal' | 'green' | 'yellow' | 'amber' | 'orange';
+  currency?: {
+  code?: string | null;
+  symbol?: string | null;
+  exchangeRate?: number | null;
+} | null;
   isHidden?: boolean;
   idMode?: 'user' | 'system';
 }
@@ -601,7 +551,7 @@ export interface CreateFringeRequest {
   description?: string;
   units: 'percent' | 'flat';
   rate: number;
-  cutoff: number | null;
+  cutoff?: number | null;
   idMode?: 'user' | 'system';
 }
 
@@ -610,7 +560,7 @@ export interface UpdateFringeRequest {
   description?: string;
   units?: 'percent' | 'flat';
   rate?: number;
-  cutoff: number | null;
+  cutoff?: number | null;
   idMode?: 'user' | 'system';
 }
 
@@ -631,8 +581,8 @@ export interface UpdateGlobalRequest {
 }
 
 export interface UpdateBudgetLineRequest {
-  description: string | null;
-  accountId: string | null;
+  description?: string | null;
+  accountId?: string | null;
   convertToAccount?: boolean;
   phaseData?: Record<string, unknown>;
   idMode?: 'user' | 'system';
@@ -670,19 +620,18 @@ export interface ExpandParams {
   expands?: string[];
 }
 
+// Additional type exports for SDK compatibility
 export interface Attachment {
   id: string;
-  filename: string;
+  name: string;
   url: string;
   size: number;
   mimeType: string;
-  uploadedAt: string;
 }
 
 export interface TaxDocument {
   id: string;
-  type: string;
-  filename: string;
+  name: string;
   url: string;
   uploadedAt: string;
 }
@@ -690,46 +639,38 @@ export interface TaxDocument {
 export interface UploadResponse {
   id: string;
   url: string;
-  filename: string;
-  size: number;
-}
-
-export interface WorkspaceRate {
-  id: string;
-  lineItemId?: string;
-  contactId?: string;
-  rate: number;
-  unit: string;
-  currency: string;
-  tags?: string[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreateWorkspaceRateInput {
-  lineItemId?: string;
-  contactId?: string;
-  rate: number;
-  unit: string;
-  currency?: string;
-  tags?: string[];
-}
-
-export interface UpdateWorkspaceRateInput {
-  lineItemId?: string;
-  contactId?: string;
-  rate?: number;
-  unit?: string;
-  currency?: string;
-  tags?: string[];
+  name: string;
 }
 
 export interface CreateTagInput {
   name: string;
   color?: string;
+  description?: string;
 }
 
 export interface UpdateTagInput {
-  name?: string;
   color?: string;
+  description?: string;
+}
+
+export interface WorkspaceRate {
+  id: string;
+  name: string;
+  rate: number;
+  unit: string;
+  description?: string;
+}
+
+export interface CreateWorkspaceRateInput {
+  name: string;
+  rate: number;
+  unit: string;
+  description?: string;
+}
+
+export interface UpdateWorkspaceRateInput {
+  name?: string;
+  rate?: number;
+  unit?: string;
+  description?: string;
 }

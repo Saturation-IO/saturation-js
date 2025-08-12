@@ -30,7 +30,7 @@ interface GeneratedMethod {
 }
 
 async function loadOpenAPISpec(): Promise<OpenAPIV3.Document> {
-  const specPath = path.join(__dirname, '../../saturation/apps/api-server/api/openapi.yaml');
+  const specPath = path.join(__dirname, '../openapi.yaml');
   const content = await fs.readFile(specPath, 'utf-8');
   return yaml.load(content) as OpenAPIV3.Document;
 }
@@ -62,7 +62,7 @@ function generateTypeFromSchema(schema: any, name: string): string {
       .map(([key, prop]: [string, any]) => {
         const isRequired = schema.required?.includes(key) ?? false;
         const nullable = prop.nullable ? ' | null' : '';
-        const optional = !isRequired && !nullable ? '?' : '';
+        const optional = !isRequired ? '?' : '';
         const propType = generateTypeFromSchema(prop, toPascalCase(key));
         return `  ${key}${optional}: ${propType}${nullable};`;
       })
@@ -191,6 +191,61 @@ export interface PaginationParams {
 export interface ExpandParams {
   expands?: string[];
 }
+
+// Additional type exports for SDK compatibility
+export interface Attachment {
+  id: string;
+  name: string;
+  url: string;
+  size: number;
+  mimeType: string;
+}
+
+export interface TaxDocument {
+  id: string;
+  name: string;
+  url: string;
+  uploadedAt: string;
+}
+
+export interface UploadResponse {
+  id: string;
+  url: string;
+  name: string;
+}
+
+export interface CreateTagInput {
+  name: string;
+  color?: string;
+  description?: string;
+}
+
+export interface UpdateTagInput {
+  color?: string;
+  description?: string;
+}
+
+export interface WorkspaceRate {
+  id: string;
+  name: string;
+  rate: number;
+  unit: string;
+  description?: string;
+}
+
+export interface CreateWorkspaceRateInput {
+  name: string;
+  rate: number;
+  unit: string;
+  description?: string;
+}
+
+export interface UpdateWorkspaceRateInput {
+  name?: string;
+  rate?: number;
+  unit?: string;
+  description?: string;
+}
 `;
 
   await fs.mkdir(path.join(__dirname, '../src/types'), { recursive: true });
@@ -203,26 +258,44 @@ export interface ExpandParams {
     
     const paramsList: string[] = [];
     
-    // Add path parameters
+    // Add path parameters - prefix with underscore since they're not used in stub
     pathParams.forEach((p) => {
-      paramsList.push(`${p.name}: ${p.type}`);
+      paramsList.push(`_${p.name}: ${p.type}`);
     });
     
-    // Add query parameters as optional object
+    // Add query parameters as optional object - prefix with underscore
     if (queryParams.length > 0) {
       const queryInterface = `{
 ${queryParams.map((p) => `    ${p.name}${p.required ? '' : '?'}: ${p.type};`).join('\n')}
   }`;
-      paramsList.push(`params?: ${queryInterface}`);
+      paramsList.push(`_params?: ${queryInterface}`);
     }
     
-    // Add request body
+    // Add request body - prefix with underscore
     if (method.requestBody) {
-      paramsList.push(`data${method.requestBody.required ? '' : '?'}: ${method.requestBody.type}`);
+      // Add Types. prefix to type references
+      const bodyType = method.requestBody.type.startsWith('{') 
+        ? method.requestBody.type 
+        : `Types.${method.requestBody.type}`;
+      paramsList.push(`_data${method.requestBody.required ? '' : '?'}: ${bodyType}`);
     }
     
     const methodSignature = `async ${method.name}(${paramsList.join(', ')})`;
-    const returnType = method.response || 'unknown';
+    // Add Types. prefix to return type references
+    let returnType = method.response || 'unknown';
+    if (returnType !== 'unknown' && !returnType.startsWith('{')) {
+      returnType = `Types.${returnType}`;
+    } else if (returnType.startsWith('{')) {
+      // For object types, we need to prefix any type references inside
+      returnType = returnType.replace(/(\w+)(\[\])?(?=[;}\s])/g, (match, typeName, arrayBracket) => {
+        // Don't prefix primitive types
+        const primitives = ['string', 'number', 'boolean', 'unknown', 'Record'];
+        if (primitives.includes(typeName)) {
+          return match;
+        }
+        return `Types.${typeName}${arrayBracket || ''}`;
+      });
+    }
     
     return `  /**
    * ${method.summary || method.name}

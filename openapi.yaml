@@ -1,0 +1,5403 @@
+  openapi: 3.0.3
+  info:
+    title: ⚒️ API Reference
+    version: 1.0.0
+    description: |
+      The **Saturation API** lets you work with your workspace data including projects, budgets, actuals, contacts, purchase orders, and attachments.
+
+      It is built for real-time collaboration and automation so you can connect it to your internal tools or third-party systems. Any changes you make through the API appear instantly in the web app.
+
+      With it, you can:
+
+      * Create, update, and organize projects and phases
+      * Build and track multi-phase budgets
+      * Sync actuals and purchase orders
+      * Manage contacts and crew
+      * Upload, retrieve, and organize attachments
+
+      ---
+
+      **🔑 Authentication**
+      ```http
+      GET /api/v1/projects
+      X-API-Key: YOUR_API_KEY
+      ```
+      \
+      **📊 Get everything in one call**
+      ```http
+      GET /projects/my-film/budget?expands[]=phases&expands[]=fringes&expands[]=lines.contact&expands[]=lines.phaseData
+      ```
+      Returns the complete budget with all related records, no extra roundtrips.
+      \
+      \
+      **🏷️ Use your existing codes**
+      ```http
+      GET /projects/my-film/budget/line/1100-LABOR    # Your account code
+      GET /projects/my-film/budget/phases/estimate    # Your phase name
+      POST /projects/my-film/actuals                  # Create with your codes
+      {
+        "lineItemId": "2150-CAMERA",
+        "amount": 5000
+      }
+      ```
+      The API speaks your language. Use the same codes from your accounting system.
+      \
+      \
+      **🔄 Common patterns**
+      ```http
+      # Get recent actuals with full details
+      GET /projects/my-film/actuals?date=2024-03-14&expands[]=contact&expands[]=attachments
+
+      # Create a purchase order
+      POST /projects/my-film/purchase-orders
+      {
+        "number": "PO-001",
+        "contactId": "contact-123",
+        "items": [{"lineItemId": "2150", "amount": 35000}]
+      }
+      
+      # Export complete budget for accounting
+      GET /projects/my-film/budget?expands[]=phases&expands[]=fringes&expands[]=globals
+      ```
+      \
+      **💡 Pro tips**
+      * Create multiple budget lines in one POST to `/budget`
+      * Use tags liberally—they're your flexible second dimension
+      * Combine `accountId`, `tags`, and `date` filters for precise queries
+
+    contact:
+      name: Saturation API Support
+      url: https://support.saturation.io
+    license:
+      name: Proprietary
+      url: https://saturation.io/terms
+
+  servers:
+    - url: https://api.saturation.io/api/v1
+      description: Production server
+
+  x-tagGroups:
+    - name: Workspace
+      tags:
+        - Projects
+        - Contacts
+        - Rates
+        - Transactions
+    - name: Project
+      tags:
+        - Budget
+        - Budget - Phases
+        - Budget - Fringes
+        - Budget - Globals
+        - Actuals
+        - Purchase Orders
+    - name: Misc
+      tags:
+        - Tags
+        - Files
+        - Public Rates
+        - Spaces
+        - Comments
+
+  security:
+    - ApiKeyAuth: []
+
+  paths:
+    /projects:
+      get:
+        operationId: listProjects
+        summary: List projects
+        description: Retrieve projects for the current workspace. Supports filtering by ID, space, status, name, space name, or labels.
+        tags:
+          - Projects
+        parameters:
+          - name: id
+            in: query
+            description: Return only projects matching these IDs or aliases
+            schema:
+              oneOf:
+                - type: string
+                - type: array
+                  items:
+                    type: string
+            example: ["nike-swoosh-commercial"]
+          - name: spaceId
+            in: query
+            description: Return projects belonging to these space IDs or aliases
+            schema:
+              oneOf:
+                - type: string
+                - type: array
+                  items:
+                    type: string
+            example: ["commercial-productions"]
+          - name: status
+            in: query
+            description: Filter by project status
+            schema:
+              type: string
+              enum: [active, archived]
+            example: active
+          - name: name
+            in: query
+            description: Case-insensitive substring match on project name
+            schema:
+              oneOf:
+                - type: string
+                - type: array
+                  items:
+                    type: string
+            example: ["Swoosh"]
+          - name: spaceName
+            in: query
+            description: Case-insensitive substring match on space name
+            schema:
+              oneOf:
+                - type: string
+                - type: array
+                  items:
+                    type: string
+            example: ["Commercial"]
+          - name: labels
+            in: query
+            description: Return projects that include all specified labels
+            schema:
+              oneOf:
+                - type: string
+                - type: array
+                  items:
+                    type: string
+            example: ["nike", "q2-2024"]
+        responses:
+          '200':
+            description: List of projects
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    projects:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Project'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+      post:
+        operationId: createProject
+        summary: Create project
+        description: Create a new project in the current workspace
+        tags:
+          - Projects
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateProjectInput'
+        responses:
+          '201':
+            description: Project created successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Project'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /projects/{projectId}:
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+
+      get:
+        operationId: getProject
+        summary: Get project
+        description: Retrieve a project by its ID or alias
+        tags:
+          - Projects
+        responses:
+          '200':
+            description: Project details
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Project'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+      put:
+        operationId: updateProject
+        summary: Update project
+        description: Update an existing project's details
+        tags:
+          - Projects
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateProjectInput'
+        responses:
+          '200':
+            description: Project updated successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Project'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+      delete:
+        operationId: deleteProject
+        summary: Delete project
+        description: Soft delete a project
+        tags:
+          - Projects
+        responses:
+          '204':
+            description: Project deleted successfully
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /projects/{projectId}/budget:
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      
+      get:
+        operationId: getProjectBudget
+        summary: Get budget
+        description: Retrieve budget information for a project
+        tags:
+          - Budget
+        parameters:
+          - name: accountId
+            in: query
+            description: Filter by account ID or code (defaults to root account)
+            schema:
+              type: string
+            example: "2150"
+          - name: phaseId
+            in: query
+            description: Filter by phase ID(s)
+            schema:
+              oneOf:
+                - type: string
+                - type: array
+                  items:
+                    type: string
+            example: ["estimate", "actual"]
+          - name: includeHiddenPhases
+            in: query
+            description: Include hidden phases in the response
+            schema:
+              type: boolean
+            example: false
+          - name: tags
+            in: query
+            description: Filter budget by tag names (can be single tag or array of tags)
+            schema:
+              oneOf:
+                - type: string
+                - type: array
+                  items:
+                    type: string
+            example: ["Marketing", "Engineering"]
+          - name: tagFilterMode
+            in: query
+            description: How to apply the tag filter
+            schema:
+              type: string
+              enum: [contains, excludes]
+              default: contains
+            example: contains
+          - name: expands
+            in: query
+            description: Include related data in the response
+            schema:
+              type: array
+              items:
+                type: string
+                enum: [fringes, phases, globals, lines.contact, lines.phaseData]
+            style: form
+            explode: false
+            example: ["phases", "lines.contact"]
+          - $ref: '#/components/parameters/IdMode'
+        responses:
+          '200':
+            description: Budget information
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Budget'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+      post:
+        operationId: createBudgetLines
+        summary: Create budget lines
+        description: |
+          Add new budget lines to an existing account within the budget hierarchy. 
+          
+          This endpoint creates line items, sub-accounts, subtotals, or markups at the specified location in your budget structure. The target account must already exist in the budget hierarchy.
+          
+          Use `accountId: "root"` to add lines at the top level of your budget.
+        tags:
+          - Budget
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateBudgetInput'
+              examples:
+                createTopLevel:
+                  summary: Create top-level accounts
+                  value:
+                    accountId: "root"
+                    lines:
+                      - type: "account"
+                        accountId: "1000"
+                        description: "Above-the-Line"
+                      - type: "account"
+                        accountId: "2000"
+                        description: "Below-the-Line"
+                createInAccount:
+                  summary: Add lines to existing account
+                  value:
+                    accountId: "2000"
+                    lines:
+                      - type: "line"
+                        accountId: "2150"
+                        description: "Camera Package - Alexa 35"
+                        phaseData:
+                          estimate:
+                            quantity: 5
+                            unit: "days"
+                            rate: 7500
+                createNonExistent:
+                  summary: Create in non-existent account
+                  value:
+                    accountId: "2000/2100"
+                    lines:
+                      - type: "line"
+                        description: "DP - Roger Deakins"
+                        phaseData:
+                          estimate:
+                            quantity: 20
+                            unit: "days"
+                            rate: 5000
+        responses:
+          '201':
+            description: Budget lines created successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Budget'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /projects/{projectId}/budget/line/{lineId}:
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - name: lineId
+          in: path
+          required: true
+          description: Budget line identifier. Can be either a user-friendly ID (e.g., account code) or a system ID (UUID/nanoid), depending on the idMode parameter
+          schema:
+            type: string
+      
+      get:
+        operationId: getBudgetLine
+        summary: Get budget line
+        description: |
+          Retrieve a specific budget line by its identifier.
+          
+          The lineId parameter accepts both user-friendly IDs and system IDs:
+          - With `idMode=user` (default): Use account codes like "1100" or "camera-dept"
+          - With `idMode=system`: Use UUIDs/nanoids like "abc123xyz" or "550e8400-e29b-41d4-a716"
+        tags:
+          - Budget
+        parameters:
+          - name: tags
+            in: query
+            description: Filter budget line by tag names (can be single tag or array of tags)
+            schema:
+              oneOf:
+                - type: string
+                - type: array
+                  items:
+                    type: string
+            example: ["Marketing", "Engineering"]
+          - name: tagFilterMode
+            in: query
+            description: How to apply the tag filter
+            schema:
+              type: string
+              enum: [contains, excludes]
+              default: contains
+            example: contains
+          - name: expands
+            in: query
+            description: Include related data in the response
+            schema:
+              type: array
+              items:
+                type: string
+                enum: [contact, phaseData]
+            style: form
+            explode: false
+            example: ["contact", "phaseData"]
+          - $ref: '#/components/parameters/IdMode'
+        responses:
+          '200':
+            description: Budget line details
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/BudgetLine'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+      
+      put:
+        operationId: updateBudgetLine
+        summary: Update budget line
+        description: |
+          Update an existing budget line with new values.
+          
+          The lineId in the path accepts both ID formats based on the idMode in the request body:
+          - User-friendly IDs: Account codes like "2150" or descriptive IDs
+          - System IDs: Database identifiers when idMode is set to "system"
+        tags:
+          - Budget
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateBudgetLineRequest'
+              examples:
+                updateDescription:
+                  summary: Update line description
+                  value:
+                    description: "Director - Christopher Nolan"
+                updatePhaseData:
+                  summary: Update phase data
+                  value:
+                    phaseData:
+                      estimate:
+                        quantity: 15
+                        rate: 30000
+                convertToAccount:
+                  summary: Convert line to account
+                  value:
+                    convertToAccount: true
+                    description: "Above-the-Line Personnel"
+        responses:
+          '200':
+            description: Updated budget line
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/BudgetLine'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+      
+      delete:
+        operationId: deleteBudgetLine
+        summary: Delete budget line
+        description: |
+          Delete a budget line from the project.
+          
+          The lineId parameter accepts both ID formats:
+          - With `idMode=user` (default): Use human-readable IDs
+          - With `idMode=system`: Use system-generated IDs
+        tags:
+          - Budget
+        parameters:
+          - $ref: '#/components/parameters/IdMode'
+        responses:
+          '204':
+            description: Budget line deleted successfully
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /projects/{projectId}/actuals:
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      
+      get:
+        operationId: listProjectActuals
+        summary: List actuals
+        description: Retrieve actual spending data for a project
+        tags:
+          - Actuals
+        parameters:
+          - name: accountId
+            in: query
+            description: Filter by account ID(s) or codes
+            schema:
+              oneOf:
+                - type: string
+                - type: array
+                  items:
+                    type: string
+            example: ["2150"]
+          - $ref: '#/components/parameters/StartDate'
+          - $ref: '#/components/parameters/EndDate'
+          - $ref: '#/components/parameters/HasAttachments'
+          - name: hasAssignedAccount
+            in: query
+            description: Filter by whether an account is assigned
+            schema:
+              type: boolean
+            example: true
+          - name: hasLinkedTransaction
+            in: query
+            description: Filter by presence of linked transactions
+            schema:
+              type: boolean
+            example: false
+          - name: sourceIds
+            in: query
+            description: Filter by source IDs
+            schema:
+              type: array
+              items:
+                type: string
+            example: ["txn-123"]
+          - name: expands
+            in: query
+            description: Include related data in the response
+            schema:
+              type: array
+              items:
+                type: string
+                enum: [contact, subactual, account, subactual.account]
+            style: form
+            explode: false
+            example: ["contact", "attachments"]
+          - $ref: '#/components/parameters/IdMode'
+        responses:
+          '200':
+            description: List of actuals
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    actuals:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Actual'
+                    totalAmount:
+                      type: number
+                      format: float
+                      example: 450000.00
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /projects/{projectId}/actuals/{actualId}:
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - name: actualId
+          in: path
+          required: true
+          description: Actual identifier (alias or ID)
+          schema:
+            type: string
+            example: actual-001
+      
+      get:
+        operationId: getActual
+        summary: Get actual
+        description: Retrieve a specific actual entry
+        tags:
+          - Actuals
+        parameters:
+          - name: expands
+            in: query
+            description: Include related data in the response
+            schema:
+              type: array
+              items:
+                type: string
+                enum: [contact, subactual, account]
+            style: form
+            explode: false
+            example: ["contact", "account"]
+          - $ref: '#/components/parameters/IdMode'
+        responses:
+          '200':
+            description: Actual details
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Actual'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+      
+      post:
+        operationId: createActual
+        summary: Create actual
+        description: Create a new actual entry for a project
+        tags:
+          - Actuals
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateActualInput'
+        responses:
+          '201':
+            description: Actual created successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Actual'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+      
+      put:
+        operationId: updateActual
+        summary: Update actual
+        description: Update an existing actual entry
+        tags:
+          - Actuals
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateActualInput'
+        responses:
+          '200':
+            description: Actual updated successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Actual'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+      
+      delete:
+        operationId: deleteActual
+        summary: Delete actual
+        description: Delete an actual entry
+        tags:
+          - Actuals
+        responses:
+          '204':
+            description: Actual deleted successfully
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /projects/{projectId}/actuals/{actualId}/attachment:
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - name: actualId
+          in: path
+          required: true
+          description: Actual ID
+          schema:
+            type: string
+            example: actual-001
+      
+      post:
+        operationId: uploadActualAttachment
+        summary: Upload actual attachment
+        description: |-
+          Upload a receipt or other supporting document for an actual.
+          Accepts PDF or image files up to 10&nbsp;MB.
+        tags:
+          - Actuals
+        requestBody:
+          required: true
+          content:
+            multipart/form-data:
+              schema:
+                type: object
+                properties:
+                  file:
+                    type: string
+                    format: binary
+                    description: Attachment file
+                required:
+                  - file
+        responses:
+          '201':
+            description: Attachment uploaded successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/File'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /projects/{projectId}/purchaseOrders:
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      
+      get:
+        operationId: listPurchaseOrders
+        summary: List purchase orders
+        description: Retrieve purchase orders for a project
+        tags:
+          - Purchase Orders
+        parameters:
+          - name: accountId
+            in: query
+            description: Filter by account ID(s) or codes
+            schema:
+              oneOf:
+                - type: string
+                - type: array
+                  items:
+                    type: string
+            example: ["2150"]
+          - $ref: '#/components/parameters/StartDate'
+          - $ref: '#/components/parameters/EndDate'
+          - $ref: '#/components/parameters/HasAttachments'
+          - name: status
+            in: query
+            description: Filter by purchase order status
+            schema:
+              oneOf:
+                - type: string
+                  enum: [draft, approved, rejected, pending, paid]
+                - type: array
+                  items:
+                    type: string
+                    enum: [draft, approved, rejected, pending, paid]
+            example: ["approved", "pending"]
+          - name: expands
+            in: query
+            description: Include related data in the response
+            schema:
+              type: array
+              items:
+                type: string
+                enum: [contact, actuals, purchaseOrderItems, purchaseOrderItems.account]
+            style: form
+            explode: false
+            example: ["contact", "purchaseOrderItems"]
+          - $ref: '#/components/parameters/IdMode'
+        responses:
+          '200':
+            description: List of purchase orders
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    purchaseOrders:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/PurchaseOrder'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /projects/{projectId}/purchaseOrders/{purchaseOrderId}:
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - name: purchaseOrderId
+          in: path
+          required: true
+          description: Purchase order identifier (alias or ID)
+          schema:
+            type: string
+            example: po-2024-001
+      
+      get:
+        operationId: getPurchaseOrder
+        summary: Get purchase order
+        description: Retrieve a specific purchase order
+        tags:
+          - Purchase Orders
+        parameters:        
+          - name: expands
+            in: query
+            description: Include related data in the response
+            schema:
+              type: array
+              items:
+                type: string
+                enum: [contact, actuals, purchaseOrderItems, purchaseOrderItems.account]
+            style: form
+            explode: false
+            example: ["contact", "purchaseOrderItems.account"]
+          - $ref: '#/components/parameters/IdMode'
+        responses:
+          '200':
+            description: Purchase order details
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/PurchaseOrder'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+      
+      post:
+        operationId: createPurchaseOrder
+        summary: Create purchase order
+        description: Create a new purchase order for a project
+        tags:
+          - Purchase Orders
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatePurchaseOrderInput'
+        responses:
+          '201':
+            description: Purchase order created successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/PurchaseOrder'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+      
+      put:
+        operationId: updatePurchaseOrder
+        summary: Update purchase order
+        description: Update an existing purchase order
+        tags:
+          - Purchase Orders
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdatePurchaseOrderInput'
+        responses:
+          '200':
+            description: Purchase order updated successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/PurchaseOrder'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+      
+      delete:
+        operationId: deletePurchaseOrder
+        summary: Delete purchase order
+        description: Delete a purchase order
+        tags:
+          - Purchase Orders
+        responses:
+          '204':
+            description: Purchase order deleted successfully
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /projects/{projectId}/purchaseOrders/{purchaseOrderId}/attachment:
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - name: purchaseOrderId
+          in: path
+          required: true
+          description: Purchase order identifier (alias or ID)
+          schema:
+            type: string
+            example: po-2024-001
+      
+      post:
+        operationId: uploadPurchaseOrderAttachment
+        summary: Upload purchase order attachment
+        description: |-
+          Upload a supporting document for a purchase order.
+          Accepts PDF or image files up to 10&nbsp;MB.
+        tags:
+          - Purchase Orders
+        requestBody:
+          required: true
+          content:
+            multipart/form-data:
+              schema:
+                type: object
+                properties:
+                  file:
+                    type: string
+                    format: binary
+                    description: Attachment file
+                required:
+                  - file
+        responses:
+          '201':
+            description: Attachment uploaded successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/File'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /projects/{projectId}/budget/phases:
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      
+      get:
+        operationId: listBudgetPhases
+        summary: List budget phases
+        description: Retrieve all budget phases for a project
+        tags:
+          - Budget - Phases
+        parameters:
+          - $ref: '#/components/parameters/IdMode'
+        responses:
+          '200':
+            description: List of budget phases
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    phases:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Phase'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+      
+      post:
+        operationId: createBudgetPhase
+        summary: Create budget phase
+        description: Create a new budget phase for a project
+        tags:
+          - Budget - Phases
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatePhaseRequest'
+              examples:
+                estimate:
+                  summary: Create estimate phase
+                  value:
+                    name: "Post-Production"
+                    type: "estimate"
+                    color: "blue"
+                    currency:
+                      code: "USD"
+                      symbol: "$"
+                      exchangeRate: 1.0
+                rollup:
+                  summary: Create rollup phase
+                  value:
+                    name: "Total Budget"
+                    type: "rollup"
+                    operation: "sum"
+                    phaseIds: ["estimate", "contingency"]
+        responses:
+          '201':
+            description: Created budget phase
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Phase'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /projects/{projectId}/budget/phases/{phaseId}:
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - name: phaseId
+          in: path
+          required: true
+          description: Phase identifier (alias or ID)
+          schema:
+            type: string
+            example: estimate
+      
+      get:
+        operationId: getBudgetPhase
+        summary: Get budget phase
+        description: Retrieve a specific budget phase
+        tags:
+          - Budget - Phases
+        parameters:
+          - $ref: '#/components/parameters/IdMode'
+        responses:
+          '200':
+            description: Budget phase details
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Phase'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+      
+      put:
+        operationId: updateBudgetPhase
+        summary: Update budget phase
+        description: Update an existing budget phase
+        tags:
+          - Budget - Phases
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdatePhaseRequest'
+              examples:
+                updateName:
+                  summary: Update phase name
+                  value:
+                    name: "Final Post-Production"
+                updateCurrency:
+                  summary: Update phase currency
+                  value:
+                    currency:
+                      code: "EUR"
+                      symbol: "€"
+                      exchangeRate: 0.85
+        responses:
+          '200':
+            description: Updated budget phase
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Phase'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+      
+      delete:
+        operationId: deleteBudgetPhase
+        summary: Delete budget phase
+        description: Delete a budget phase from a project
+        tags:
+          - Budget - Phases
+        responses:
+          '204':
+            description: Phase deleted successfully
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /projects/{projectId}/budget/fringes:
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      
+      get:
+        operationId: listBudgetFringes
+        summary: List budget fringes
+        description: Retrieve all fringe benefits for a project
+        tags:
+          - Budget - Fringes
+        parameters:
+          - $ref: '#/components/parameters/IdMode'
+        responses:
+          '200':
+            description: List of fringe benefits
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    fringes:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Fringe'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+      
+      post:
+        operationId: createBudgetFringe
+        summary: Create budget fringe
+        description: Create a new fringe benefit for a project
+        tags:
+          - Budget - Fringes
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateFringeRequest'
+              examples:
+                percentFringe:
+                  summary: Create percentage-based fringe
+                  value:
+                    code: "FICA"
+                    description: "Social Security Tax"
+                    units: "percent"
+                    rate: 0.062
+                    cutoff: 160200
+                flatFringe:
+                  summary: Create flat-rate fringe
+                  value:
+                    code: "HEALTH"
+                    description: "Health Insurance"
+                    units: "flat"
+                    rate: 500
+        responses:
+          '201':
+            description: Created fringe benefit
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Fringe'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /projects/{projectId}/budget/fringes/{fringeId}:
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - name: fringeId
+          in: path
+          required: true
+          description: Fringe identifier (alias or ID)
+          schema:
+            type: string
+            example: fica
+      
+      get:
+        operationId: getBudgetFringe
+        summary: Get budget fringe
+        description: Retrieve a specific fringe benefit
+        tags:
+          - Budget - Fringes
+        parameters:
+          - $ref: '#/components/parameters/IdMode'
+        responses:
+          '200':
+            description: Fringe benefit details
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Fringe'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+      
+      put:
+        operationId: updateBudgetFringe
+        summary: Update budget fringe
+        description: Update an existing fringe benefit
+        tags:
+          - Budget - Fringes
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateFringeRequest'
+              examples:
+                updateRate:
+                  summary: Update fringe rate
+                  value:
+                    rate: 0.065
+                updateDescription:
+                  summary: Update fringe description
+                  value:
+                    description: "Updated Social Security Tax"
+        responses:
+          '200':
+            description: Updated fringe benefit
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Fringe'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+      
+      delete:
+        operationId: deleteBudgetFringe
+        summary: Delete budget fringe
+        description: Delete a fringe benefit from a project
+        tags:
+          - Budget - Fringes
+        responses:
+          '204':
+            description: Fringe deleted successfully
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /projects/{projectId}/budget/globals:
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      
+      get:
+        operationId: listBudgetGlobals
+        summary: List budget globals
+        description: Retrieve all global variables for a project
+        tags:
+          - Budget - Globals
+        parameters:
+          - $ref: '#/components/parameters/IdMode'
+        responses:
+          '200':
+            description: List of global variables
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    globals:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Global'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+      
+      post:
+        operationId: createBudgetGlobal
+        summary: Create budget global
+        description: Create a new global variable for a project
+        tags:
+          - Budget - Globals
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateGlobalRequest'
+              examples:
+                exchangeRate:
+                  summary: Create exchange rate global
+                  value:
+                    symbol: "EUR_RATE"
+                    description: "EUR to USD exchange rate"
+                    formula: "0.85"
+                    unit: "currency"
+                overheadRate:
+                  summary: Create overhead rate global
+                  value:
+                    symbol: "OVERHEAD"
+                    description: "Overhead percentage"
+                    formula: "15"
+                    unit: "percent"
+        responses:
+          '201':
+            description: Created global variable
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Global'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /projects/{projectId}/budget/globals/{globalId}:
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - name: globalId
+          in: path
+          required: true
+          description: Global variable identifier (alias or ID)
+          schema:
+            type: string
+            example: exchange-rate
+      
+      get:
+        operationId: getBudgetGlobal
+        summary: Get budget global
+        description: Retrieve a specific global variable
+        tags:
+          - Budget - Globals
+        parameters:
+          - $ref: '#/components/parameters/IdMode'
+        responses:
+          '200':
+            description: Global variable details
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Global'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+      
+      put:
+        operationId: updateBudgetGlobal
+        summary: Update budget global
+        description: Update an existing global variable
+        tags:
+          - Budget - Globals
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateGlobalRequest'
+              examples:
+                updateFormula:
+                  summary: Update global formula
+                  value:
+                    formula: "0.92"
+                updateDescription:
+                  summary: Update global description
+                  value:
+                    description: "Updated EUR to USD exchange rate"
+        responses:
+          '200':
+            description: Updated global variable
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Global'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+      
+      delete:
+        operationId: deleteBudgetGlobal
+        summary: Delete budget global
+        description: Delete a global variable from a project
+        tags:
+          - Budget - Globals
+        responses:
+          '204':
+            description: Global deleted successfully
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /projects/{projectId}/comments:
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      
+      get:
+        operationId: listProjectComments
+        summary: List project comments
+        description: Retrieve all comments for a project's budget
+        tags:
+          - Comments
+        parameters:        
+          - name: accountId
+            in: query
+            description: Filter comments by account ID or code
+            schema:
+              type: string
+            example: "2150"
+          - name: lineId
+            in: query
+            description: Filter comments by budget line ID or alias
+            schema:
+              type: string
+            example: line-001
+          - $ref: '#/components/parameters/IdMode'
+        responses:
+          '200':
+            description: List of project comments
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    comments:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Comment'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /spaces:
+      get:
+        operationId: listSpaces
+        summary: List spaces
+        description: Retrieve all project spaces/folders in the workspace
+        tags:
+          - Spaces
+        parameters:
+          - name: archived
+            in: query
+            description: Include archived spaces
+            schema:
+              type: boolean
+              default: false
+            example: false
+          - name: search
+            in: query
+            description: Search spaces by name (case-insensitive)
+            schema:
+              type: string
+            example: "Nike"
+          - name: expands
+            in: query
+            description: Expand related data in the response
+            schema:
+              type: array
+              items:
+                type: string
+                enum: [projects]
+            style: form
+            explode: false
+            example: ["projects"]
+        responses:
+          '200':
+            description: List of spaces
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    spaces:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Space'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+      post:
+        operationId: createSpace
+        summary: Create space
+        description: Create a new project space/folder
+        tags:
+          - Spaces
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateSpaceInput'
+        responses:
+          '201':
+            description: Space created successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Space'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /spaces/{spaceId}:
+      parameters:
+        - name: spaceId
+          in: path
+          required: true
+          description: Space identifier (alias or ID)
+          schema:
+            type: string
+            example: commercial-productions
+      
+      get:
+        operationId: getSpace
+        summary: Get space
+        description: Retrieve a specific space by ID or alias
+        tags:
+          - Spaces
+        parameters:
+          - name: expands
+            in: query
+            description: Expand related data in the response
+            schema:
+              type: array
+              items:
+                type: string
+                enum: [projects]
+            style: form
+            explode: false
+            example: ["projects"]
+        responses:
+          '200':
+            description: Space details
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Space'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+      put:
+        operationId: updateSpace
+        summary: Update space
+        description: Update an existing space
+        tags:
+          - Spaces
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateSpaceInput'
+        responses:
+          '200':
+            description: Space updated successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Space'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+      delete:
+        operationId: deleteSpace
+        summary: Delete space
+        description: Soft delete a space (must not contain active projects)
+        tags:
+          - Spaces
+        responses:
+          '204':
+            description: Space deleted successfully
+          '400':
+            description: Space contains active projects
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /files/upload:
+      post:
+        operationId: uploadFile
+        summary: Upload file
+        description: |-
+          Upload a file to project storage. Accepts PDF or image files up to 10&nbsp;MB.
+        tags:
+          - Files
+        requestBody:
+          required: true
+          content:
+            multipart/form-data:
+              schema:
+                type: object
+                properties:
+                  file:
+                    type: string
+                    format: binary
+                    description: File to upload
+                  projectId:
+                    type: string
+                    description: Associated project ID
+                    example: nike-swoosh-commercial
+                  type:
+                    type: string
+                    description: File type/category
+                    example: call-sheet
+                required:
+                  - file
+        responses:
+          '201':
+            description: File uploaded successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/File'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '413':
+            description: File too large
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /files/{fileId}/download:
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          description: File identifier
+          schema:
+            type: string
+            example: file-001
+      
+      get:
+        operationId: downloadFile
+        summary: Download file
+        description: Download/stream a file
+        tags:
+          - Files
+        responses:
+          '200':
+            description: File content
+            content:
+              application/octet-stream:
+                schema:
+                  type: string
+                  format: binary
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /files/{fileId}:
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          description: File identifier
+          schema:
+            type: string
+            example: file-001
+      
+      delete:
+        operationId: deleteFile
+        summary: Delete file
+        description: Delete a file from storage
+        tags:
+          - Files
+        responses:
+          '204':
+            description: File deleted successfully
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /projects/{projectId}/tags:
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      
+      get:
+        operationId: listProjectTags
+        summary: List project tags
+        description: |
+          Retrieve all tags for a project with optional filtering and sorting.
+          
+          Tags are used for categorizing budget line items and enable advanced filtering
+          capabilities across budget data. Each tag includes financial totals aggregated
+          from all associated budget line items.
+        tags:
+          - Tags
+        parameters:        
+          - name: name
+            in: query
+            description: Filter tags by name (partial match search)
+            schema:
+              type: string
+              example: "Post-Production"
+          - name: sortBy
+            in: query
+            description: Field to sort by
+            schema:
+              type: string
+              enum: [name]
+              default: name
+            example: name
+          - name: sortOrder
+            in: query
+            description: Sort direction
+            schema:
+              type: string
+              enum: [asc, desc]
+              default: asc
+            example: asc
+          - $ref: '#/components/parameters/IdMode'
+        responses:
+          '200':
+            description: List of project tags with financial totals
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/TagsResponse'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+      
+      post:
+        operationId: createProjectTag
+        summary: Create project tag
+        description: |
+          Create a new tag for the project. Tags are used to categorize budget line items
+          and enable advanced filtering capabilities.
+          
+          Note: Tag names cannot be changed after creation. Only the color can be updated.
+        tags:
+          - Tags
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateTagRequest'
+        responses:
+          '201':
+            description: Tag created successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/TagResponse'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '409':
+            $ref: '#/components/responses/Conflict'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /projects/{projectId}/tags/{tagId}:
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - name: tagId
+          in: path
+          required: true
+          description: Tag identifier (same as tag name)
+          schema:
+            type: string
+            example: "Post-Production"
+      
+      get:
+        operationId: getProjectTag
+        summary: Get project tag
+        description: |
+          Retrieve a specific tag by ID, including its financial totals aggregated
+          from all associated budget line items.
+        tags:
+          - Tags
+        parameters:
+          - $ref: '#/components/parameters/IdMode'
+        responses:
+          '200':
+            description: Tag details with financial totals
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/TagResponse'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+      
+      put:
+        operationId: updateProjectTag
+        summary: Update project tag
+        description: |
+          Update a tag's properties. Currently, only the color can be updated.
+          Tag names and descriptions cannot be modified after creation.
+        tags:
+          - Tags
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateTagRequest'
+        responses:
+          '200':
+            description: Tag updated successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/TagResponse'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+      
+      delete:
+        operationId: deleteProjectTag
+        summary: Delete project tag
+        description: |
+          Delete a tag and remove all its assignments from budget line items.
+          This operation cannot be undone.
+        tags:
+          - Tags
+        responses:
+          '204':
+            description: Tag deleted successfully
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /contacts:
+      get:
+        operationId: listContacts
+        summary: List contacts
+        description: Retrieve contacts with optional filtering
+        tags:
+          - Contacts
+        parameters:        
+          - name: projectIds
+            in: query
+            description: Filter by project IDs or aliases
+            schema:
+              type: array
+              items:
+                type: string
+            example: ["nike-swoosh-commercial"]
+          - name: accountId
+            in: query
+            description: Filter by account ID(s) or codes
+            schema:
+              oneOf:
+                - type: string
+                - type: array
+                  items:
+                    type: string
+            example: ["2150"]
+          - name: origin
+            in: query
+            description: Filter by contact origin
+            schema:
+              type: array
+              items:
+                type: string
+                enum: [onboarding, manual]
+            example: ["manual"]
+          - name: hasLinkedUser
+            in: query
+            description: Filter by linked user presence
+            schema:
+              type: boolean
+            example: false
+          - $ref: '#/components/parameters/HasAttachments'
+          - name: hasTaxDocuments
+            in: query
+            description: Filter by tax document presence
+            schema:
+              type: boolean
+            example: true
+          - name: email
+            in: query
+            description: Filter by email (case-insensitive partial match)
+            schema:
+              type: string
+            example: "producer@saturation.io"
+          - name: title
+            in: query
+            description: Filter by title (case-insensitive partial match)
+            schema:
+              type: string
+            example: "Producer"
+          - name: expands
+            in: query
+            description: Include related data in the response
+            schema:
+              type: array
+              items:
+                type: string
+                enum: [secureInfo, origin, projects, projects.accounts, startwork, taxDocuments, attachments, bankInfo, linkedUser]
+            style: form
+            explode: false
+            example: ["projects", "attachments"]
+          - $ref: '#/components/parameters/IdMode'
+        responses:
+          '200':
+            description: List of contacts
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    contacts:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Contact'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+      
+      post:
+        operationId: createContact
+        summary: Create contact
+        description: Create a new contact
+        tags:
+          - Contacts
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateContactInput'
+        responses:
+          '201':
+            description: Contact created successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Contact'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /contacts/{contactId}:
+      parameters:
+        - name: contactId
+          in: path
+          required: true
+          description: Contact identifier (alias or ID)
+          schema:
+            type: string
+            example: contact-studio-001
+      
+      get:
+        operationId: getContact
+        summary: Get contact
+        description: Retrieve a specific contact by ID or alias
+        tags:
+          - Contacts
+        parameters:
+          - $ref: '#/components/parameters/IdMode'
+        responses:
+          '200':
+            description: Contact details
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Contact'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+      
+      put:
+        operationId: updateContact
+        summary: Update contact
+        description: Update an existing contact
+        tags:
+          - Contacts
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateContactInput'
+        responses:
+          '200':
+            description: Contact updated successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Contact'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /contacts/{contactId}/tax-document:
+      parameters:
+        - name: contactId
+          in: path
+          required: true
+          description: Contact identifier (alias or ID)
+          schema:
+            type: string
+            example: contact-studio-001
+      
+      post:
+        operationId: uploadContactTaxDocument
+        summary: Upload tax document
+        description: |-
+          Upload a tax document (e.g., W-9) for a contact.
+          Accepts PDF or image files up to 10&nbsp;MB.
+        tags:
+          - Contacts
+        requestBody:
+          required: true
+          content:
+            multipart/form-data:
+              schema:
+                type: object
+                properties:
+                  file:
+                    type: string
+                    format: binary
+                    description: Tax document file
+                required:
+                  - file
+        responses:
+          '201':
+            description: Tax document uploaded successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/File'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /contacts/{contactId}/attachment:
+      parameters:
+        - name: contactId
+          in: path
+          required: true
+          description: Contact identifier (alias or ID)
+          schema:
+            type: string
+            example: contact-studio-001
+      
+      post:
+        operationId: uploadContactAttachment
+        summary: Upload attachment
+        description: |-
+          Upload a file to a contact profile.
+          Accepts PDF or image files up to 10&nbsp;MB.
+        tags:
+          - Contacts
+        requestBody:
+          required: true
+          content:
+            multipart/form-data:
+              schema:
+                type: object
+                properties:
+                  file:
+                    type: string
+                    format: binary
+                    description: Attachment file
+                required:
+                  - file
+        responses:
+          '201':
+            description: Attachment uploaded successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/File'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /transactions:
+      get:
+        operationId: listTransactions
+        summary: List transactions
+        description: Retrieve financial transactions with comprehensive filtering
+        tags:
+          - Transactions
+        parameters:        
+          - name: type
+            in: query
+            description: Filter by transaction type
+            schema:
+              type: array
+              items:
+                type: string
+                enum: [bank.deposit, bank.withdrawal, bank.ach, bank.wire, card.spend, card.payment, card.dispute, card.refund, card.cashback]
+            example: ["card.spend"]
+          - name: status
+            in: query
+            description: Filter by transaction status
+            schema:
+              type: array
+              items:
+                type: string
+                enum: [posted, pending, void]
+            example: ["posted"]
+          - name: subStatus
+            in: query
+            description: Filter by transaction sub-status
+            schema:
+              type: array
+              items:
+                type: string
+                enum: [settled, refund, reverse, rejected]
+            example: ["settled"]
+          - name: projectId
+            in: query
+            description: Filter by project ID(s)
+            schema:
+              oneOf:
+                - type: string
+                - type: array
+                  items:
+                    type: string
+            example: ["nike-swoosh-commercial"]
+          - name: sourceType
+            in: query
+            description: Filter by source type
+            schema:
+              oneOf:
+                - type: string
+                - type: array
+                  items:
+                    type: string
+            example: ["card"]
+          - name: sourceName
+            in: query
+            description: Filter by source name
+            schema:
+              oneOf:
+                - type: string
+                - type: array
+                  items:
+                    type: string
+            example: ["Amex 001"]
+          - name: sourceLast4
+            in: query
+            description: Filter by source last 4 digits
+            schema:
+              oneOf:
+                - type: string
+                - type: array
+                  items:
+                    type: string
+            example: ["4242"]
+          - name: description
+            in: query
+            description: Filter by transaction description
+            schema:
+              type: string
+            example: "Camera rental"
+          - name: merchant
+            in: query
+            description: Filter by merchant name
+            schema:
+              type: string
+            example: "B&H Photo"
+          - name: contactTitle
+            in: query
+            description: Filter by contact title
+            schema:
+              type: string
+            example: "Producer"
+          - name: hasAccount
+            in: query
+            description: Filter by account assignment
+            schema:
+              type: boolean
+            example: true
+          - name: isActualized
+            in: query
+            description: Filter by actualization status
+            schema:
+              type: boolean
+            example: false
+          - $ref: '#/components/parameters/HasAttachments'
+          - name: hasContact
+            in: query
+            description: Filter by contact presence
+            schema:
+              type: boolean
+            example: true
+          - $ref: '#/components/parameters/StartDate'
+          - $ref: '#/components/parameters/EndDate'
+          - name: expands
+            in: query
+            description: Include related data in the response
+            schema:
+              type: array
+              items:
+                type: string
+                enum: [project, contact, account, actual, attachments]
+            style: form
+            explode: false
+            example: ["project", "attachments"]
+          - $ref: '#/components/parameters/IdMode'
+        responses:
+          '200':
+            description: List of transactions
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    transactions:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Transaction'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /transactions/{transactionId}:
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          description: Transaction identifier
+          schema:
+            type: string
+            example: txn-abc-123
+      
+      get:
+        operationId: getTransaction
+        summary: Get transaction
+        description: Retrieve a specific transaction by ID
+        tags:
+          - Transactions
+        parameters:
+          - $ref: '#/components/parameters/IdMode'
+        responses:
+          '200':
+            description: Transaction details
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Transaction'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+      
+      put:
+        operationId: updateTransaction
+        summary: Update transaction
+        description: Update an existing transaction
+        tags:
+          - Transactions
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateTransactionInput'
+        responses:
+          '200':
+            description: Transaction updated successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Transaction'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /transactions/{transactionId}/attachment:
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          description: Transaction identifier
+          schema:
+            type: string
+            example: txn-abc-123
+      
+      post:
+        operationId: uploadTransactionAttachment
+        summary: Upload transaction attachment
+        description: Upload an attachment for a transaction
+        tags:
+          - Transactions
+        requestBody:
+          required: true
+          content:
+            multipart/form-data:
+              schema:
+                type: object
+                properties:
+                  file:
+                    type: string
+                    format: binary
+                    description: Attachment file
+                required:
+                  - file
+        responses:
+          '201':
+            description: Attachment uploaded successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/File'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    # ========================================
+    # RATEPACK ENDPOINTS
+    # ========================================
+
+    /rates:
+      get:
+        operationId: listWorkspaceRates
+        summary: List workspace rates
+        description: Retrieve all rates from the workspace
+        tags:
+          - Rates
+        parameters:
+          - name: expands
+            in: query
+            description: Expand related data in the response
+            schema:
+              type: array
+              items:
+                type: string
+                enum: [contact]
+            example: ["contact"]
+          - name: search
+            in: query
+            description: Search rates by name, description, or note
+            schema:
+              type: string
+            example: "camera"
+          - name: limit
+            in: query
+            description: Maximum number of results to return
+            schema:
+              type: integer
+              minimum: 1
+              maximum: 1000
+              default: 100
+            example: 50
+          - name: offset
+            in: query
+            description: Number of results to skip for pagination
+            schema:
+              type: integer
+              minimum: 0
+              default: 0
+            example: 0
+        responses:
+          '200':
+            description: List of workspace rates
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    rates:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Rate'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+      post:
+        operationId: createWorkspaceRate
+        summary: Create workspace rate
+        description: Create a new rate in the workspace
+        tags:
+          - Rates
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateRateInput'
+        responses:
+          '201':
+            description: Rate created successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Rate'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /rates/{rateId}:
+      put:
+        operationId: updateWorkspaceRate
+        summary: Update workspace rate
+        description: Update a rate in the workspace
+        tags:
+          - Rates
+        parameters:
+          - name: rateId
+            in: path
+            required: true
+            description: Rate identifier
+            schema:
+              type: string
+            example: item-001
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateRateInput'
+        responses:
+          '200':
+            description: Rate updated successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Rate'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+      delete:
+        operationId: deleteWorkspaceRate
+        summary: Delete workspace rate
+        description: Delete a rate from the workspace
+        tags:
+          - Rates
+        parameters:
+          - name: rateId
+            in: path
+            required: true
+            description: Rate identifier
+            schema:
+              type: string
+            example: item-001
+        responses:
+          '204':
+            description: Rate deleted successfully
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /public/rates:
+      get:
+        operationId: listPublicRates
+        summary: List public rates
+        description: Retrieve all public rates accessible across workspaces
+        tags:
+          - Public Rates
+        parameters:
+          - name: search
+            in: query
+            description: Search rates by name or description
+            schema:
+              type: string
+            example: "Grip"
+          - name: includeArchived
+            in: query
+            description: Include archived/deleted rates
+            schema:
+              type: boolean
+              default: false
+            example: false
+          - name: limit
+            in: query
+            description: Maximum number of results to return
+            schema:
+              type: integer
+              minimum: 1
+              maximum: 100
+              default: 50
+            example: 20
+          - name: offset
+            in: query
+            description: Number of results to skip for pagination
+            schema:
+              type: integer
+              minimum: 0
+              default: 0
+            example: 0
+          - name: sortBy
+            in: query
+            description: Field to sort results by
+            schema:
+              type: string
+              enum: [name, createdAt, updatedAt]
+              default: name
+            example: name
+          - name: sortOrder
+            in: query
+            description: Sort order direction
+            schema:
+              type: string
+              enum: [asc, desc]
+              default: asc
+            example: asc
+        responses:
+          '200':
+            description: List of public rates
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    rates:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/PublicRate'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /public/rates/{rateId}:
+      get:
+        operationId: getPublicRatepackRates
+        summary: Get rates from public ratepack
+        description: Retrieve all rates from a public ratepack (read-only access)
+        tags:
+          - Public Rates
+        parameters:
+          - name: rateId
+            in: path
+            required: true
+            description: Public ratepack identifier (ID or alias)
+            schema:
+              type: string
+            example: rate-001
+          - name: search
+            in: query
+            description: Search rates by name, description, or note
+            schema:
+              type: string
+            example: "camera"
+          - name: limit
+            in: query
+            description: Maximum number of results to return
+            schema:
+              type: integer
+              minimum: 1
+              maximum: 1000
+              default: 100
+            example: 50
+          - name: offset
+            in: query
+            description: Number of results to skip for pagination
+            schema:
+              type: integer
+              minimum: 0
+              default: 0
+            example: 0
+        responses:
+          '200':
+            description: List of rates from public ratepack
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    rates:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Rate'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+
+  components:
+    securitySchemes:
+      ApiKeyAuth:
+        type: apiKey
+        in: header
+        name: X-API-Key
+        description: API key for authentication
+
+    parameters:
+      ProjectId:
+        name: projectId
+        in: path
+        required: true
+        description: Project identifier (alias or ID)
+        schema:
+          type: string
+        example: nike-spring-2024
+      
+      IdMode:
+        name: idMode
+        in: query
+        description: ID interpretation mode. Controls how path and query parameter IDs (like lineId, accountId, phaseId) are interpreted - 'user' for human-readable IDs (account codes, phase names), 'system' for database IDs (UUIDs/nanoids). Also affects the format of IDs in responses.
+        schema:
+          type: string
+          enum: [user, system]
+          default: user
+        example: user
+      
+      StartDate:
+        name: startDate
+        in: query
+        description: Return results on or after this date (ISO 8601)
+        schema:
+          type: string
+          format: date-time
+        example: "2024-01-01"
+      
+      EndDate:
+        name: endDate
+        in: query
+        description: Return results on or before this date (ISO 8601)
+        schema:
+          type: string
+          format: date-time
+        example: "2024-01-31"
+      
+      HasAttachments:
+        name: hasAttachments
+        in: query
+        description: Filter by whether attachments are present
+        schema:
+          type: boolean
+        example: true
+
+    schemas:
+      Project:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Project identifier (alias in user mode, UUID in system mode)
+            example: nike-swoosh-commercial
+          name:
+            type: string
+            nullable: true
+            description: Project display name
+            example: Nike Swoosh Commercial
+          icon:
+            type: string
+            nullable: true
+            description: Project icon or emoji
+            example: "☀️"
+          imageUrl:
+            type: string
+            nullable: true
+            description: Project image URL
+            example: https://example.com/project-banner.jpg
+          spaceId:
+            type: string
+            nullable: true
+            description: Associated project space ID (deprecated, use space object)
+            example: commercial-productions
+          space:
+            type: object
+            nullable: true
+            description: Project space/folder information
+            properties:
+              id:
+                type: string
+                description: Space identifier
+                example: commercial-productions
+              name:
+                type: string
+                description: Space display name
+                example: Commercial Productions
+          templateId:
+            type: string
+            nullable: true
+            description: Template project ID (deprecated, use template object)
+            example: commercial-template
+          template:
+            type: object
+            nullable: true
+            description: Template project information
+            properties:
+              id:
+                type: string
+                description: Template identifier
+                example: commercial-template
+              name:
+                type: string
+                description: Template name
+                example: Commercial Template
+          status:
+            type: string
+            enum: [active, archived]
+            description: Project status
+            example: active
+          labels:
+            type: array
+            items:
+              type: string
+            description: Project labels for categorization
+            example: ["nike", "q2-2024", "post-production"]
+          createdAt:
+            type: string
+            format: date-time
+            description: Project creation timestamp
+            example: "2024-01-15T10:00:00Z"
+          updatedAt:
+            type: string
+            format: date-time
+            description: Project last update timestamp
+            example: "2024-03-20T14:30:00Z"
+        required:
+          - id
+          - status
+          - createdAt
+          - updatedAt
+
+      CreateProjectInput:
+        type: object
+        properties:
+          name:
+            type: string
+            nullable: true
+            description: Project display name (defaults to "Untitled Project")
+            example: Nike Holiday Commercial
+          icon:
+            type: string
+            nullable: true
+            description: Project icon or emoji
+            example: "📊"
+          imageUrl:
+            type: string
+            nullable: true
+            description: Project image URL
+            example: https://example.com/banner.jpg
+          spaceId:
+            type: string
+            nullable: true
+            description: Associated project space ID
+            example: commercial-productions
+          status:
+            type: string
+            enum: [active, archived]
+            default: active
+            description: Project status
+            example: active
+          templateId:
+            type: string
+            nullable: true
+            description: Template project ID if creating from template
+            example: commercial-template-v2
+          labels:
+            type: array
+            items:
+              type: string
+            description: Labels to assign to the project (will be created if they don't exist)
+            example: ["marketing", "q4-2024"]
+
+      UpdateProjectInput:
+        type: object
+        properties:
+          name:
+            type: string
+            nullable: true
+            description: Project display name
+            example: Nike Swoosh - Director's Cut
+          icon:
+            type: string
+            nullable: true
+            description: Project icon or emoji
+            example: "🚀"
+          imageUrl:
+            type: string
+            nullable: true
+            description: Project image URL
+            example: https://example.com/new-banner.jpg
+          spaceId:
+            type: string
+            nullable: true
+            description: Associated project space ID
+            example: film-productions
+          status:
+            type: string
+            enum: [active, archived]
+            description: Project status
+            example: archived
+          labels:
+            type: array
+            items:
+              type: string
+            description: Labels for the project (replaces all existing labels)
+            example: ["completed", "q4-2024"]
+
+      CreateBudgetInput:
+        type: object
+        description: |
+          Request body for creating budget lines within an account. 
+          If the target account doesn't exist, it will be automatically created along with any necessary parent accounts.
+        properties:
+          accountId:
+            type: string
+            description: |
+              Target account ID or account code where lines will be added. Use "root" for top-level budget.
+              The account must already exist in the budget hierarchy.
+            example: root
+          lines:
+            type: array
+            description: Array of budget lines to create (line items, accounts, subtotals, or markups)
+            items:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum: [line, account, subtotal, markup]
+                  description: Type of budget line
+                  example: line
+                accountId:
+                  type: string
+                  description: Account code or ID
+                  example: "2150"
+                description:
+                  type: string
+                  description: Line description
+                  example: "Camera Equipment Rental"
+                phaseData:
+                  type: object
+                  description: Phase-specific data
+                  additionalProperties: true
+          insert:
+            type: object
+            description: Where to insert the new lines
+            properties:
+              mode:
+                type: string
+                enum: [append, prepend, after, before]
+                default: append
+                example: append
+              lineId:
+                type: string
+                description: Line ID for after/before mode
+                example: "line-001"
+          idMode:
+            type: string
+            enum: [user, system]
+            default: user
+            description: ID interpretation mode - "user" for human-friendly IDs (default), "system" for database IDs
+            example: user
+
+      Budget:
+        type: object
+        properties:
+          account:
+            $ref: '#/components/schemas/Account'
+          subAccounts:
+            type: object
+            additionalProperties:
+              $ref: '#/components/schemas/Account'
+            description: Sub-account hierarchy
+          phases:
+            type: array
+            items:
+              $ref: '#/components/schemas/Phase'
+            description: Budget phases
+          fringes:
+            type: array
+            items:
+              $ref: '#/components/schemas/Fringe'
+            description: Fringe benefits
+          globals:
+            type: array
+            items:
+              $ref: '#/components/schemas/Global'
+            description: Global variables
+        required:
+          - account
+
+      Account:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Account system identifier
+            example: acc-xyz-789
+          accountId:
+            type: string
+            nullable: true
+            description: User-friendly account code/number
+            example: "2150"
+          description:
+            type: string
+            nullable: true
+            description: Account description
+            example: Camera Equipment
+          path:
+            type: string
+            description: Hierarchical path in budget tree
+            example: /production/equipment
+          lines:
+            type: array
+            items:
+              $ref: '#/components/schemas/BudgetLine'
+            description: Budget lines within this account
+          totals:
+            type: object
+            additionalProperties:
+              type: number
+            description: Calculated totals for each phase
+            example:
+              estimate: 150000.00
+              actual: 125000.00
+              variance: 25000.00
+          contact:
+            $ref: '#/components/schemas/Contact'
+        required:
+          - id
+          - path
+          - lines
+          - totals
+
+      BudgetLine:
+        type: object
+        discriminator:
+          propertyName: type
+          mapping:
+            line: '#/components/schemas/BudgetLineItem'
+            account: '#/components/schemas/BudgetAccountLine'
+            subtotal: '#/components/schemas/BudgetSubtotalLine'
+            markup: '#/components/schemas/BudgetMarkupLine'
+            fringes: '#/components/schemas/BudgetFringeLine'
+        properties:
+          type:
+            type: string
+            enum: [line, account, subtotal, markup, fringes]
+            description: Type of budget line
+            example: line
+          id:
+            type: string
+            description: Budget line identifier (system ID)
+            example: line-001
+          accountId:
+            type: string
+            nullable: true
+            description: Account identifier (user-friendly ID like account code)
+            example: "2150"
+          description:
+            type: string
+            nullable: true
+            description: Budget line description
+            example: RED Camera Package Rental
+          path:
+            type: string
+            description: Hierarchical path in budget tree (e.g., /2000/2150)
+            example: /production/equipment/cameras
+          totals:
+            type: object
+            additionalProperties:
+              type: number
+            description: Calculated totals for each phase
+            example:
+              estimate: 25000.00
+              actual: 22500.00
+              variance: 2500.00
+          tags:
+            type: array
+            items:
+              type: string
+            description: Tags for categorization and filtering
+            example: ["Day-1", "A-Camera", "Equipment"]
+          contact:
+            $ref: '#/components/schemas/Contact'
+          phaseData:
+            type: object
+            additionalProperties:
+              $ref: '#/components/schemas/LinePhaseData'
+            description: Detailed phase-specific data (expandable)
+        required:
+          - type
+          - id
+          - path
+          - totals
+      
+      BudgetLineItem:
+        allOf:
+          - $ref: '#/components/schemas/BudgetLine'
+          - type: object
+            properties:
+              type:
+                type: string
+                enum: [line]
+                description: Always "line" for regular budget line items
+                example: line
+      
+      BudgetAccountLine:
+        allOf:
+          - $ref: '#/components/schemas/BudgetLine'
+          - type: object
+            properties:
+              type:
+                type: string
+                enum: [account]
+                description: Always "account" for account lines
+                example: account
+      
+      BudgetSubtotalLine:
+        allOf:
+          - $ref: '#/components/schemas/BudgetLine'
+          - type: object
+            properties:
+              type:
+                type: string
+                enum: [subtotal]
+                description: Always "subtotal" for subtotal lines
+                example: subtotal
+              alias:
+                type: string
+                nullable: true
+                description: URL-friendly slug derived from description
+                example: labor-subtotal
+              color:
+                type: string
+                enum: [red, rose, pink, fuchsia, purple, violet, indigo, blue, sky, cyan, teal, green, yellow, amber, orange]
+                description: Visual color for UI display
+                example: indigo
+      
+      BudgetMarkupLine:
+        allOf:
+          - $ref: '#/components/schemas/BudgetLine'
+          - type: object
+            properties:
+              type:
+                type: string
+                enum: [markup]
+                description: Always "markup" for markup/overhead lines
+                example: markup
+              includeAccounts:
+                type: array
+                items:
+                  type: string
+                description: Account IDs this markup applies to
+                example: ["1000", "2000"]
+      
+      BudgetFringeLine:
+        allOf:
+          - $ref: '#/components/schemas/BudgetLine'
+          - type: object
+            properties:
+              type:
+                type: string
+                enum: [fringes]
+                description: Always "fringes" for fringe benefit lines
+                example: fringes
+              breakdown:
+                type: object
+                additionalProperties:
+                  type: object
+                  additionalProperties:
+                    $ref: '#/components/schemas/FringeBreakdown'
+                description: Detailed fringe calculations by phase and type
+      
+      LinePhaseData:
+        type: object
+        properties:
+          quantity:
+            type: number
+            nullable: true
+            description: Quantity value for calculations
+            example: 10
+          unit:
+            type: string
+            nullable: true
+            description: Unit of measurement
+            example: days
+          rate:
+            type: number
+            nullable: true
+            description: Rate per unit
+            example: 2500.00
+          multiplier:
+            type: number
+            nullable: true
+            description: Multiplier factor
+            example: 1.0
+          fringes:
+            type: array
+            items:
+              type: string
+            description: Applied fringe benefit IDs
+            example: ["FICA", "HEALTH"]
+          date:
+            type: object
+            properties:
+              startDate:
+                type: string
+                format: date
+                nullable: true
+                example: "2024-03-01"
+              endDate:
+                type: string
+                format: date
+                nullable: true
+                example: "2024-03-31"
+            description: Date range for this phase data
+          overtime:
+            type: number
+            nullable: true
+            description: Overtime hours
+            example: 20
+          overtimeDetail:
+            $ref: '#/components/schemas/OvertimeDetail'
+          quantityFormula:
+            type: string
+            description: Formula for dynamic quantity calculation
+            example: "=hours_per_week * 4"
+          rateFormula:
+            type: string
+            description: Formula for dynamic rate calculation
+            example: "=base_rate * 1.15"
+          multiplierFormula:
+            type: string
+            description: Formula for dynamic multiplier calculation
+            example: "=overhead_factor"
+          fringeTotal:
+            type: number
+            description: Total fringe benefit amount
+            example: 3825.00
+          fringeBreakdown:
+            type: object
+            additionalProperties:
+              $ref: '#/components/schemas/FringeBreakdown'
+            description: Breakdown of fringe calculations
+      
+      FringeBreakdown:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Fringe benefit identifier
+            example: fringe-fica
+          code:
+            type: string
+            nullable: true
+            description: Fringe code (e.g., FICA, HEALTH)
+            example: FICA
+          amount:
+            type: number
+            description: Calculated fringe amount
+            example: 1530.00
+        required:
+          - id
+          - amount
+      
+      OvertimeDetail:
+        type: object
+        properties:
+          mode:
+            type: string
+            enum: [formula, flat]
+            description: Overtime calculation mode
+            example: formula
+          flatAmount:
+            type: number
+            description: Fixed overtime amount (for flat mode)
+            example: 5000.00
+          overtimeHours:
+            type: number
+            description: Number of overtime hours
+            example: 20
+          baseHours:
+            type: number
+            description: Regular hours before overtime
+            example: 40
+          multipliers:
+            type: array
+            items:
+              type: object
+              properties:
+                threshold:
+                  type: number
+                  description: Hour threshold for this multiplier
+                  example: 40
+                multiplier:
+                  type: number
+                  description: Multiplier rate (e.g., 1.5 for time-and-a-half)
+                  example: 1.5
+            description: Overtime multiplier thresholds
+        required:
+          - mode
+          - baseHours
+
+      Phase:
+        type: object
+        discriminator:
+          propertyName: type
+        properties:
+          type:
+            type: string
+            enum: [estimate, actual, rollup, committed]
+            description: Phase type
+            example: estimate
+          id:
+            type: string
+            description: Phase system identifier
+            example: phase-001
+          alias:
+            type: string
+            description: User-friendly phase alias
+            example: estimate
+          name:
+            type: string
+            nullable: true
+            description: Phase display name
+            example: Initial Estimate
+          isHidden:
+            type: boolean
+            description: Whether phase is hidden from view
+            example: false
+          isLocked:
+            type: boolean
+            description: Whether phase is locked from editing
+            example: false
+          currency:
+            type: object
+            nullable: true
+            properties:
+              code:
+                type: string
+                nullable: true
+                description: ISO 4217 currency code
+                example: USD
+              symbol:
+                type: string
+                nullable: true
+                description: Currency symbol
+                example: $
+              exchangeRate:
+                type: number
+                nullable: true
+                description: Exchange rate multiplier
+                example: 1.0
+            description: Currency configuration (for estimate phases)
+          operation:
+            type: string
+            enum: [sum, difference]
+            description: Rollup operation (for rollup phases)
+            example: difference
+          phaseIds:
+            type: array
+            items:
+              type: string
+            description: Phase IDs to aggregate (for rollup phases)
+            example: ["estimate", "actual"]
+        required:
+          - type
+          - id
+          - alias
+          - isHidden
+          - isLocked
+
+      Fringe:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Fringe system identifier
+            example: fringe-001
+          code:
+            type: string
+            nullable: true
+            description: User-friendly fringe code
+            example: FICA
+          description:
+            type: string
+            nullable: true
+            description: Fringe benefit description
+            example: Social Security Tax
+          units:
+            type: string
+            enum: [percent, flat]
+            description: Fringe calculation units
+            example: percent
+          rate:
+            type: number
+            nullable: true
+            description: Fringe rate (decimal for percent, amount for flat)
+            example: 0.0765
+          cutoff:
+            type: number
+            nullable: true
+            description: Maximum salary subject to this fringe
+            example: 160200
+        required:
+          - id
+          - units
+
+      Global:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Global variable system identifier
+            example: global-001
+          symbol:
+            type: string
+            nullable: true
+            description: Variable symbol for use in formulas
+            example: EXCHANGE_RATE
+          description:
+            type: string
+            nullable: true
+            description: Variable description
+            example: USD to EUR exchange rate
+          unit:
+            type: string
+            nullable: true
+            description: Unit of measurement
+            example: currency
+          formula:
+            type: string
+            nullable: true
+            description: Formula expression for calculating value
+            example: "1.08"
+        required:
+          - id
+
+      Actual:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Actual entry identifier
+            example: actual-001
+          description:
+            type: string
+            nullable: true
+            description: Actual entry description
+            example: Camera rental for shoot days
+          amount:
+            type: number
+            format: float
+            nullable: true
+            description: Actual amount
+            example: 5250.00
+          date:
+            type: string
+            format: date-time
+            nullable: true
+            description: Actual entry date
+            example: "2024-03-15T12:00:00Z"
+          accountId:
+            description: Associated account ID(s)
+            oneOf:
+              - type: string
+                nullable: true
+              - type: array
+                items:
+                  type: string
+                nullable: true
+          expanded:
+            type: boolean
+            description: Whether this actual has sub-actuals
+            example: false
+          type:
+            type: string
+            description: Actual entry type
+            example: invoice
+          attachments:
+            type: array
+            items:
+              $ref: '#/components/schemas/File'
+            description: Attached files
+          ref:
+            type: string
+            nullable: true
+            description: Reference identifier
+            example: INV-2024-0315
+          payId:
+            type: string
+            nullable: true
+            description: Payment identifier
+            example: pay-xyz-789
+          status:
+            type: string
+            description: Actual entry status
+            example: completed
+          notes:
+            type: string
+            nullable: true
+            description: Additional notes
+            example: Q1 advertising budget
+          tags:
+            type: array
+            items:
+              type: string
+            description: Associated tags
+          purchaseOrderId:
+            type: string
+            nullable: true
+            description: Associated purchase order ID
+            example: po-2024-001
+          transactionId:
+            type: string
+            nullable: true
+            description: Associated transaction ID
+            example: txn-abc-123
+          contact:
+            $ref: '#/components/schemas/Contact'
+          subactuals:
+            type: array
+            items:
+              $ref: '#/components/schemas/SubActual'
+            description: Sub-actual entries
+          account:
+            $ref: '#/components/schemas/BudgetLine'
+        required:
+          - id
+          - expanded
+
+      SubActual:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Sub-actual identifier
+            example: subactual-001
+          description:
+            type: string
+            nullable: true
+            description: Sub-actual description
+            example: Lighting equipment rental
+          amount:
+            type: number
+            format: float
+            description: Sub-actual amount
+            example: 2500.00
+          date:
+            type: string
+            format: date-time
+            nullable: true
+            description: Sub-actual date
+            example: "2024-03-10T09:00:00Z"
+          accountId:
+            type: string
+            nullable: true
+            description: Associated account ID
+            example: /marketing/social-media
+          account:
+            $ref: '#/components/schemas/BudgetLine'
+        required:
+          - id
+          - amount
+
+      Contact:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Contact identifier
+            example: contact-studio-001
+          contactTitle:
+            type: string
+            nullable: true
+            description: Contact display title
+            example: Sunset Studios - Production Company
+          name:
+            type: string
+            nullable: true
+            description: Contact name
+            example: Alex Rivera
+          email:
+            type: string
+            nullable: true
+            description: Contact email address
+            example: alex.rivera@sunsetstudios.com
+          company:
+            type: string
+            nullable: true
+            description: Contact company
+            example: Sunset Studios Inc.
+          type:
+            type: string
+            nullable: true
+            description: Contact type (Person, Company, etc.)
+            example: Person
+          jobTitle:
+            type: string
+            nullable: true
+            description: Contact job title
+            example: Director of Photography
+          rate:
+            type: number
+            format: float
+            nullable: true
+            description: Contact hourly rate
+            example: 150.00
+          secureInfo:
+            $ref: '#/components/schemas/ContactSecureInfo'
+          origin:
+            $ref: '#/components/schemas/ContactOrigin'
+          startwork:
+            type: array
+            items:
+              $ref: '#/components/schemas/ContactStartwork'
+            description: Startwork agreements
+          linkedUser:
+            $ref: '#/components/schemas/ContactUser'
+          bankInfo:
+            type: array
+            items:
+              $ref: '#/components/schemas/ContactBankAccount'
+            description: Banking information
+          taxDocuments:
+            type: array
+            items:
+              $ref: '#/components/schemas/File'
+            description: Tax documents
+          attachments:
+            type: array
+            items:
+              $ref: '#/components/schemas/File'
+            description: File attachments
+          projects:
+            type: object
+            additionalProperties:
+              $ref: '#/components/schemas/ContactProject'
+            description: Associated projects
+        required:
+          - id
+
+      ContactSecureInfo:
+        type: object
+        properties:
+          address:
+            type: string
+            nullable: true
+            description: Contact address
+            example: "123 Sunset Blvd, Los Angeles, CA 90028"
+          phone:
+            type: string
+            nullable: true
+            description: Contact phone number
+            example: "310-555-1234"
+          taxIdLast4:
+            type: string
+            nullable: true
+            description: Last 4 digits of tax ID
+            example: "4567"
+
+      ContactOrigin:
+        type: object
+        properties:
+          origin:
+            type: string
+            nullable: true
+            enum: [onboarding, manual]
+            description: How the contact was created
+            example: manual
+          createdAt:
+            type: string
+            format: date-time
+            nullable: true
+            description: Contact creation timestamp
+            example: "2024-02-15T08:00:00Z"
+          createdByUser:
+            $ref: '#/components/schemas/ContactUser'
+
+      ContactStartwork:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Startwork agreement identifier
+            example: startwork-001
+          title:
+            type: string
+            description: Agreement title
+            example: "Independent Contractor Agreement"
+          signedOn:
+            type: string
+            format: date-time
+            description: Signature timestamp
+            example: "2024-03-01T10:00:00Z"
+        required:
+          - id
+          - title
+          - signedOn
+
+      ContactUser:
+        type: object
+        properties:
+          id:
+            type: string
+            description: User identifier
+            example: user-001
+          name:
+            type: string
+            description: User name
+            example: Sarah Chen
+          email:
+            type: string
+            description: User email address
+            example: sarah.chen@sunsetstudios.com
+        required:
+          - id
+          - name
+          - email
+
+      ContactBankAccount:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Bank account identifier
+            example: bank-acc-001
+          bankName:
+            type: string
+            description: Bank name
+            example: Chase Bank
+          accountType:
+            type: string
+            description: Account type (checking, savings, etc.)
+            example: checking
+          accountLast4:
+            type: string
+            description: Last 4 digits of account number
+            example: "4567"
+        required:
+          - id
+          - bankName
+          - accountType
+          - accountLast4
+
+      CreateContactInput:
+        type: object
+        description: Input for creating a new contact
+        properties:
+          name:
+            type: string
+            description: Contact name
+            example: Sunset Studios
+          email:
+            type: string
+            description: Contact email address
+            example: contact@sunsetstudios.com
+          company:
+            type: string
+            description: Company name
+            example: Sunset Studios Inc.
+          type:
+            type: string
+            enum: [Person, Company]
+            description: Contact type
+            example: Company
+          jobTitle:
+            type: string
+            description: Job title
+            example: Production Coordinator
+          rate:
+            type: number
+            format: float
+            description: Hourly rate
+            example: 125.00
+          phone:
+            type: string
+            description: Phone number
+            example: 310-555-1234
+          address:
+            type: string
+            description: Physical address
+            example: 123 Sunset Blvd, Los Angeles, CA 90028
+          taxIdLast4:
+            type: string
+            description: Last 4 digits of tax ID
+            example: "4567"
+        required:
+          - name
+
+      UpdateContactInput:
+        type: object
+        description: Input for updating an existing contact
+        properties:
+          name:
+            type: string
+            description: Contact name
+            example: Sunset Studios LLC
+          email:
+            type: string
+            description: Contact email address
+            example: info@sunsetstudios.com
+          company:
+            type: string
+            description: Company name
+            example: Sunset Studios LLC
+          type:
+            type: string
+            enum: [Person, Company]
+            description: Contact type
+            example: Company
+          jobTitle:
+            type: string
+            description: Job title
+            example: Senior Production Coordinator
+          rate:
+            type: number
+            format: float
+            description: Hourly rate
+            example: 150.00
+          phone:
+            type: string
+            description: Phone number
+            example: 310-555-5678
+          address:
+            type: string
+            description: Physical address
+            example: 456 Hollywood Way, Los Angeles, CA 90028
+          taxIdLast4:
+            type: string
+            description: Last 4 digits of tax ID
+            example: "8901"
+
+      ContactProject:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Project identifier
+            example: proj-marketing-001
+          name:
+            type: string
+            description: Project name
+            example: Q2 Marketing Campaign
+          alias:
+            type: string
+            description: Project alias
+            example: q2-marketing-campaign
+          accounts:
+            type: array
+            items:
+              $ref: '#/components/schemas/ContactProjectAccount'
+            description: Associated accounts within this project
+        required:
+          - id
+          - name
+          - alias
+
+      ContactProjectAccount:
+        type: object
+        properties:
+          accountId:
+            type: string
+            description: Account identifier
+            example: /production/camera
+          accountNumber:
+            type: string
+            description: Account number
+            example: "5020"
+          accountName:
+            type: string
+            description: Account name
+            example: Digital Marketing
+        required:
+          - accountId
+          - accountNumber
+          - accountName
+
+      PurchaseOrder:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Purchase order identifier
+            example: po-2024-001
+          purchaseOrderId:
+            type: string
+            nullable: true
+            description: Purchase order number
+            example: PO-NIKE-2024-001
+          title:
+            type: string
+            nullable: true
+            description: Purchase order title
+            example: Camera Equipment Rental
+          date:
+            type: string
+            format: date-time
+            nullable: true
+            description: Purchase order date
+            example: "2024-03-15T12:00:00Z"
+          amount:
+            type: number
+            format: float
+            description: Total amount
+            example: 25000.00
+          paidAmount:
+            type: number
+            format: float
+            description: Amount paid
+            example: 12500.00
+          status:
+            type: string
+            enum: [draft, approved, rejected, pending, paid]
+            description: Purchase order status
+            example: approved
+          attachments:
+            type: array
+            items:
+              $ref: '#/components/schemas/File'
+            description: Attached files
+          notes:
+            type: string
+            nullable: true
+            description: Additional notes
+            example: "Equipment rental for 3-day shoot at downtown location"
+          items:
+            type: array
+            items:
+              $ref: '#/components/schemas/PurchaseOrderItem'
+            description: Line items
+          contact:
+            $ref: '#/components/schemas/Contact'
+          actuals:
+            type: array
+            items:
+              $ref: '#/components/schemas/Actual'
+            description: Associated actual entries
+        required:
+          - id
+          - amount
+          - paidAmount
+          - status
+
+      CreatePurchaseOrderInput:
+        type: object
+        description: Input for creating a new purchase order
+        properties:
+          purchaseOrderId:
+            type: string
+            description: Purchase order number
+            example: PO-NIKE-2024-002
+          title:
+            type: string
+            description: Purchase order title
+            example: Lighting Equipment Rental
+          date:
+            type: string
+            format: date-time
+            description: Purchase order date
+            example: "2024-03-20T14:30:00Z"
+          amount:
+            type: number
+            format: float
+            description: Total amount
+            example: 35000.00
+          status:
+            type: string
+            enum: [draft, approved, rejected, pending, paid]
+            description: Purchase order status
+            example: draft
+          notes:
+            type: string
+            description: Additional notes
+            example: "LED panel rental for night shoots"
+          contactId:
+            type: string
+            description: Associated contact ID
+            example: contact-studio-001
+          items:
+            type: array
+            items:
+              $ref: '#/components/schemas/CreatePurchaseOrderItemInput'
+            description: Line items
+        required:
+          - amount
+
+      UpdatePurchaseOrderInput:
+        type: object
+        description: Input for updating an existing purchase order
+        properties:
+          purchaseOrderId:
+            type: string
+            description: Purchase order number
+            example: PO-NIKE-2024-002
+          title:
+            type: string
+            description: Purchase order title
+            example: Lighting and Grip Equipment
+          date:
+            type: string
+            format: date-time
+            description: Purchase order date
+            example: "2024-03-21T15:00:00Z"
+          amount:
+            type: number
+            format: float
+            description: Total amount
+            example: 42000.00
+          status:
+            type: string
+            enum: [draft, approved, rejected, pending, paid]
+            description: Purchase order status
+            example: approved
+          notes:
+            type: string
+            description: Additional notes
+            example: "Updated to include additional grip equipment"
+          contactId:
+            type: string
+            description: Associated contact ID
+            example: contact-studio-001
+
+      CreatePurchaseOrderItemInput:
+        type: object
+        description: Input for purchase order line item
+        properties:
+          description:
+            type: string
+            description: Item description
+            example: ARRI SkyPanel S60-C LED Light
+          quantity:
+            type: number
+            format: float
+            description: Item quantity
+            example: 4
+          unitPrice:
+            type: number
+            format: float
+            description: Price per unit
+            example: 500.00
+          totalPrice:
+            type: number
+            format: float
+            description: Total line price
+            example: 2000.00
+          accountId:
+            type: string
+            description: Associated account ID
+            example: /production/lighting
+
+      CreateActualInput:
+        type: object
+        description: Input for creating a new actual entry
+        properties:
+          description:
+            type: string
+            description: Actual entry description
+            example: Camera rental invoice payment
+          amount:
+            type: number
+            format: float
+            description: Actual amount
+            example: 7500.00
+          date:
+            type: string
+            format: date-time
+            description: Actual date
+            example: "2024-03-25T11:00:00Z"
+          accountId:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+            description: Associated account ID(s)
+            example: /production/camera
+          ref:
+            type: string
+            description: Reference identifier
+            example: INV-2024-0420
+          payId:
+            type: string
+            description: Payment identifier
+            example: pay-abc-456
+          status:
+            type: string
+            description: Actual entry status
+            example: pending
+          notes:
+            type: string
+            description: Additional notes
+            example: Week 1 camera rental
+          tags:
+            type: array
+            items:
+              type: string
+            description: Associated tags
+            example: ["equipment", "week-1"]
+          purchaseOrderId:
+            type: string
+            description: Associated purchase order ID
+            example: po-2024-001
+          transactionId:
+            type: string
+            description: Associated transaction ID
+            example: txn-def-789
+          contactId:
+            type: string
+            description: Associated contact ID
+            example: contact-studio-001
+        required:
+          - description
+          - amount
+          - date
+
+      UpdateActualInput:
+        type: object
+        description: Input for updating an existing actual entry
+        properties:
+          description:
+            type: string
+            description: Actual entry description
+            example: Camera rental invoice - adjusted
+          amount:
+            type: number
+            format: float
+            description: Actual amount
+            example: 8000.00
+          date:
+            type: string
+            format: date-time
+            description: Actual date
+            example: "2024-03-26T11:00:00Z"
+          accountId:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+            description: Associated account ID(s)
+            example: /production/camera
+          ref:
+            type: string
+            description: Reference identifier
+            example: INV-2024-0421
+          payId:
+            type: string
+            description: Payment identifier
+            example: pay-abc-457
+          status:
+            type: string
+            description: Actual entry status
+            example: completed
+          notes:
+            type: string
+            description: Additional notes
+            example: Week 1 camera rental - added extra day
+          tags:
+            type: array
+            items:
+              type: string
+            description: Associated tags
+            example: ["equipment", "week-1", "adjusted"]
+          purchaseOrderId:
+            type: string
+            description: Associated purchase order ID
+            example: po-2024-002
+          transactionId:
+            type: string
+            description: Associated transaction ID
+            example: txn-ghi-012
+          contactId:
+            type: string
+            description: Associated contact ID
+            example: contact-studio-002
+
+      UpdateTransactionInput:
+        type: object
+        description: Input for updating an existing transaction
+        properties:
+          projectId:
+            type: string
+            description: Associated project ID
+            example: nike-swoosh-commercial
+          accountId:
+            type: string
+            description: Associated account ID
+            example: /production/equipment
+          contactId:
+            type: string
+            description: Associated contact ID
+            example: contact-studio-001
+          description:
+            type: string
+            description: Transaction description
+            example: ARRI RENTAL - Equipment
+          notes:
+            type: string
+            description: Additional notes
+            example: Camera and lighting equipment for week 2
+
+      PurchaseOrderItem:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Item identifier
+            example: po-item-001
+          description:
+            type: string
+            nullable: true
+            description: Item description
+            example: RED Komodo Camera Kit - 5 days
+          quantity:
+            type: number
+            format: float
+            description: Item quantity
+            example: 10
+          unitPrice:
+            type: number
+            format: float
+            description: Price per unit
+            example: 125.00
+          totalPrice:
+            type: number
+            format: float
+            description: Total line price
+            example: 1250.00
+          accountId:
+            type: string
+            nullable: true
+            description: Associated account ID
+            example: /production/camera
+          account:
+            $ref: '#/components/schemas/BudgetLine'
+        required:
+          - id
+          - quantity
+          - unitPrice
+          - totalPrice
+
+      Transaction:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Transaction identifier
+            example: txn-abc-123
+          type:
+            type: string
+            enum: [bank.deposit, bank.withdrawal, bank.ach, bank.wire, card.spend, card.payment, card.dispute, card.refund, card.cashback]
+            description: Transaction type
+            example: card.spend
+          status:
+            type: string
+            enum: [posted, pending, void]
+            description: Transaction status
+            example: posted
+          subStatus:
+            type: string
+            enum: [settled, refund, reverse, rejected]
+            nullable: true
+            description: Transaction sub-status
+            example: settled
+          description:
+            type: string
+            description: Transaction description
+            example: ARRI RENTAL HOUSE
+          amount:
+            type: number
+            format: float
+            description: Transaction amount
+            example: 599.88
+          date:
+            type: string
+            format: date-time
+            description: Transaction date
+            example: "2024-03-18T16:00:00Z"
+          projectId:
+            type: string
+            nullable: true
+            description: Associated project ID
+            example: nike-swoosh-commercial
+          hasAccount:
+            type: boolean
+            description: Whether transaction has account assignment
+            example: true
+          isActualized:
+            type: boolean
+            description: Whether transaction has been converted to actual
+            example: false
+          source:
+            $ref: '#/components/schemas/TransactionSource'
+          attachments:
+            type: array
+            items:
+              $ref: '#/components/schemas/File'
+            description: Attached files
+          contact:
+            $ref: '#/components/schemas/Contact'
+          project:
+            $ref: '#/components/schemas/Project'
+          account:
+            $ref: '#/components/schemas/BudgetLine'
+          actual:
+            $ref: '#/components/schemas/Actual'
+        required:
+          - id
+          - type
+          - status
+          - description
+          - amount
+          - date
+          - hasAccount
+          - isActualized
+
+      TransactionSource:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Source identifier
+            example: src-card-001
+          type:
+            type: string
+            description: Source type (bank, card, etc.)
+            example: card
+          name:
+            type: string
+            description: Source name
+            example: Production Company Card
+          last4:
+            type: string
+            description: Last 4 digits of source identifier
+            example: "4242"
+        required:
+          - id
+          - type
+          - name
+          - last4
+
+      File:
+        type: object
+        properties:
+          id:
+            type: string
+            description: File identifier (DigitalOcean Spaces object key)
+            example: files/2024/03/budget-report.pdf
+          name:
+            type: string
+            description: Original filename
+            example: call-sheet-day-3.pdf
+          type:
+            type: string
+            description: MIME type
+            example: application/pdf
+          size:
+            type: integer
+            description: File size in bytes
+            example: 1048576
+        required:
+          - id
+          - name
+          - type
+          - size
+
+      Space:
+        type: object
+        description: Project space/folder for organizing projects
+        properties:
+          id:
+            type: string
+            description: Space identifier (alias in user mode, UUID in system mode)
+            example: commercial-productions
+          alias:
+            type: string
+            description: URL-friendly space identifier
+            example: commercial-productions
+          name:
+            type: string
+            description: Space display name
+            example: Film Productions
+          image:
+            type: string
+            nullable: true
+            description: Space image/banner URL
+            example: https://cdn.production.com/space-banner.jpg
+          archived:
+            type: boolean
+            description: Whether the space is archived
+            example: false
+          projectCount:
+            type: integer
+            description: Number of projects in this space
+            example: 12
+          projects:
+            type: array
+            items:
+              $ref: '#/components/schemas/Project'
+            description: Projects in this space (when expanded)
+          createdAt:
+            type: string
+            format: date-time
+            description: Space creation timestamp
+            example: "2024-01-05T09:00:00Z"
+          updatedAt:
+            type: string
+            format: date-time
+            description: Space last update timestamp
+            example: "2024-03-15T12:00:00Z"
+        required:
+          - id
+          - alias
+          - name
+          - archived
+
+      CreateSpaceInput:
+        type: object
+        properties:
+          name:
+            type: string
+            minLength: 1
+            description: Space name (required)
+            example: Production Department
+          image:
+            type: string
+            nullable: true
+            description: Space image/banner URL
+            example: https://cdn.production.com/prod-banner.jpg
+          archived:
+            type: boolean
+            default: false
+            description: Initial archived status
+            example: false
+        required:
+          - name
+
+      UpdateSpaceInput:
+        type: object
+        properties:
+          name:
+            type: string
+            minLength: 1
+            description: Updated space name
+            example: Documentary Unit
+          image:
+            type: string
+            nullable: true
+            description: Updated space image URL
+            example: https://cdn.production.com/doc-banner.jpg
+          archived:
+            type: boolean
+            description: Updated archived status
+            example: true
+
+      Comment:
+        type: object
+        description: Budget comment entity
+        properties:
+          id:
+            type: string
+            description: Comment identifier
+            example: comment-abc123
+          content:
+            type: string
+            description: Comment content (HTML or plain text)
+            example: "<p>We need to adjust the lighting budget for the night shoot.</p>"
+          accountId:
+            type: string
+            nullable: true
+            description: Associated account ID
+            example: account-marketing-01
+          lineId:
+            type: string
+            nullable: true
+            description: Associated budget line ID
+            example: line-item-456
+          author:
+            type: object
+            properties:
+              id:
+                type: string
+                description: Author user ID
+                example: user-789
+              name:
+                type: string
+                description: Author display name
+                example: Jane Producer
+              email:
+                type: string
+                description: Author email
+                example: jane.producer@sunsetstudios.com
+          createdAt:
+            type: string
+            format: date-time
+            description: Comment creation timestamp
+            example: "2024-03-18T16:00:00Z"
+          updatedAt:
+            type: string
+            format: date-time
+            description: Comment last update timestamp
+            example: "2024-03-19T16:00:00Z"
+        required:
+          - id
+          - content
+          - author
+          - createdAt
+
+      # ========================================
+      # DATAPACK SCHEMAS
+      # ========================================
+      
+      RateMetadata:
+        type: object
+        description: Rate metadata containing reusable rate/cost data
+        properties:
+          id:
+            type: string
+            description: Unique rate identifier
+            example: rate-2024-standard
+          name:
+            type: string
+            description: Rate display name
+            example: 2024 Film Production Rates
+          description:
+            type: string
+            nullable: true
+            description: Optional rate description
+            example: Standard crew and equipment rates for film productions
+          versions:
+            type: array
+            items:
+              type: string
+            description: List of available rate versions
+            example: ["v1.0", "v1.1", "v2.0"]
+          latestVersion:
+            type: string
+            nullable: true
+            description: Latest published version identifier
+            example: v2.0
+          createdAt:
+            type: string
+            format: date-time
+            description: Rate creation timestamp
+            example: "2024-01-01T00:00:00Z"
+          updatedAt:
+            type: string
+            format: date-time
+            description: Rate last update timestamp
+            example: "2024-03-15T12:00:00Z"
+        required:
+          - id
+          - name
+          - versions
+          - createdAt
+          - updatedAt
+
+      PublicRate:
+        allOf:
+          - $ref: '#/components/schemas/RateMetadata'
+        description: Public rate accessible across workspaces
+
+      Rate:
+        type: object
+        description: Individual item within a rate containing rate/cost information
+        properties:
+          id:
+            type: string
+            description: Unique item identifier
+            example: item-001
+          name:
+            type: string
+            nullable: true
+            description: Item display name
+            example: Director of Photography
+          emoji:
+            type: string
+            nullable: true
+            description: Item emoji or icon
+            example: "👨‍💻"
+          description:
+            type: string
+            nullable: true
+            description: Item description
+            example: Cinematography and camera operation
+          note:
+            type: string
+            nullable: true
+            description: Additional notes about the item
+            example: Includes equipment setup and operation
+          quantity:
+            type: number
+            nullable: true
+            description: Item quantity
+            example: 40
+          rate:
+            type: number
+            nullable: true
+            description: Item rate or cost per unit
+            example: 175.00
+          unit:
+            type: string
+            nullable: true
+            enum: [hour, day, week, month, year, each, sqft, sqm, lnft, lnm]
+            description: Unit of measurement
+            example: hour
+          multiplier:
+            type: number
+            nullable: true
+            description: Rate multiplier
+            example: 1.5
+          contactId:
+            type: string
+            nullable: true
+            description: Associated contact ID
+            example: contact-dp-001
+          sort:
+            type: string
+            description: Sort order for item positioning
+            example: "001"
+          # Public rate specific fields (optional)
+          agreement:
+            type: string
+            description: Agreement reference for public rates
+            example: AGR-2024-001
+          local:
+            type: string
+            description: Local identifier for public rates
+            example: LOCAL-123
+          effectiveDate:
+            type: string
+            format: date-time
+            description: Effective date for public rate rates
+            example: "2024-01-01T00:00:00Z"
+          expirationDate:
+            type: string
+            format: date-time
+            description: Expiration date for public rate rates
+            example: "2024-12-31T23:59:59Z"
+          labels:
+            type: array
+            items:
+              type: string
+            description: Categorization labels for public rates
+            example: ["crew", "equipment", "union"]
+          # Expandable fields
+          contact:
+            $ref: '#/components/schemas/Contact'
+            description: "Expanded contact information (only when expands includes 'contact')"
+        required:
+          - id
+          - sort
+
+      CreateRateInput:
+        type: object
+        description: Input for creating a new rate
+        properties:
+          name:
+            type: string
+            description: Rate name
+            example: Director of Photography
+          emoji:
+            type: string
+            description: Rate emoji or icon
+            example: "👨‍💻"
+          description:
+            type: string
+            description: Rate description
+            example: Cinematography and camera operation
+          note:
+            type: string
+            description: Additional notes
+            example: Includes equipment setup and operation
+          quantity:
+            type: number
+            description: Rate quantity
+            example: 40
+          rate:
+            type: number
+            description: Rate or cost
+            example: 175.00
+          unit:
+            type: string
+            enum: [hour, day, week, month, year, each, sqft, sqm, lnft, lnm]
+            description: Unit of measurement
+            example: hour
+          multiplier:
+            type: number
+            description: Rate multiplier
+            example: 1.5
+          contactId:
+            type: string
+            description: Associated contact ID
+            example: contact-dp-001
+
+      UpdateRateInput:
+        type: object
+        description: Input for updating a rate
+        properties:
+          name:
+            type: string
+            description: Updated rate name
+            example: Gaffer
+          emoji:
+            type: string
+            description: Updated rate emoji or icon
+            example: "🚀"
+          description:
+            type: string
+            description: Updated rate description
+            example: Lighting design and electrical department head
+          note:
+            type: string
+            description: Updated additional notes
+            example: Includes lighting design, crew management, power distribution
+          quantity:
+            type: number
+            description: Updated rate quantity
+            example: 50
+          rate:
+            type: number
+            description: Updated rate or cost
+            example: 200.00
+          unit:
+            type: string
+            enum: [hour, day, week, month, year, each, sqft, sqm, lnft, lnm]
+            description: Updated unit of measurement
+            example: hour
+          multiplier:
+            type: number
+            description: Updated rate multiplier
+            example: 1.75
+          contactId:
+            type: string
+            description: Updated associated contact/vendor ID
+            example: contact-gaffer-001
+
+      # ========================================
+      # TAG SCHEMAS
+      # ========================================
+      
+      Tag:
+        type: object
+        description: Tag entity for categorizing budget line items
+        properties:
+          id:
+            type: string
+            description: Unique tag identifier (same as tag name)
+            example: "Post-Production"
+          name:
+            type: string
+            minLength: 1
+            maxLength: 100
+            description: Tag name (1-100 characters, immutable after creation)
+            example: "Post-Production"
+          color:
+            type: string
+            pattern: '^#[0-9A-Fa-f]{6}$'
+            description: Optional hex color code for visual identification
+            example: "#3B82F6"
+          description:
+            type: string
+            maxLength: 500
+            description: Optional description for documentation purposes
+            example: "Post-production and VFX expenses"
+        required:
+          - id
+          - name
+
+      CreateTagRequest:
+        type: object
+        description: Request schema for creating a new tag
+        properties:
+          name:
+            type: string
+            minLength: 1
+            maxLength: 100
+            description: Tag name (must be unique within project)
+            example: "Post-Production"
+          color:
+            type: string
+            pattern: '^#[0-9A-Fa-f]{6}$'
+            description: Optional hex color code for visual identification
+            example: "#3B82F6"
+          description:
+            type: string
+            maxLength: 500
+            description: Optional description for documentation purposes
+            example: "Post-production and VFX expenses"
+        required:
+          - name
+
+      UpdateTagRequest:
+        type: object
+        description: Request schema for updating an existing tag (only color can be updated)
+        properties:
+          color:
+            type: string
+            pattern: '^#[0-9A-Fa-f]{6}$'
+            description: New hex color code
+            example: "#10B981"
+
+      CreatePhaseRequest:
+        type: object
+        description: Request schema for creating a new budget phase
+        properties:
+          name:
+            type: string
+            description: Phase name
+            example: "Post-Production"
+          type:
+            type: string
+            enum: ["estimate", "actual", "rollup", "committed"]
+            description: Phase type
+            example: "estimate"
+          color:
+            type: string
+            enum: ["red", "rose", "pink", "fuchsia", "purple", "violet", "indigo", "blue", "sky", "cyan", "teal", "green", "yellow", "amber", "orange"]
+            description: Phase color for UI display
+            example: "blue"
+          currency:
+            type: object
+            nullable: true
+            properties:
+              code:
+                type: string
+                nullable: true
+                description: Currency code (e.g., USD, EUR)
+                example: "USD"
+              symbol:
+                type: string
+                nullable: true
+                description: Currency symbol
+                example: "$"
+              exchangeRate:
+                type: number
+                nullable: true
+                description: Exchange rate multiplier
+                example: 1.0
+          copyPhase:
+            type: string
+            description: ID of phase to copy data from
+            example: "estimate"
+          isHidden:
+            type: boolean
+            description: Whether phase is hidden
+            example: false
+          phaseIds:
+            type: array
+            items:
+              type: string
+            description: For rollup phases - IDs of phases to aggregate
+            example: ["estimate", "contingency"]
+          operation:
+            type: string
+            enum: ["sum", "difference"]
+            description: For rollup phases - operation to perform
+            example: "sum"
+          idMode:
+            type: string
+            enum: [user, system]
+            default: user
+            description: ID interpretation mode - "user" for human-friendly IDs (default), "system" for database IDs
+            example: user
+        required:
+          - name
+          - type
+
+      UpdatePhaseRequest:
+        type: object
+        description: Request schema for updating an existing budget phase
+        properties:
+          name:
+            type: string
+            description: Updated phase name
+            example: "Final Post-Production"
+          color:
+            type: string
+            enum: ["red", "rose", "pink", "fuchsia", "purple", "violet", "indigo", "blue", "sky", "cyan", "teal", "green", "yellow", "amber", "orange"]
+            description: Updated phase color
+            example: "green"
+          currency:
+            type: object
+            nullable: true
+            properties:
+              code:
+                type: string
+                nullable: true
+                description: Currency code
+                example: "EUR"
+              symbol:
+                type: string
+                nullable: true
+                description: Currency symbol
+                example: "€"
+              exchangeRate:
+                type: number
+                nullable: true
+                description: Exchange rate multiplier
+                example: 0.85
+          isHidden:
+            type: boolean
+            description: Updated hidden status
+            example: false
+          idMode:
+            type: string
+            enum: [user, system]
+            default: user
+            description: ID interpretation mode - "user" for human-friendly IDs (default), "system" for database IDs
+            example: user
+
+      CreateFringeRequest:
+        type: object
+        description: Request schema for creating a new fringe benefit
+        properties:
+          code:
+            type: string
+            description: Fringe code/symbol
+            example: "FICA"
+          description:
+            type: string
+            description: Fringe description
+            example: "Social Security Tax"
+          units:
+            type: string
+            enum: ["percent", "flat"]
+            description: Fringe calculation units
+            example: "percent"
+          rate:
+            type: number
+            description: Fringe rate (decimal for percent, amount for flat)
+            example: 0.062
+          cutoff:
+            type: number
+            nullable: true
+            description: Salary cutoff limit
+            example: 160200
+          idMode:
+            type: string
+            enum: [user, system]
+            default: user
+            description: ID interpretation mode - "user" for human-friendly IDs (default), "system" for database IDs
+            example: user
+        required:
+          - code
+          - units
+          - rate
+
+      UpdateFringeRequest:
+        type: object
+        description: Request schema for updating an existing fringe benefit
+        properties:
+          code:
+            type: string
+            description: Updated fringe code
+            example: "FICA-2024"
+          description:
+            type: string
+            description: Updated description
+            example: "Social Security Tax 2024"
+          units:
+            type: string
+            enum: ["percent", "flat"]
+            description: Updated units
+            example: "percent"
+          rate:
+            type: number
+            description: Updated rate
+            example: 0.065
+          cutoff:
+            type: number
+            nullable: true
+            description: Updated cutoff
+            example: 168600
+          idMode:
+            type: string
+            enum: [user, system]
+            default: user
+            description: ID interpretation mode - "user" for human-friendly IDs (default), "system" for database IDs
+            example: user
+
+      CreateGlobalRequest:
+        type: object
+        description: Request schema for creating a new global variable
+        properties:
+          symbol:
+            type: string
+            description: Variable symbol for formulas
+            example: "EUR_RATE"
+          description:
+            type: string
+            description: Variable description
+            example: "EUR to USD exchange rate"
+          formula:
+            type: string
+            description: Formula or value
+            example: "0.85"
+          unit:
+            type: string
+            description: Unit type
+            example: "currency"
+          idMode:
+            type: string
+            enum: [user, system]
+            default: user
+            description: ID interpretation mode - "user" for human-friendly IDs (default), "system" for database IDs
+            example: user
+        required:
+          - symbol
+          - description
+          - formula
+
+      UpdateGlobalRequest:
+        type: object
+        description: Request schema for updating an existing global variable
+        properties:
+          symbol:
+            type: string
+            description: Updated symbol
+            example: "EUR_RATE_2024"
+          description:
+            type: string
+            description: Updated description
+            example: "EUR to USD exchange rate 2024"
+          formula:
+            type: string
+            description: Updated formula
+            example: "0.92"
+          unit:
+            type: string
+            description: Updated unit
+            example: "currency"
+          idMode:
+            type: string
+            enum: [user, system]
+            default: user
+            description: ID interpretation mode - "user" for human-friendly IDs (default), "system" for database IDs
+            example: user
+
+      UpdateBudgetLineRequest:
+        type: object
+        description: Request schema for updating an existing budget line
+        properties:
+          description:
+            type: string
+            nullable: true
+            description: Updated line description (set to null to remove)
+            example: "Director - Christopher Nolan"
+          accountId:
+            type: string
+            nullable: true
+            description: Updated account ID (set to null to remove)
+            example: "1100"
+          convertToAccount:
+            type: boolean
+            description: Convert this line to an account type
+            default: false
+            example: false
+          phaseData:
+            type: object
+            description: Updated phase-specific data (partial updates supported)
+            additionalProperties:
+              type: object
+              properties:
+                quantity:
+                  type: number
+                  nullable: true
+                  description: Updated quantity
+                  example: 15
+                unit:
+                  type: string
+                  nullable: true
+                  description: Updated unit
+                  example: "days"
+                rate:
+                  type: number
+                  nullable: true
+                  description: Updated rate
+                  example: 30000
+                multiplier:
+                  type: number
+                  nullable: true
+                  description: Updated multiplier
+                  example: 1.5
+                fringes:
+                  type: array
+                  items:
+                    type: string
+                  description: Fringe IDs to apply
+                  example: ["FICA", "HEALTH"]
+          idMode:
+            type: string
+            enum: [user, system]
+            default: user
+            description: ID interpretation mode - "user" for human-friendly IDs (default), "system" for database IDs
+            example: user
+
+      TagTotals:
+        type: object
+        description: Financial totals aggregated from all budget line items assigned to this tag
+        properties:
+          phaseTotals:
+            type: object
+            additionalProperties:
+              type: number
+              format: float
+            description: |
+              Total amounts by phase ID. Keys depend on idMode parameter:
+              - idMode=user: phase aliases (e.g., "estimate", "actual")
+              - idMode=system: internal database IDs (UUID strings)
+            example:
+              estimate: 15000.00
+              actual: 12500.00
+          fringeTotals:
+            type: object
+            additionalProperties:
+              type: number
+              format: float
+            description: |
+              Fringe benefit totals by phase ID. Keys follow same format as phaseTotals.
+            example:
+              estimate: 2250.00
+              actual: 1875.00
+          actualTotal:
+            type: number
+            format: float
+            description: Total actual expenses for this tag across all phases
+            example: 14375.00
+        required:
+          - phaseTotals
+          - fringeTotals
+          - actualTotal
+
+      TagResponse:
+        allOf:
+          - $ref: '#/components/schemas/Tag'
+          - type: object
+            properties:
+              totals:
+                $ref: '#/components/schemas/TagTotals'
+            required:
+              - totals
+        description: |
+          Single tag response with financial totals included.
+          Used for endpoints that return individual tag details.
+
+      TagsResponse:
+        type: object
+        description: Multiple tags response for list endpoints
+        properties:
+          tags:
+            type: array
+            items:
+              $ref: '#/components/schemas/TagResponse'
+            description: Array of tags with their financial totals
+        required:
+          - tags
+
+      Error:
+        type: object
+        properties:
+          error:
+            type: string
+            description: Error message
+            example: Invalid request parameters
+          details:
+            type: object
+            description: Additional error details
+            example: {"field": "projectId", "reason": "Project not found"}
+          code:
+            type: string
+            description: Error code
+            example: VALIDATION_ERROR
+        required:
+          - error
+
+    responses:
+      BadRequest:
+        description: Bad request - invalid parameters or request body
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      
+      Unauthorized:
+        description: Unauthorized - invalid or missing API key
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      
+      NotFound:
+        description: Resource not found
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      
+      Conflict:
+        description: Resource conflict - duplicate entity or constraint violation
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+      
+      InternalServerError:
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Error'
+  tags:
+    - name: Projects
+      description: |
+        Create and manage productions, campaigns, or jobs.  
+        Each project has its own budget, actuals, and purchase orders.  
+        Use `idMode=user` to reference projects by alias (e.g., `"nike-spring-2024"`) instead of system IDs.
+    - name: Spaces
+      description: |
+        Group projects into folders for better organization.  
+        Supports nested hierarchies (e.g., by client, year, or production type).
+    - name: Budget
+      description: |
+        Build hierarchical budgets with accounts, line items, subtotals, and markups.  
+        Use `expands[]=phases&expands[]=fringes&expands[]=globals&expands[]=lines.contact&expands[]=lines.phaseData`  
+        to fetch complete budget data in one call.  
+        Reference budget lines by account code (e.g., `"1100-LABOR"`) with `idMode=user`.
+    - name: Budget - Phases
+      description: |
+        Manage multiple budget versions (estimate, working, actual, committed).  
+        Create rollup phases to auto-calculate variances.  
+        Each phase supports its own currency.  
+        Reference by name (e.g., `"estimate"`) with `idMode=user`.
+    - name: Budget - Fringes
+      description: |
+        Define payroll taxes and benefits (FICA, insurance, workers comp, etc.) once,  
+        then auto-apply to all labor line items. Supports % or flat rates with salary cutoffs.
+    - name: Budget - Globals
+      description: |
+        Set project-wide variables (e.g., exchange rates, shoot days, overhead %)  
+        for use in formulas. Updating globals auto-recalculates dependent lines.
+    - name: Comments
+      description: |
+        Add notes and discussions directly on budget lines.  
+        Track approvals and changes with timestamps—context stays intact across phases.
+    - name: Tags
+      description: |
+        Categorize beyond account structure—e.g., by shoot day, location, department.  
+        Use tags to run cross-budget reports and track spend across multiple categories.
+    - name: Actuals
+      description: |
+        Log real expenses from credit cards, manual entry, or converted POs.  
+        Use `expands[]=contact&expands[]=attachments` to include contact details and receipts.  
+        Split costs across multiple budget categories.
+    - name: Purchase Orders
+      description: |
+        Create commitments to contacts/vendors before they become actuals.  
+        Track approvals, link to budget lines, and monitor committed vs actual spend.  
+        Convert POs to actuals when invoiced.
+    - name: Contacts
+      description: |
+        Keep crew, contractors, and clients in one workspace-wide directory.  
+        Link contacts to budget lines for automatic contact assignment.  
+        Store tax info and rate cards for quick reuse across projects.
+    - name: Transactions
+      description: |
+        Import raw bank and card data, match to contacts, and convert to actuals.  
+        Maintains a full audit trail from bank statement to budget line.
+    - name: Files
+      description: |
+        Upload receipts, contracts, and documents.  
+        Attach files to actuals, POs, and projects.  
+        Supports batch uploads and direct URL access.
+    - name: Rates
+      description: |
+        Define workspace-wide rate cards for consistent budgeting.  
+        Set crew rates, equipment packages, and standard costs in multiple currencies.  
+        Supports automatic fringe calculations.
+    - name: Public Rates
+      description: |
+        Browse and use verified industry rate cards from the Saturation community.  
+        Great for starting points or pricing validation.  
+        Read-only access to rates from production companies, unions, and contractors.

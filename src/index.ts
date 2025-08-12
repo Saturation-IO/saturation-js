@@ -1,5 +1,5 @@
-export { SaturationClient } from './client.js';
-export type { SaturationClientOptions } from './client.js';
+export { Saturation } from './client.js';
+export type { SaturationOptions } from './client.js';
 export { SaturationError } from './http-client.js';
 
 // Export all types
