@@ -5,9 +5,11 @@ Want to quickly test the Saturation SDK in a Next.js app? Use this prompt with y
 ## Choose Your Tool
 
 ### Option 1: Claude Code (Local Development)
+
 Use [Claude Code](https://claude.ai/code) to create the app in your local environment. The app will be created in your current directory.
 
 ### Option 2: v0.app (Instant Deploy-Ready App)
+
 Use [v0.app](https://v0.app) by Vercel to get an instantly deployable app with live preview and one-click deployment to Vercel.
 
 ## The Simple Prompt
@@ -15,7 +17,7 @@ Use [v0.app](https://v0.app) by Vercel to get an instantly deployable app with l
 Copy and paste this entire prompt into Claude Code or v0.app:
 
 ```
-First, read the Saturation SDK README to understand the library:
+.First, read the Saturation SDK README to understand the library:
 https://raw.githubusercontent.com/Saturation-IO/saturation-js/refs/heads/main/README.md
 
 Then create a MINIMAL Next.js application in the CURRENT DIRECTORY (do NOT create a new folder) with:
@@ -38,8 +40,8 @@ Create a minimal app that:
 6. Lists the project names as simple bullet points
 
 Set up the API configuration:
-- Create a .env.local file with SATURATION_API_KEY environment variable
-- CRITICAL: Only access the API key in server components/server-side code
+- Create a .env.local file with SATURATION_API_KEY environment variable (unless v0, then default to v0's env management)
+- CRITICAL: Only access the API key in server side code
 - Never pass the API key to client components or expose it in browser code
 - Use the API key from the environment variable (never hardcode it)
 - Base URL: https://api.saturation.io/api/v1
@@ -91,21 +93,22 @@ This prompt will create a minimal "Hello World" app with:
 
 ## Before You Start
 
-1. **Get Your API Key**: 
+1. **Get Your API Key**:
+
    - Log into Saturation
    - Go to Settings → API Keys
    - Create a new key and copy it
-
 2. **Have Node.js Ready**:
+
    - Ensure you have Node.js 18+ installed
    - npm or yarn package manager available
-
 3. **Choose Your Tool and Paste**:
+
    - **For Claude Code**: Open Claude Code in your project directory and paste the prompt
    - **For v0.app**: Go to v0.app and paste the prompt for instant preview
    - Let the AI build your app!
-   
 4. **Set Up Your API Key**:
+
    - After the app is created, add your API key to `.env.local`
    - Never commit this file to version control
 
@@ -114,6 +117,7 @@ This prompt will create a minimal "Hello World" app with:
 After Claude creates your Hello World app, you can expand it:
 
 ### Show More Project Details
+
 ```
 Update the app/page.tsx server component to also display:
 - Project status (active/archived)
@@ -124,6 +128,7 @@ Keep the data fetching server-side.
 ```
 
 ### Add Budget Information
+
 ```
 In the server component, for each project also fetch and show:
 - Total budget estimate
@@ -133,6 +138,7 @@ Use Promise.all for parallel fetching to optimize performance.
 ```
 
 ### Add Basic Interactivity
+
 ```
 Convert to a client component with 'use client' and add:
 - A refresh button using router.refresh()
@@ -142,6 +148,7 @@ Fetch data in a server component and pass it as props.
 ```
 
 ### Add a Simple Form
+
 ```
 Create a server action in app/actions.ts to:
 - Create a new project with a name
@@ -155,6 +162,7 @@ Use Next.js server actions for form submission.
 Once you have the Hello World working, you can build a real app:
 
 ### Improve Styling with Tailwind
+
 ```
 Next.js includes Tailwind by default. Update the styling with:
 - A centered container using max-w-4xl mx-auto
@@ -165,6 +173,7 @@ Next.js includes Tailwind by default. Update the styling with:
 ```
 
 ### Create a Simple Dashboard
+
 ```
 Transform app/page.tsx into a dashboard with multiple server components:
 - Create app/components/ProjectSummary.tsx for counts
@@ -175,6 +184,7 @@ Compose them in the main page using Suspense boundaries.
 ```
 
 ### Add Multiple Pages with App Router
+
 ```
 Create separate routes using Next.js App Router:
 - app/projects/page.tsx - Projects list
@@ -196,6 +206,7 @@ Use Link components for navigation and dynamic routes for project details.
 If something doesn't work:
 
 ### API Key Issues
+
 ```
 I'm getting a 401 error. Make sure:
 - The API key is in .env.local as SATURATION_API_KEY=your_key
@@ -205,6 +216,7 @@ I'm getting a 401 error. Make sure:
 ```
 
 ### Environment Variable Not Loading
+
 ```
 The app can't find the API key. Check:
 - File is named .env.local (not .env)
@@ -214,6 +226,7 @@ The app can't find the API key. Check:
 ```
 
 ### No Projects Showing
+
 ```
 The app says "You have 0 projects" but I have projects.
 - Check the server logs for API responses
@@ -222,6 +235,7 @@ The app says "You have 0 projects" but I have projects.
 ```
 
 ### Vercel Deployment Issues
+
 ```
 The app works locally but not on Vercel:
 - Add SATURATION_API_KEY to Vercel environment variables
@@ -232,6 +246,7 @@ The app works locally but not on Vercel:
 ## Why Start Simple?
 
 Starting with a Hello World app helps you:
+
 - ✅ Verify your API key works
 - ✅ Understand the SDK basics
 - ✅ Test your development environment
