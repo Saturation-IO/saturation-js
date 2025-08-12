@@ -357,6 +357,7 @@
             style: form
             explode: true
             example: ["phases", "lines.contact"]
+            x-example-description: "Use as: expands[]=phases&expands[]=lines.contact"
           - $ref: '#/components/parameters/IdMode'
         responses:
           '200':
@@ -495,6 +496,7 @@
             style: form
             explode: true
             example: ["contact", "phaseData"]
+            x-example-description: "Use as: expands[]=contact&expands[]=phaseData"
           - $ref: '#/components/parameters/IdMode'
         responses:
           '200':
@@ -642,6 +644,7 @@
             style: form
             explode: true
             example: ["contact", "attachments"]
+            x-example-description: "Use as: expands[]=contact&expands[]=attachments"
           - $ref: '#/components/parameters/IdMode'
         responses:
           '200':
@@ -695,6 +698,7 @@
             style: form
             explode: true
             example: ["contact", "account"]
+            x-example-description: "Use as: expands[]=contact&expands[]=account"
           - $ref: '#/components/parameters/IdMode'
         responses:
           '200':
@@ -881,6 +885,7 @@
             style: form
             explode: true
             example: ["contact", "purchaseOrderItems"]
+            x-example-description: "Use as: expands[]=contact&expands[]=purchaseOrderItems"
           - $ref: '#/components/parameters/IdMode'
         responses:
           '200':
@@ -930,6 +935,7 @@
             style: form
             explode: true
             example: ["contact", "purchaseOrderItems.account"]
+            x-example-description: "Use as: expands[]=contact&expands[]=purchaseOrderItems.account"
           - $ref: '#/components/parameters/IdMode'
         responses:
           '200':
@@ -1627,6 +1633,7 @@
             style: form
             explode: true
             example: ["projects"]
+            x-example-description: "Use as: expands[]=projects"
         responses:
           '200':
             description: List of spaces
@@ -1698,6 +1705,7 @@
             style: form
             explode: true
             example: ["projects"]
+            x-example-description: "Use as: expands[]=projects"
         responses:
           '200':
             description: Space details
@@ -2113,6 +2121,7 @@
             style: form
             explode: true
             example: ["projects", "attachments"]
+            x-example-description: "Use as: expands[]=projects&expands[]=attachments"
           - $ref: '#/components/parameters/IdMode'
         responses:
           '200':
@@ -2450,6 +2459,7 @@
             style: form
             explode: true
             example: ["project", "attachments"]
+            x-example-description: "Use as: expands[]=project&expands[]=attachments"
           - $ref: '#/components/parameters/IdMode'
         responses:
           '200':
@@ -2594,6 +2604,7 @@
                 type: string
                 enum: [contact]
             example: ["contact"]
+            x-example-description: "Use as: expands[]=contact"
             style: form
             explode: true
           - name: search
