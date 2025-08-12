@@ -8,7 +8,7 @@ Copy and paste this entire prompt into Claude Code:
 
 ```
 First, read the Saturation SDK README to understand the library:
-https://github.com/Saturation-IO/saturation-js/blob/main/README.md
+https://raw.githubusercontent.com/Saturation-IO/saturation-js/refs/heads/main/README.md
 
 Then create a simple Next.js application in the CURRENT DIRECTORY (do NOT create a new folder) with:
 - Next.js 14+ with App Router
