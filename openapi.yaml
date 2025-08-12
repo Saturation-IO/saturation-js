@@ -120,6 +120,8 @@
                 - type: array
                   items:
                     type: string
+            style: form
+            explode: true
             example: ["nike-swoosh-commercial"]
           - name: spaceId
             in: query
@@ -130,6 +132,8 @@
                 - type: array
                   items:
                     type: string
+            style: form
+            explode: true
             example: ["commercial-productions"]
           - name: status
             in: query
@@ -147,6 +151,8 @@
                 - type: array
                   items:
                     type: string
+            style: form
+            explode: true
             example: ["Swoosh"]
           - name: spaceName
             in: query
@@ -157,6 +163,8 @@
                 - type: array
                   items:
                     type: string
+            style: form
+            explode: true
             example: ["Commercial"]
           - name: labels
             in: query
@@ -167,6 +175,8 @@
                 - type: array
                   items:
                     type: string
+            style: form
+            explode: true
             example: ["nike", "q2-2024"]
         responses:
           '200':
@@ -286,7 +296,7 @@
         - $ref: '#/components/parameters/ProjectId'
       
       get:
-        operationId: getProjectBudget
+        operationId: getBudget
         summary: Get budget
         description: Retrieve budget information for a project
         tags:
@@ -307,6 +317,8 @@
                 - type: array
                   items:
                     type: string
+            style: form
+            explode: true
             example: ["estimate", "actual"]
           - name: includeHiddenPhases
             in: query
@@ -323,6 +335,8 @@
                 - type: array
                   items:
                     type: string
+            style: form
+            explode: true
             example: ["Marketing", "Engineering"]
           - name: tagFilterMode
             in: query
@@ -341,7 +355,7 @@
                 type: string
                 enum: [fringes, phases, globals, lines.contact, lines.phaseData]
             style: form
-            explode: false
+            explode: true
             example: ["phases", "lines.contact"]
           - $ref: '#/components/parameters/IdMode'
         responses:
@@ -459,6 +473,8 @@
                 - type: array
                   items:
                     type: string
+            style: form
+            explode: true
             example: ["Marketing", "Engineering"]
           - name: tagFilterMode
             in: query
@@ -477,7 +493,7 @@
                 type: string
                 enum: [contact, phaseData]
             style: form
-            explode: false
+            explode: true
             example: ["contact", "phaseData"]
           - $ref: '#/components/parameters/IdMode'
         responses:
@@ -587,6 +603,8 @@
                 - type: array
                   items:
                     type: string
+            style: form
+            explode: true
             example: ["2150"]
           - $ref: '#/components/parameters/StartDate'
           - $ref: '#/components/parameters/EndDate'
@@ -610,6 +628,8 @@
               type: array
               items:
                 type: string
+            style: form
+            explode: true
             example: ["txn-123"]
           - name: expands
             in: query
@@ -620,7 +640,7 @@
                 type: string
                 enum: [contact, subactual, account, subactual.account]
             style: form
-            explode: false
+            explode: true
             example: ["contact", "attachments"]
           - $ref: '#/components/parameters/IdMode'
         responses:
@@ -673,7 +693,7 @@
                 type: string
                 enum: [contact, subactual, account]
             style: form
-            explode: false
+            explode: true
             example: ["contact", "account"]
           - $ref: '#/components/parameters/IdMode'
         responses:
@@ -830,6 +850,8 @@
                 - type: array
                   items:
                     type: string
+            style: form
+            explode: true
             example: ["2150"]
           - $ref: '#/components/parameters/StartDate'
           - $ref: '#/components/parameters/EndDate'
@@ -845,6 +867,8 @@
                   items:
                     type: string
                     enum: [draft, approved, rejected, pending, paid]
+            style: form
+            explode: true
             example: ["approved", "pending"]
           - name: expands
             in: query
@@ -855,7 +879,7 @@
                 type: string
                 enum: [contact, actuals, purchaseOrderItems, purchaseOrderItems.account]
             style: form
-            explode: false
+            explode: true
             example: ["contact", "purchaseOrderItems"]
           - $ref: '#/components/parameters/IdMode'
         responses:
@@ -904,7 +928,7 @@
                 type: string
                 enum: [contact, actuals, purchaseOrderItems, purchaseOrderItems.account]
             style: form
-            explode: false
+            explode: true
             example: ["contact", "purchaseOrderItems.account"]
           - $ref: '#/components/parameters/IdMode'
         responses:
@@ -1601,7 +1625,7 @@
                 type: string
                 enum: [projects]
             style: form
-            explode: false
+            explode: true
             example: ["projects"]
         responses:
           '200':
@@ -1672,7 +1696,7 @@
                 type: string
                 enum: [projects]
             style: form
-            explode: false
+            explode: true
             example: ["projects"]
         responses:
           '200':
@@ -2027,6 +2051,8 @@
               type: array
               items:
                 type: string
+            style: form
+            explode: true
             example: ["nike-swoosh-commercial"]
           - name: accountId
             in: query
@@ -2037,6 +2063,8 @@
                 - type: array
                   items:
                     type: string
+            style: form
+            explode: true
             example: ["2150"]
           - name: origin
             in: query
@@ -2047,6 +2075,8 @@
                 type: string
                 enum: [onboarding, manual]
             example: ["manual"]
+            style: form
+            explode: true
           - name: hasLinkedUser
             in: query
             description: Filter by linked user presence
@@ -2081,7 +2111,7 @@
                 type: string
                 enum: [secureInfo, origin, projects, projects.accounts, startwork, taxDocuments, attachments, bankInfo, linkedUser]
             style: form
-            explode: false
+            explode: true
             example: ["projects", "attachments"]
           - $ref: '#/components/parameters/IdMode'
         responses:
@@ -2298,6 +2328,8 @@
                 type: string
                 enum: [bank.deposit, bank.withdrawal, bank.ach, bank.wire, card.spend, card.payment, card.dispute, card.refund, card.cashback]
             example: ["card.spend"]
+            style: form
+            explode: true
           - name: status
             in: query
             description: Filter by transaction status
@@ -2307,6 +2339,8 @@
                 type: string
                 enum: [posted, pending, void]
             example: ["posted"]
+            style: form
+            explode: true
           - name: subStatus
             in: query
             description: Filter by transaction sub-status
@@ -2316,6 +2350,8 @@
                 type: string
                 enum: [settled, refund, reverse, rejected]
             example: ["settled"]
+            style: form
+            explode: true
           - name: projectId
             in: query
             description: Filter by project ID(s)
@@ -2325,6 +2361,8 @@
                 - type: array
                   items:
                     type: string
+            style: form
+            explode: true
             example: ["nike-swoosh-commercial"]
           - name: sourceType
             in: query
@@ -2335,6 +2373,8 @@
                 - type: array
                   items:
                     type: string
+            style: form
+            explode: true
             example: ["card"]
           - name: sourceName
             in: query
@@ -2345,6 +2385,8 @@
                 - type: array
                   items:
                     type: string
+            style: form
+            explode: true
             example: ["Amex 001"]
           - name: sourceLast4
             in: query
@@ -2355,6 +2397,8 @@
                 - type: array
                   items:
                     type: string
+            style: form
+            explode: true
             example: ["4242"]
           - name: description
             in: query
@@ -2404,7 +2448,7 @@
                 type: string
                 enum: [project, contact, account, actual, attachments]
             style: form
-            explode: false
+            explode: true
             example: ["project", "attachments"]
           - $ref: '#/components/parameters/IdMode'
         responses:
@@ -2550,6 +2594,8 @@
                 type: string
                 enum: [contact]
             example: ["contact"]
+            style: form
+            explode: true
           - name: search
             in: query
             description: Search rates by name, description, or note

@@ -50,6 +50,7 @@
     "generate": "npx @hey-api/openapi-ts",
     "generate:old": "tsx scripts/generate-from-openapi.ts",
     "lint": "eslint src --ext .ts",
+    "playground": "tsx playground.ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "prepublishOnly": "npm run build",
     "test": "jest --passWithNoTests",

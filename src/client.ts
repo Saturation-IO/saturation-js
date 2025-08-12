@@ -16,6 +16,38 @@ export class Saturation {
       headers: {
         'X-API-Key': options.apiKey,
       },
+      // Custom query serializer to handle arrays with bracket notation
+      querySerializer: (queryParams: Record<string, unknown>) => {
+        const search: string[] = [];
+        if (queryParams && typeof queryParams === 'object') {
+          for (const name in queryParams) {
+            const value = queryParams[name];
+
+            if (value === undefined || value === null) {
+              continue;
+            }
+
+            if (Array.isArray(value)) {
+              // Use bracket notation for arrays (e.g., expands[]=value1&expands[]=value2)
+              for (const item of value) {
+                search.push(`${name}[]=${encodeURIComponent(String(item))}`);
+              }
+            } else if (typeof value === 'object') {
+              // Handle nested objects (deepObject style)
+              const obj = value as Record<string, unknown>;
+              for (const key in obj) {
+                if (obj[key] !== undefined && obj[key] !== null) {
+                  search.push(`${name}[${key}]=${encodeURIComponent(String(obj[key]))}`);
+                }
+              }
+            } else {
+              // Handle primitive values
+              search.push(`${name}=${encodeURIComponent(String(value))}`);
+            }
+          }
+        }
+        return search.join('&');
+      },
     };
     this.client = createClient(config);
   }
@@ -68,9 +100,9 @@ export class Saturation {
 
   async getProjectBudget(
     projectId: string,
-    params?: Types.GetProjectBudgetData['query'],
+    params?: Types.GetBudgetData['query'],
   ): Promise<Types.Budget> {
-    const result = await sdk.getProjectBudget({
+    const result = await sdk.getBudget({
       client: this.client,
       path: { projectId },
       query: params,

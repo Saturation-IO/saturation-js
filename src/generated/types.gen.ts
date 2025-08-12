@@ -2193,7 +2193,7 @@ export type UpdateProjectResponses = {
 
 export type UpdateProjectResponse = UpdateProjectResponses[keyof UpdateProjectResponses];
 
-export type GetProjectBudgetData = {
+export type GetBudgetData = {
     body?: never;
     path: {
         /**
@@ -2234,7 +2234,7 @@ export type GetProjectBudgetData = {
     url: '/projects/{projectId}/budget';
 };
 
-export type GetProjectBudgetErrors = {
+export type GetBudgetErrors = {
     /**
      * Unauthorized - invalid or missing API key
      */
@@ -2249,16 +2249,16 @@ export type GetProjectBudgetErrors = {
     500: _Error;
 };
 
-export type GetProjectBudgetError = GetProjectBudgetErrors[keyof GetProjectBudgetErrors];
+export type GetBudgetError = GetBudgetErrors[keyof GetBudgetErrors];
 
-export type GetProjectBudgetResponses = {
+export type GetBudgetResponses = {
     /**
      * Budget information
      */
     200: Budget;
 };
 
-export type GetProjectBudgetResponse = GetProjectBudgetResponses[keyof GetProjectBudgetResponses];
+export type GetBudgetResponse = GetBudgetResponses[keyof GetBudgetResponses];
 
 export type CreateBudgetLinesData = {
     body: CreateBudgetInput;
