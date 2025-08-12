@@ -47,6 +47,16 @@ The app should have:
 - Show "Loading..." state while fetching
 - Proper error handling with error boundaries
 
+IMPORTANT: Handle missing API key gracefully:
+- When SATURATION_API_KEY is not set, display a friendly setup screen
+- Show clear, step-by-step instructions directly in the UI:
+  1. How to get an API key from Saturation (with link to settings)
+  2. Exactly where to add it in the .env.local file
+  3. Show the exact format: SATURATION_API_KEY=your_key_here
+  4. Remind to restart the dev server after adding the key
+- Use a nice card layout with proper styling for the setup instructions
+- Include a "Refresh" button to check if the key was added
+
 Make it production-ready for Vercel deployment:
 - Ensure all API calls are server-side
 - Include proper TypeScript types
