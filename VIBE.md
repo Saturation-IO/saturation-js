@@ -1,13 +1,16 @@
 # 🚀 Quick Start: Build a Saturation App with Claude Code
 
-Want to quickly test the Saturation SDK in a React app? Copy this prompt into Claude Code to create a simple "Hello World" app that connects to your Saturation workspace.
+Want to quickly test the Saturation SDK in a React app? Copy this prompt into Claude Code to create a simple "Hello World" app that connects to your Saturation workspace. The app will be created in your current directory.
 
 ## The Simple Prompt
 
 Copy and paste this entire prompt into Claude Code, replacing `YOUR_API_KEY_HERE` with your actual Saturation API key:
 
 ```
-Create a simple single-page React application called "saturation-hello" with:
+First, read the Saturation SDK README to understand the library:
+https://github.com/Saturation-IO/saturation-js/blob/main/README.md
+
+Then create a simple single-page React application in the CURRENT DIRECTORY (do NOT create a new folder) with:
 - Vite as the build tool
 - React with TypeScript
 - @saturation-api/js SDK for API calls
@@ -30,7 +33,12 @@ The entire app should be in a single App.tsx file with:
 - Show any errors if they occur
 
 Make it as simple as possible - like a true Hello World example.
-Start the dev server and show me the output.
+
+After creating the app, provide clear instructions on:
+1. How to configure the API key (where to find it in the code)
+2. How to install dependencies and run the development server
+3. What the app does and what the user should expect to see
+4. Any troubleshooting tips for common issues
 ```
 
 ## What You'll Get
