@@ -17,7 +17,7 @@ Use [v0.app](https://v0.app) by Vercel to get an instantly deployable app with l
 Copy and paste this entire prompt into Claude Code or v0.app:
 
 ```
-.First, read the Saturation SDK README to understand the library:
+First, read the Saturation SDK README to understand the library:
 https://raw.githubusercontent.com/Saturation-IO/saturation-js/refs/heads/main/README.md
 
 Then create a MINIMAL Next.js application in the CURRENT DIRECTORY (do NOT create a new folder) with:
@@ -58,7 +58,7 @@ The app should have:
 - Just the bare minimum to display the data
 
 IMPORTANT: Handle missing API key gracefully:
-- When SATURATION_API_KEY is not set, display a friendly setup screen
+- When SATURATION_API_KEY is not set (or set to the generated place holder), display a friendly setup screen
 - Show clear, step-by-step instructions directly in the UI:
   1. How to get an API key from Saturation (with link to settings)
   2. Exactly where to add it in the .env.local file
