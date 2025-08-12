@@ -51,11 +51,15 @@ IMPORTANT: Handle missing API key gracefully:
 - When SATURATION_API_KEY is not set, display a friendly setup screen
 - Show clear, step-by-step instructions directly in the UI:
   1. How to get an API key from Saturation (with link to settings)
-  2. Exactly where to add it in the .env.local file
+  2. Exactly where to add it in the .env.local file (or environment variables in v0.app)
   3. Show the exact format: SATURATION_API_KEY=your_key_here
-  4. Remind to restart the dev server after adding the key
+  4. After adding the key:
+     - For local development: Restart the dev server (Ctrl+C then npm run dev)
+     - For v0.app: Add to environment variables and reload the page
 - Use a nice card layout with proper styling for the setup instructions
-- Include a "Refresh" button to check if the key was added
+- Show platform-specific instructions:
+  - Local: Terminal command box with "Ctrl+C" then "npm run dev"
+  - v0.app: "Add to Environment Variables → Reload Page"
 
 Make it production-ready for Vercel deployment:
 - Ensure all API calls are server-side
