@@ -2841,7 +2841,7 @@ export type ListPurchaseOrdersData = {
         /**
          * Include related data in the response
          */
-        expands?: Array<'contact' | 'actuals' | 'purchaseOrderItems' | 'purchaseOrderItems.account'>;
+        expands?: Array<'contact' | 'actuals' | 'items' | 'items.account'>;
         /**
          * ID interpretation mode. Controls how path and query parameter IDs (like lineId, accountId, phaseId) are interpreted - 'user' for human-readable IDs (account codes, phase names), 'system' for database IDs (UUIDs/nanoids). Also affects the format of IDs in responses.
          */
@@ -2936,7 +2936,7 @@ export type GetPurchaseOrderData = {
         /**
          * Include related data in the response
          */
-        expands?: Array<'contact' | 'actuals' | 'purchaseOrderItems' | 'purchaseOrderItems.account'>;
+        expands?: Array<'contact' | 'actuals' | 'items' | 'items.account'>;
         /**
          * ID interpretation mode. Controls how path and query parameter IDs (like lineId, accountId, phaseId) are interpreted - 'user' for human-readable IDs (account codes, phase names), 'system' for database IDs (UUIDs/nanoids). Also affects the format of IDs in responses.
          */

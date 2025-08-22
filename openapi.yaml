@@ -882,7 +882,7 @@
               type: array
               items:
                 type: string
-                enum: [contact, actuals, purchaseOrderItems, purchaseOrderItems.account]
+                enum: [contact, actuals, items, items.account]
             style: form
             explode: true
             example: ["contact", "purchaseOrderItems"]
@@ -934,7 +934,7 @@
               type: array
               items:
                 type: string
-                enum: [contact, actuals, purchaseOrderItems, purchaseOrderItems.account]
+                enum: [contact, actuals, items, items.account]
             style: form
             explode: true
             example: ["contact", "purchaseOrderItems.account"]

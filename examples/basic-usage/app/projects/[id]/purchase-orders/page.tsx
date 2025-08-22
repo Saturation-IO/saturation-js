@@ -19,12 +19,14 @@ export default function PurchaseOrdersPage() {
     async function fetchPurchaseOrders() {
       try {
         const { purchaseOrders: posData } = await client.listPurchaseOrders(projectId, {
-          expands: ['contact', 'actuals', 'purchaseOrderItems', 'purchaseOrderItems.account']
+          expands: ['contact', 'actuals', 'items', 'items.account']
         });
         setPurchaseOrders(posData);
         setFetchError(null);
-      } catch (err) {
-        setFetchError(err instanceof Error ? err.message : 'Failed to fetch purchase orders');
+      } catch (err: any) {
+        // Handle API errors with detailed messages
+        const errorMessage = err?.error?.message || err?.message || 'Failed to fetch purchase orders';
+        setFetchError(errorMessage);
       } finally {
         setLoading(false);
       }

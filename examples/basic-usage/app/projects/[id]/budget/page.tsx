@@ -23,8 +23,9 @@ export default function BudgetPage() {
         });
         setBudget(budgetData);
         setFetchError(null);
-      } catch (err) {
-        setFetchError(err instanceof Error ? err.message : 'Failed to fetch budget');
+      } catch (err: any) {
+        const errorMessage = err?.error?.message || err?.message || 'Failed to fetch budget';
+        setFetchError(errorMessage);
       } finally {
         setLoading(false);
       }
