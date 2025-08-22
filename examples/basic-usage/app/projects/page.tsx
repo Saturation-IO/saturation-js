@@ -1,45 +1,41 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Saturation, type Project } from '@saturation-api/js';
+import { type Project } from '@saturation-api/js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { useSaturation } from '@/contexts/SaturationContext';
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const { client, isInitialized, error: contextError } = useSaturation();
 
   useEffect(() => {
     async function fetchProjects() {
+      if (!isInitialized) return;
+      
+      if (!client) {
+        setFetchError(contextError || 'No API key found. Please configure your API key on the home page.');
+        setLoading(false);
+        return;
+      }
+
       try {
-        // Check for API key in environment or localStorage (for demo)
-        const apiKey = process.env.NEXT_PUBLIC_SATURATION_API_KEY || 
-                      localStorage.getItem('saturation_api_key');
-        
-        if (!apiKey) {
-          setError('No API key found. Please configure your API key on the home page.');
-          setLoading(false);
-          return;
-        }
-
-        const client = new Saturation({
-          apiKey,
-          baseURL: process.env.NEXT_PUBLIC_SATURATION_API_URL || 'https://api.saturation.io/api/v1'
-        });
-
         const { projects } = await client.listProjects({ status: 'active' });
         setProjects(projects);
+        setFetchError(null);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch projects');
+        setFetchError(err instanceof Error ? err.message : 'Failed to fetch projects');
       } finally {
         setLoading(false);
       }
     }
 
     fetchProjects();
-  }, []);
+  }, [client, isInitialized, contextError]);
 
   if (loading) {
     return (
@@ -52,7 +48,7 @@ export default function ProjectsPage() {
     );
   }
 
-  if (error) {
+  if (fetchError) {
     return (
       <div className="container mx-auto py-8 px-4">
         <div className="max-w-6xl mx-auto">
@@ -62,7 +58,7 @@ export default function ProjectsPage() {
               <CardTitle className="text-red-700">Error</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-red-600">{error}</p>
+              <p className="text-red-600">{fetchError}</p>
               <Link href="/">
                 <Button className="mt-4">Go to Home</Button>
               </Link>
