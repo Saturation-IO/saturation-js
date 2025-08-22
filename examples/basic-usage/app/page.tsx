@@ -23,7 +23,6 @@ export default function Home() {
     if (apiKey) {
       localStorage.setItem('saturation_api_key', apiKey);
       setSavedKey(apiKey);
-      alert('API Key saved successfully!');
     }
   };
 
@@ -31,7 +30,6 @@ export default function Home() {
     localStorage.removeItem('saturation_api_key');
     setSavedKey('');
     setApiKey('');
-    alert('API Key cleared from storage');
   };
 
   return (
