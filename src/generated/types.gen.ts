@@ -2872,7 +2872,7 @@ export type ListPurchaseOrdersResponses = {
      * List of purchase orders
      */
     200: {
-        purchaseOrders?: Array<PurchaseOrder>;
+        purchaseOrders: Array<PurchaseOrder>;
     };
 };
 
