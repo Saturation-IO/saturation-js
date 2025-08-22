@@ -109,6 +109,16 @@ export default function Home() {
             </div>
           </CardContent>
         </Card>
+
+        {savedKey && (
+          <div className="mt-6">
+            <a href="/dashboard" className="block">
+              <Button size="lg" className="w-full">
+                Continue to Dashboard →
+              </Button>
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );
