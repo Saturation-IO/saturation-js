@@ -113,12 +113,31 @@ export default function Home() {
         </Card>
 
         {savedKey && (
-          <div className="mt-6 text-center">
-            <a href="/projects">
-              <Button size="lg">
-                View Projects →
-              </Button>
-            </a>
+          <div className="mt-6 space-y-3">
+            <div className="text-center">
+              <a href="/projects">
+                <Button size="lg" className="w-full">
+                  View Projects →
+                </Button>
+              </a>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              <a href="/contacts">
+                <Button variant="outline" className="w-full">
+                  View Contacts
+                </Button>
+              </a>
+              <a href="/rates">
+                <Button variant="outline" className="w-full">
+                  View Rates
+                </Button>
+              </a>
+              <a href="/transactions">
+                <Button variant="outline" className="w-full">
+                  View Transactions
+                </Button>
+              </a>
+            </div>
           </div>
         )}
       </div>

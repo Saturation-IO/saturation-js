@@ -135,6 +135,15 @@ export default function ProjectsPage() {
                     <Link href={`/projects/${project.id}/purchase-orders`}>
                       <Button size="sm" variant="outline">View POs</Button>
                     </Link>
+                    <Link href={`/projects/${project.id}/phases`}>
+                      <Button size="sm" variant="outline">View Phases</Button>
+                    </Link>
+                    <Link href={`/projects/${project.id}/fringes`}>
+                      <Button size="sm" variant="outline">View Fringes</Button>
+                    </Link>
+                    <Link href={`/projects/${project.id}/globals`}>
+                      <Button size="sm" variant="outline">View Globals</Button>
+                    </Link>
                   </div>
                 </CardContent>
               </Card>
