@@ -16,7 +16,6 @@ export default function TransactionsPage() {
     async function fetchTransactions() {
       try {
         const { transactions: transactionsData } = await client.listTransactions({
-          limit: 100,
           expands: ['project', 'contact', 'account', 'actual', 'attachments']
         });
         setTransactions(transactionsData);
@@ -37,7 +36,7 @@ export default function TransactionsPage() {
       <div className="container mx-auto py-8 px-4">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-3xl font-bold mb-6">Transactions</h1>
-          <p>Loading transactions (limit: 100)...</p>
+          <p>Loading transactions...</p>
         </div>
       </div>
     );
@@ -63,7 +62,7 @@ export default function TransactionsPage() {
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Transactions (Latest 100)</h1>
+          <h1 className="text-3xl font-bold">Transactions</h1>
           <Link href="/">
             <Button variant="outline">Back to Home</Button>
           </Link>
