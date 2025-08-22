@@ -21,8 +21,8 @@ export default function GlobalsPage() {
         const { globals: globalsData } = await client.listBudgetGlobals(projectId);
         setGlobals(globalsData);
         setFetchError(null);
-      } catch (err: any) {
-        const errorMessage = err?.error?.message || err?.message || 'Failed to fetch globals';
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch globals';
         setFetchError(errorMessage);
       } finally {
         setLoading(false);

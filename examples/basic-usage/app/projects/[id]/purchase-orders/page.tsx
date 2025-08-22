@@ -23,9 +23,8 @@ export default function PurchaseOrdersPage() {
         });
         setPurchaseOrders(posData);
         setFetchError(null);
-      } catch (err: any) {
-        // Handle API errors with detailed messages
-        const errorMessage = err?.error?.message || err?.message || 'Failed to fetch purchase orders';
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch purchase orders';
         setFetchError(errorMessage);
       } finally {
         setLoading(false);

@@ -20,8 +20,8 @@ export default function RatesPage() {
         });
         setRates(ratesData);
         setFetchError(null);
-      } catch (err: any) {
-        const errorMessage = err?.error?.message || err?.message || 'Failed to fetch rates';
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch rates';
         setFetchError(errorMessage);
       } finally {
         setLoading(false);

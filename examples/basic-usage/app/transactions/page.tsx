@@ -21,8 +21,8 @@ export default function TransactionsPage() {
         });
         setTransactions(transactionsData);
         setFetchError(null);
-      } catch (err: any) {
-        const errorMessage = err?.error?.message || err?.message || 'Failed to fetch transactions';
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch transactions';
         setFetchError(errorMessage);
       } finally {
         setLoading(false);

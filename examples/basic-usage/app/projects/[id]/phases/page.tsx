@@ -21,8 +21,8 @@ export default function PhasesPage() {
         const { phases: phasesData } = await client.listBudgetPhases(projectId);
         setPhases(phasesData);
         setFetchError(null);
-      } catch (err: any) {
-        const errorMessage = err?.error?.message || err?.message || 'Failed to fetch phases';
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch phases';
         setFetchError(errorMessage);
       } finally {
         setLoading(false);

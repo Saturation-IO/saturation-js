@@ -20,8 +20,8 @@ export default function ContactsPage() {
         });
         setContacts(contactsData);
         setFetchError(null);
-      } catch (err: any) {
-        const errorMessage = err?.error?.message || err?.message || 'Failed to fetch contacts';
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch contacts';
         setFetchError(errorMessage);
       } finally {
         setLoading(false);

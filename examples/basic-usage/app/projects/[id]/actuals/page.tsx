@@ -23,8 +23,8 @@ export default function ActualsPage() {
         });
         setActuals(actualsData);
         setFetchError(null);
-      } catch (err: any) {
-        const errorMessage = err?.error?.message || err?.message || 'Failed to fetch actuals';
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch actuals';
         setFetchError(errorMessage);
       } finally {
         setLoading(false);

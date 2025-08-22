@@ -19,8 +19,8 @@ export default function ProjectsPage() {
         const { projects } = await client.listProjects({ status: 'active' });
         setProjects(projects);
         setFetchError(null);
-      } catch (err: any) {
-        const errorMessage = err?.error?.message || err?.message || 'Failed to fetch projects';
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch projects';
         setFetchError(errorMessage);
       } finally {
         setLoading(false);

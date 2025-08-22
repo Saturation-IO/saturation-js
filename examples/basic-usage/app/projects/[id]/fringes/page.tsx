@@ -21,8 +21,8 @@ export default function FringesPage() {
         const { fringes: fringesData } = await client.listBudgetFringes(projectId);
         setFringes(fringesData);
         setFetchError(null);
-      } catch (err: any) {
-        const errorMessage = err?.error?.message || err?.message || 'Failed to fetch fringes';
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch fringes';
         setFetchError(errorMessage);
       } finally {
         setLoading(false);
