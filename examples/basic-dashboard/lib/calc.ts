@@ -1,13 +1,13 @@
 /**
- * Calculation Utilities
- * Pure functions for metrics and chart data transformations
+ * Budget and Financial Calculation Utilities
+ * Helper functions for calculating KPIs and transforming data for charts
  */
 
-import type { Budget, Actual, PurchaseOrder, BudgetLine } from '@saturation-api/js';
-import { toMonthKey } from './format';
+import { formatMonth, toMonthKey } from './format';
+import type { Budget, BudgetLine, BudgetLineItem, Actual, PurchaseOrder } from '@saturation-api/js';
 
 /**
- * KPI Metrics for dashboard cards
+ * KPI Metrics type
  */
 export interface KPIMetrics {
   totalBudget: number;
@@ -18,32 +18,28 @@ export interface KPIMetrics {
 }
 
 /**
- * Calculate all KPI metrics from raw data
- * @param budget - Budget data with lines
- * @param actuals - Array of actual transactions
- * @param purchaseOrders - Array of purchase orders
+ * Calculate Key Performance Indicators
+ * @param budget - The project budget data
+ * @param actuals - List of actual expenses
+ * @param purchaseOrders - List of purchase orders
  */
 export function calcKpis(
   budget: Budget | null,
   actuals: Actual[],
   purchaseOrders: PurchaseOrder[]
 ): KPIMetrics {
-  // Calculate total budget from working phase (fallback to estimate)
-  const totalBudget = budget?.lines?.reduce((sum, line) => {
-    const amount = line.phaseData?.working?.amount || 
-                   line.phaseData?.estimate?.amount || 
-                   0;
-    return sum + amount;
-  }, 0) || 0;
+  // Get total budget from the account totals (estimate phase)
+  const totalBudget = budget?.account?.totals?.estimate || 0;
 
   // Sum all actuals
   const totalActuals = actuals.reduce((sum, actual) => sum + (actual.amount || 0), 0);
 
   // Calculate open commitments (approved, pending, draft POs)
+  // PurchaseOrder has amount (total) and paidAmount fields
   const openStatuses = ['approved', 'pending', 'draft'];
   const openCommitments = purchaseOrders
     .filter(po => openStatuses.includes(po.status))
-    .reduce((sum, po) => sum + (po.remaining || po.total || 0), 0);
+    .reduce((sum, po) => sum + (po.amount - po.paidAmount), 0);
 
   // Calculate remaining budget
   const remaining = totalBudget - (totalActuals + openCommitments);
@@ -64,54 +60,58 @@ export function calcKpis(
  * Transform data for Budget vs Actuals by Account chart
  */
 export function toBudgetVsActuals(budget: Budget | null, actuals: Actual[]) {
-  // Group budget by account
+  // Group budget by account (using estimate totals from each line)
   const budgetByAccount: Record<string, number> = {};
-  budget?.lines?.forEach(line => {
+  budget?.account?.lines?.forEach(line => {
     const account = line.accountId || 'Uncategorized';
-    const amount = line.phaseData?.working?.amount || 
-                   line.phaseData?.estimate?.amount || 0;
-    budgetByAccount[account] = (budgetByAccount[account] || 0) + amount;
+    // Each line has its own totals object with estimate
+    const amount = line.totals?.estimate || 0;
+    if (amount > 0) {
+      budgetByAccount[account] = (budgetByAccount[account] || 0) + amount;
+    }
   });
 
   // Group actuals by account
   const actualsByAccount: Record<string, number> = {};
   actuals.forEach(actual => {
-    const account = actual.accountId || 'Uncategorized';
+    // Actual has an account object with accountId
+    const account = actual.account?.accountId || 'Uncategorized';
     actualsByAccount[account] = (actualsByAccount[account] || 0) + (actual.amount || 0);
   });
 
-  // Combine accounts and create chart data
-  const allAccounts = new Set([...Object.keys(budgetByAccount), ...Object.keys(actualsByAccount)]);
+  // Combine accounts from both budget and actuals
+  const allAccounts = [...new Set([...Object.keys(budgetByAccount), ...Object.keys(actualsByAccount)])];
   
-  return Array.from(allAccounts).map(account => ({
-    account: account.length > 20 ? account.substring(0, 20) + '...' : account,
+  // Build chart data
+  return allAccounts.map(account => ({
+    account,
     budget: budgetByAccount[account] || 0,
     actual: actualsByAccount[account] || 0
-  })).sort((a, b) => (b.budget + b.actual) - (a.budget + a.actual)); // Sort by total amount
+  })).sort((a, b) => b.budget - a.budget); // Sort by budget descending
 }
 
 /**
- * Transform actuals for cumulative spend chart
+ * Transform actuals into cumulative spend time series
+ * @param actuals - List of actual expenses
+ * @param budgetTotal - Total budget amount
  */
-export function toSpendSeries(
-  actuals: Actual[], 
-  budgetTotal: number,
-  projectStart?: string,
-  projectEnd?: string
-) {
+export function toSpendSeries(actuals: Actual[], budgetTotal: number) {
   // Sort actuals by date
-  const sorted = [...actuals].sort((a, b) => 
-    new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
+  const sortedActuals = [...actuals].sort((a, b) => {
+    const dateA = a.date ? new Date(a.date) : new Date(0);
+    const dateB = b.date ? new Date(b.date) : new Date(0);
+    return dateA.getTime() - dateB.getTime();
+  });
 
-  // Calculate cumulative spend
+  // Build cumulative spend data
   let cumulative = 0;
-  const spendData = sorted.map(actual => {
+  const spendData = sortedActuals.map(actual => {
     cumulative += actual.amount || 0;
+    const date = actual.date ? new Date(actual.date) : new Date();
     return {
-      date: new Date(actual.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      date: formatMonth(date.toISOString().slice(0, 7)),
       actual: cumulative,
-      budget: budgetTotal // Flat line for now - could be prorated
+      budget: budgetTotal
     };
   });
 
@@ -136,7 +136,7 @@ export function toPoStatusData(purchaseOrders: PurchaseOrder[]) {
   
   purchaseOrders.forEach(po => {
     const status = po.status || 'unknown';
-    byStatus[status] = (byStatus[status] || 0) + (po.total || 0);
+    byStatus[status] = (byStatus[status] || 0) + (po.amount || 0);
   });
 
   // Convert to chart format
@@ -154,63 +154,64 @@ export function toTopVendors(actuals: Actual[], purchaseOrders: PurchaseOrder[],
 
   // Sum actuals by contact/vendor
   actuals.forEach(actual => {
-    const vendor = actual.contact?.name || actual.contactId || 'Unknown';
-    vendorTotals[vendor] = (vendorTotals[vendor] || 0) + (actual.amount || 0);
+    if (actual.contact?.name) {
+      vendorTotals[actual.contact.name] = (vendorTotals[actual.contact.name] || 0) + (actual.amount || 0);
+    }
   });
 
-  // Add PO amounts
+  // Sum POs by contact/vendor
   purchaseOrders.forEach(po => {
-    const vendor = po.contact?.name || po.contactId || 'Unknown';
-    vendorTotals[vendor] = (vendorTotals[vendor] || 0) + (po.total || 0);
+    if (po.contact?.name) {
+      vendorTotals[po.contact.name] = (vendorTotals[po.contact.name] || 0) + (po.amount || 0);
+    }
   });
 
-  // Sort and limit
-  return Object.entries(vendorTotals)
+  // Convert to array and sort by total descending
+  const vendors = Object.entries(vendorTotals)
     .map(([name, total]) => ({ name, total }))
     .sort((a, b) => b.total - a.total)
     .slice(0, limit);
+
+  return vendors;
 }
 
 /**
- * Cashflow data structure
+ * Transform budget and actuals into cashflow matrix
+ * Groups by month and account for tabular display
  */
-export interface CashflowData {
+export function toCashflowMatrix(
+  budget: Budget | null, 
+  actuals: Actual[]
+): {
   months: string[];
   accounts: string[];
-  data: {
+  data: Array<{
     account: string;
-    months: {
+    months: Array<{
       month: string;
       budget: number;
       actual: number;
-    }[];
-  }[];
-}
-
-/**
- * Generate cashflow matrix for table
- */
-export function toCashflowMatrix(budget: Budget | null, actuals: Actual[]): CashflowData {
+    }>;
+  }>;
+} {
   // Group budget lines by month and account
   const budgetByMonthAccount: Record<string, Record<string, number>> = {};
   
-  budget?.lines?.forEach(line => {
-    // Use line.date for timing, fallback to createdAt
-    const date = line.date || line.createdAt;
-    if (!date) return;
+  // For cashflow, we'll use the current month since budget lines don't have dates
+  const currentMonth = toMonthKey(new Date());
+  
+  budget?.account?.lines?.forEach(line => {
+    const account = line.accountId || 'Other';
+    const amount = line.totals?.estimate || 0;
     
-    const month = toMonthKey(date);
-    const account = line.topsheetAccount || line.accountId || 'Other';
-    
-    if (!budgetByMonthAccount[month]) {
-      budgetByMonthAccount[month] = {};
+    if (amount > 0) {
+      if (!budgetByMonthAccount[currentMonth]) {
+        budgetByMonthAccount[currentMonth] = {};
+      }
+      
+      budgetByMonthAccount[currentMonth][account] = 
+        (budgetByMonthAccount[currentMonth][account] || 0) + amount;
     }
-    
-    const amount = line.phaseData?.working?.amount || 
-                   line.phaseData?.estimate?.amount || 0;
-    
-    budgetByMonthAccount[month][account] = 
-      (budgetByMonthAccount[month][account] || 0) + amount;
   });
   
   // Group actuals by month and account
@@ -220,7 +221,7 @@ export function toCashflowMatrix(budget: Budget | null, actuals: Actual[]): Cash
     const month = toMonthKey(actual.date);
     if (!month) return; // Skip if date is invalid
     
-    const account = actual.topsheetAccount || actual.accountId || 'Uncategorized';
+    const account = actual.account?.topsheetAccount || actual.account?.accountId || 'Uncategorized';
     
     if (!actualsByMonthAccount[month]) {
       actualsByMonthAccount[month] = {};
@@ -249,16 +250,18 @@ export function toCashflowMatrix(budget: Budget | null, actuals: Actual[]): Cash
   }
   
   // Build matrix data
+  const data = allAccounts.map(account => ({
+    account,
+    months: allMonths.map(month => ({
+      month,
+      budget: budgetByMonthAccount[month]?.[account] || 0,
+      actual: actualsByMonthAccount[month]?.[account] || 0
+    }))
+  }));
+  
   return {
     months: allMonths,
     accounts: allAccounts,
-    data: allAccounts.map(account => ({
-      account,
-      months: allMonths.map(month => ({
-        month,
-        budget: budgetByMonthAccount[month]?.[account] || 0,
-        actual: actualsByMonthAccount[month]?.[account] || 0
-      }))
-    }))
+    data
   };
 }

@@ -54,12 +54,10 @@ export default function DashboardPage() {
         // Fetch all data in parallel for better performance
         const [budgetRes, actualsRes, posRes] = await Promise.allSettled([
           saturation.getBudget(selectedProject.id, { 
-            expand: ['lines', 'lines.phaseData'] 
+            expands: ['lines.phaseData', 'lines.contact'] 
           }),
           saturation.listActuals(selectedProject.id),
-          saturation.listPurchaseOrders(selectedProject.id, { 
-            expand: ['contact'] 
-          })
+          saturation.listPurchaseOrders(selectedProject.id)
         ]);
 
         // Handle budget
@@ -162,9 +160,7 @@ export default function DashboardPage() {
                 <BudgetChart budget={budget} actuals={actuals} />
                 <SpendChart 
                   actuals={actuals} 
-                  budgetTotal={budget?.lines?.reduce((sum, line) => 
-                    sum + (line.phaseData?.working?.amount || 0), 0
-                  ) || 0}
+                  budgetTotal={budget?.account?.totals?.estimate || 0}
                 />
                 <PoChart purchaseOrders={purchaseOrders} />
                 <VendorsChart actuals={actuals} purchaseOrders={purchaseOrders} />

@@ -43,7 +43,7 @@ export function PoChart({ purchaseOrders }: PoChartProps) {
   const chartData = toPoStatusData(purchaseOrders);
   
   // Calculate total
-  const total = purchaseOrders.reduce((sum, po) => sum + (po.total || 0), 0);
+  const total = purchaseOrders.reduce((sum, po) => sum + (po.amount || 0), 0);
   const count = purchaseOrders.length;
   
   // Add percentages and colors to data
