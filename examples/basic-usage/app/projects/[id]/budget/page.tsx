@@ -13,18 +13,10 @@ export default function BudgetPage() {
   const [budget, setBudget] = useState<Budget | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const { client, isInitialized, error: contextError } = useSaturation();
+  const client = useSaturation();
 
   useEffect(() => {
     async function fetchBudget() {
-      if (!isInitialized) return;
-      
-      if (!client) {
-        setFetchError(contextError || 'No API key found. Please configure your API key on the home page.');
-        setLoading(false);
-        return;
-      }
-
       try {
         const budgetData = await client.getBudget(projectId, {
           expands: ['fringes', 'phases', 'globals', 'lines.contact', 'lines.phaseData']
@@ -39,7 +31,7 @@ export default function BudgetPage() {
     }
 
     fetchBudget();
-  }, [client, isInitialized, contextError, projectId]);
+  }, [client, projectId]);
 
   if (loading) {
     return (

@@ -11,18 +11,10 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const { client, isInitialized, error: contextError } = useSaturation();
+  const client = useSaturation();
 
   useEffect(() => {
     async function fetchProjects() {
-      if (!isInitialized) return;
-      
-      if (!client) {
-        setFetchError(contextError || 'No API key found. Please configure your API key on the home page.');
-        setLoading(false);
-        return;
-      }
-
       try {
         const { projects } = await client.listProjects({ status: 'active' });
         setProjects(projects);
@@ -35,7 +27,7 @@ export default function ProjectsPage() {
     }
 
     fetchProjects();
-  }, [client, isInitialized, contextError]);
+  }, [client]);
 
   if (loading) {
     return (
@@ -132,12 +124,15 @@ export default function ProjectsPage() {
                       </div>
                     )}
                   </div>
-                  <div className="mt-4 flex gap-2">
+                  <div className="mt-4 flex gap-2 flex-wrap">
                     <Link href={`/projects/${project.id}/budget`}>
                       <Button size="sm" variant="outline">View Budget</Button>
                     </Link>
                     <Link href={`/projects/${project.id}/actuals`}>
                       <Button size="sm" variant="outline">View Actuals</Button>
+                    </Link>
+                    <Link href={`/projects/${project.id}/purchase-orders`}>
+                      <Button size="sm" variant="outline">View POs</Button>
                     </Link>
                   </div>
                 </CardContent>
