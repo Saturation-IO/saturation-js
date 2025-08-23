@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const openai = createOpenAI({ apiKey })
 
   const result = streamText({
-    model: openai("gpt-4.1-nano"),
+    model: openai("gpt-5"),
     system:
       "You are a helpful assistant with access to tools. Use the getCurrentDate tool when users ask about dates, time, or current information. You are also able to use the getTime tool to get the current time in a specific timezone.",
     messages: convertToModelMessages(messages),
