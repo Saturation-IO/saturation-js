@@ -17,15 +17,15 @@ export function KpiCards({ budget, actuals, purchaseOrders }: KpiCardsProps) {
 
   const cards = [
     {
-      title: 'Total Budget',
+      title: 'Total Estimate',
       value: formatCurrency(kpis.totalBudget),
-      description: 'Working phase budget',
+      description: 'Estimate phase',
       color: 'text-blue-600',
     },
     {
       title: 'Actual Spend',
       value: formatCurrency(kpis.totalActuals),
-      description: `${formatPercent(kpis.burnPercent)} of budget`,
+      description: `${formatPercent(kpis.burnPercent)} of estimate`,
       color: 'text-green-600',
     },
     {
@@ -37,7 +37,7 @@ export function KpiCards({ budget, actuals, purchaseOrders }: KpiCardsProps) {
     {
       title: 'Remaining',
       value: formatCurrency(kpis.remaining),
-      description: kpis.remaining < 0 ? 'Over budget' : 'Available to spend',
+      description: kpis.remaining < 0 ? 'Over estimate' : 'Available to spend',
       color: kpis.remaining < 0 ? 'text-red-600' : 'text-gray-600',
     },
   ];

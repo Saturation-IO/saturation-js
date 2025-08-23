@@ -28,6 +28,7 @@ export function calcKpis(
   actuals: Actual[],
   purchaseOrders: PurchaseOrder[]
 ): KPIMetrics {
+  console.log(JSON.stringify(budget?.account?.totals, null, 2));
   // Get total budget from the account totals (estimate phase)
   const totalBudget = budget?.account?.totals?.estimate || 0;
 
@@ -58,44 +59,27 @@ export function calcKpis(
 
 /**
  * Transform data for Budget vs Actuals by Account chart
+ * Uses the totals from budget lines (both estimate and actual)
  */
-export function toBudgetVsActuals(budget: Budget | null, actuals: Actual[]) {
-  // Group budget by account (using estimate totals from each line)
-  const budgetByAccount: Record<string, number> = {};
-  budget?.account?.lines?.forEach(line => {
-    const account = line.accountId || 'Uncategorized';
-    // Each line has its own totals object with estimate
-    const amount = line.totals?.estimate || 0;
-    if (amount > 0) {
-      budgetByAccount[account] = (budgetByAccount[account] || 0) + amount;
-    }
-  });
-
-  // Group actuals by account
-  const actualsByAccount: Record<string, number> = {};
-  actuals.forEach(actual => {
-    // Actual has an account object with accountId
-    const account = actual.account?.accountId || 'Uncategorized';
-    actualsByAccount[account] = (actualsByAccount[account] || 0) + (actual.amount || 0);
-  });
-
-  // Combine accounts from both budget and actuals
-  const allAccounts = [...new Set([...Object.keys(budgetByAccount), ...Object.keys(actualsByAccount)])];
-  
-  // Build chart data
-  return allAccounts.map(account => ({
-    account,
-    budget: budgetByAccount[account] || 0,
-    actual: actualsByAccount[account] || 0
-  })).sort((a, b) => b.budget - a.budget); // Sort by budget descending
+export function toBudgetVsActuals(budget: Budget) {
+  // Map each line directly since accountIds are unique
+  return budget.account.lines
+    .map(line => ({
+      account: line.description || line.accountId || 'Uncategorized',
+      estimate: line.totals?.estimate || 0,
+      actual: line.totals?.actual || 0
+    }))
+    .filter(item => item.estimate > 0 || item.actual > 0) // Only include lines with values
+    .sort((a, b) => b.estimate - a.estimate); // Sort by estimate descending
 }
 
 /**
  * Transform actuals into cumulative spend time series
  * @param actuals - List of actual expenses
  * @param budgetTotal - Total budget amount
+ * @param maxDataPoints - Maximum number of data points to show (default: 20)
  */
-export function toSpendSeries(actuals: Actual[], budgetTotal: number) {
+export function toSpendSeries(actuals: Actual[], budgetTotal: number, maxDataPoints: number = 20) {
   // Sort actuals by date
   const sortedActuals = [...actuals].sort((a, b) => {
     const dateA = a.date ? new Date(a.date) : new Date(0);
@@ -105,7 +89,7 @@ export function toSpendSeries(actuals: Actual[], budgetTotal: number) {
 
   // Build cumulative spend data
   let cumulative = 0;
-  const spendData = sortedActuals.map(actual => {
+  const allData = sortedActuals.map(actual => {
     cumulative += actual.amount || 0;
     const date = actual.date ? new Date(actual.date) : new Date();
     return {
@@ -116,15 +100,52 @@ export function toSpendSeries(actuals: Actual[], budgetTotal: number) {
   });
 
   // Add starting point if no data
-  if (spendData.length === 0) {
-    spendData.push({
+  if (allData.length === 0) {
+    return [{
       date: 'Start',
       actual: 0,
       budget: budgetTotal
-    });
+    }];
   }
 
-  return spendData;
+  // If we have fewer data points than the max, return all
+  if (allData.length <= maxDataPoints) {
+    return allData;
+  }
+
+  // Sample the data to get evenly distributed points
+  const sampledData = sampleDataPoints(allData, maxDataPoints);
+  
+  return sampledData;
+}
+
+/**
+ * Sample data points to reduce the number while preserving the overall trend
+ * Always includes first and last points
+ * @param data - Full dataset
+ * @param targetCount - Target number of data points
+ */
+function sampleDataPoints<T>(data: T[], targetCount: number): T[] {
+  if (data.length <= targetCount) {
+    return data;
+  }
+
+  const sampled: T[] = [];
+  const step = (data.length - 1) / (targetCount - 1);
+  
+  // Always include the first point
+  sampled.push(data[0]);
+  
+  // Sample intermediate points
+  for (let i = 1; i < targetCount - 1; i++) {
+    const index = Math.round(i * step);
+    sampled.push(data[index]);
+  }
+  
+  // Always include the last point
+  sampled.push(data[data.length - 1]);
+  
+  return sampled;
 }
 
 /**
@@ -176,11 +197,10 @@ export function toTopVendors(actuals: Actual[], purchaseOrders: PurchaseOrder[],
 }
 
 /**
- * Transform budget and actuals into cashflow matrix
+ * Transform actuals into cashflow matrix
  * Groups by month and account for tabular display
  */
 export function toCashflowMatrix(
-  budget: Budget | null, 
   actuals: Actual[]
 ): {
   months: string[];
@@ -189,30 +209,11 @@ export function toCashflowMatrix(
     account: string;
     months: Array<{
       month: string;
-      budget: number;
-      actual: number;
+      amount: number;
     }>;
   }>;
 } {
-  // Group budget lines by month and account
-  const budgetByMonthAccount: Record<string, Record<string, number>> = {};
-  
-  // For cashflow, we'll use the current month since budget lines don't have dates
-  const currentMonth = toMonthKey(new Date());
-  
-  budget?.account?.lines?.forEach(line => {
-    const account = line.accountId || 'Other';
-    const amount = line.totals?.estimate || 0;
-    
-    if (amount > 0) {
-      if (!budgetByMonthAccount[currentMonth]) {
-        budgetByMonthAccount[currentMonth] = {};
-      }
-      
-      budgetByMonthAccount[currentMonth][account] = 
-        (budgetByMonthAccount[currentMonth][account] || 0) + amount;
-    }
-  });
+  const accountDescriptions: Record<string, string> = {};
   
   // Group actuals by month and account
   const actualsByMonthAccount: Record<string, Record<string, number>> = {};
@@ -221,47 +222,49 @@ export function toCashflowMatrix(
     const month = toMonthKey(actual.date);
     if (!month) return; // Skip if date is invalid
     
-    const account = actual.account?.topsheetAccount || actual.account?.accountId || 'Uncategorized';
+    const accountId = actual.account?.accountId || 'Uncategorized';
+    // Store description if we haven't seen this account before
+    if (actual.account?.accountDescription) {
+      accountDescriptions[accountId] = actual.account.accountDescription;
+    }
     
     if (!actualsByMonthAccount[month]) {
       actualsByMonthAccount[month] = {};
     }
     
-    actualsByMonthAccount[month][account] = 
-      (actualsByMonthAccount[month][account] || 0) + (actual.amount || 0);
+    actualsByMonthAccount[month][accountId] = 
+      (actualsByMonthAccount[month][accountId] || 0) + (actual.amount || 0);
   });
   
   // Get all unique months and accounts
-  const allMonths = [...new Set([
-    ...Object.keys(budgetByMonthAccount),
-    ...Object.keys(actualsByMonthAccount)
-  ])].filter(month => month).sort(); // Filter out empty month keys
+  const allMonths = [...new Set(Object.keys(actualsByMonthAccount))].filter(month => month).sort();
   
-  const allAccounts = [...new Set([
-    ...Object.values(budgetByMonthAccount).flatMap(Object.keys),
-    ...Object.values(actualsByMonthAccount).flatMap(Object.keys)
-  ])].sort();
+  const allAccountIds = [...new Set(
+    Object.values(actualsByMonthAccount).flatMap(Object.keys)
+  )].sort();
   
   // Ensure "Uncategorized" appears last if it exists
-  const uncategorizedIndex = allAccounts.indexOf('Uncategorized');
+  const uncategorizedIndex = allAccountIds.indexOf('Uncategorized');
   if (uncategorizedIndex > -1) {
-    allAccounts.splice(uncategorizedIndex, 1);
-    allAccounts.push('Uncategorized');
+    allAccountIds.splice(uncategorizedIndex, 1);
+    allAccountIds.push('Uncategorized');
   }
   
-  // Build matrix data
-  const data = allAccounts.map(account => ({
-    account,
+  // Build matrix data with display names
+  const data = allAccountIds.map(accountId => ({
+    account: accountDescriptions[accountId] || accountId, // Display description or fall back to ID
     months: allMonths.map(month => ({
       month,
-      budget: budgetByMonthAccount[month]?.[account] || 0,
-      actual: actualsByMonthAccount[month]?.[account] || 0
+      amount: actualsByMonthAccount[month]?.[accountId] || 0
     }))
   }));
   
+  // Return display names for accounts but keep IDs as keys internally
+  const displayAccounts = allAccountIds.map(id => accountDescriptions[id] || id);
+  
   return {
     months: allMonths,
-    accounts: allAccounts,
+    accounts: displayAccounts,
     data
   };
 }

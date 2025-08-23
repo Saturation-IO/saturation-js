@@ -56,8 +56,8 @@ export function ProjectSelector({ onProjectChange }: ProjectSelectorProps) {
 
   if (loading) {
     return (
-      <Select disabled>
-        <SelectTrigger className="w-[300px]">
+      <Select>
+        <SelectTrigger className="w-[300px]" disabled>
           <SelectValue placeholder="Loading projects..." />
         </SelectTrigger>
       </Select>

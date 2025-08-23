@@ -3,42 +3,33 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatFullCurrency, formatMonth } from '@/lib/format';
 import { toCashflowMatrix } from '@/lib/calc';
-import type { Budget, Actual } from '@saturation-api/js';
+import type { Actual } from '@saturation-api/js';
 
 interface CashflowTableProps {
-  budget: Budget | null;
   actuals: Actual[];
 }
 
-export function CashflowTable({ budget, actuals }: CashflowTableProps) {
+export function CashflowTable({ actuals }: CashflowTableProps) {
   // Generate cashflow matrix data
-  const cashflow = toCashflowMatrix(budget, actuals);
+  const cashflow = toCashflowMatrix(actuals);
 
   // Calculate totals for each month
   const monthTotals = cashflow.months.map(month => ({
     month,
-    budgetTotal: cashflow.data.reduce((sum, account) => {
+    total: cashflow.data.reduce((sum, account) => {
       const monthData = account.months.find(m => m.month === month);
-      return sum + (monthData?.budget || 0);
-    }, 0),
-    actualTotal: cashflow.data.reduce((sum, account) => {
-      const monthData = account.months.find(m => m.month === month);
-      return sum + (monthData?.actual || 0);
+      return sum + (monthData?.amount || 0);
     }, 0)
   }));
 
   // Calculate account totals
   const accountTotals = cashflow.data.map(account => ({
     account: account.account,
-    budgetTotal: account.months.reduce((sum, m) => sum + m.budget, 0),
-    actualTotal: account.months.reduce((sum, m) => sum + m.actual, 0)
+    total: account.months.reduce((sum, m) => sum + m.amount, 0)
   }));
 
-  // Grand totals
-  const grandTotals = {
-    budget: monthTotals.reduce((sum, m) => sum + m.budgetTotal, 0),
-    actual: monthTotals.reduce((sum, m) => sum + m.actualTotal, 0)
-  };
+  // Grand total
+  const grandTotal = monthTotals.reduce((sum, m) => sum + m.total, 0);
 
   if (cashflow.months.length === 0 || cashflow.accounts.length === 0) {
     return (
@@ -84,30 +75,15 @@ export function CashflowTable({ budget, actuals }: CashflowTableProps) {
                     <td className="py-2 px-2 font-medium">
                       {accountData.account}
                     </td>
-                    {accountData.months.map((monthData) => {
-                      const hasVariance = monthData.actual !== monthData.budget;
-                      return (
-                        <td key={monthData.month} className="text-right py-2 px-2">
-                          <div className="space-y-1">
-                            <div className="text-gray-600">
-                              {formatFullCurrency(monthData.budget)}
-                            </div>
-                            <div className={hasVariance ? 'text-green-600 font-medium' : 'text-gray-400'}>
-                              {formatFullCurrency(monthData.actual)}
-                            </div>
-                          </div>
-                        </td>
-                      );
-                    })}
-                    <td className="text-right py-2 px-2 border-l">
-                      <div className="space-y-1">
-                        <div className="text-gray-600">
-                          {formatFullCurrency(accountTotal?.budgetTotal || 0)}
+                    {accountData.months.map((monthData) => (
+                      <td key={monthData.month} className="text-right py-2 px-2">
+                        <div className={monthData.amount > 0 ? 'text-gray-900' : 'text-gray-400'}>
+                          {formatFullCurrency(monthData.amount)}
                         </div>
-                        <div className="text-green-600 font-medium">
-                          {formatFullCurrency(accountTotal?.actualTotal || 0)}
-                        </div>
-                      </div>
+                      </td>
+                    ))}
+                    <td className="text-right py-2 px-2 border-l font-medium">
+                      {formatFullCurrency(accountTotal?.total || 0)}
                     </td>
                   </tr>
                 );
@@ -118,33 +94,15 @@ export function CashflowTable({ budget, actuals }: CashflowTableProps) {
                 <td className="py-2 px-2">Total</td>
                 {monthTotals.map((monthTotal) => (
                   <td key={monthTotal.month} className="text-right py-2 px-2">
-                    <div className="space-y-1">
-                      <div className="text-gray-600">
-                        {formatFullCurrency(monthTotal.budgetTotal)}
-                      </div>
-                      <div className="text-green-600">
-                        {formatFullCurrency(monthTotal.actualTotal)}
-                      </div>
-                    </div>
+                    {formatFullCurrency(monthTotal.total)}
                   </td>
                 ))}
                 <td className="text-right py-2 px-2 border-l">
-                  <div className="space-y-1">
-                    <div className="text-gray-600">
-                      {formatFullCurrency(grandTotals.budget)}
-                    </div>
-                    <div className="text-green-600">
-                      {formatFullCurrency(grandTotals.actual)}
-                    </div>
-                  </div>
+                  {formatFullCurrency(grandTotal)}
                 </td>
               </tr>
             </tfoot>
           </table>
-          <div className="mt-4 text-xs text-gray-500">
-            <p>• Top row (gray): Budget amounts</p>
-            <p>• Bottom row (green): Actual amounts</p>
-          </div>
         </div>
       </CardContent>
     </Card>

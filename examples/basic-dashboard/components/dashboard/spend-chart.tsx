@@ -1,31 +1,45 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Area, AreaChart } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Area, AreaChart, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { ChartContainer, ChartConfig } from '@/components/ui/chart';
 import { formatCurrency, formatPercent } from '@/lib/format';
 import { toSpendSeries } from '@/lib/calc';
+import { PrettyTooltip } from './pretty-tooltip';
 import type { Actual } from '@saturation-api/js';
+
+const chartConfig = {
+  primary: {
+    label: "Primary",
+    color: "var(--primary)",
+  },
+  muted: {
+    label: "Muted",
+    color: "var(--muted)",
+  },
+} satisfies ChartConfig;
 
 interface SpendChartProps {
   actuals: Actual[];
   budgetTotal: number;
+  maxDataPoints?: number;
 }
 
-const chartConfig = {
-  actual: {
-    label: "Actual Spend",
-    color: "hsl(var(--chart-2))",
-  },
-  budget: {
-    label: "Budget Limit",
-    color: "hsl(var(--chart-1))",
-  },
+function ChartCard({ title, description, children }: { title: string; description?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <Card className="rounded-2xl shadow-sm border-muted bg-card">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base font-medium text-foreground/90">{title}</CardTitle>
+        {description && <CardDescription>{description}</CardDescription>}
+      </CardHeader>
+      <CardContent className="h-[320px] md:h-[360px]">{children}</CardContent>
+    </Card>
+  );
 }
 
-export function SpendChart({ actuals, budgetTotal }: SpendChartProps) {
-  // Transform data for the chart
-  const chartData = toSpendSeries(actuals, budgetTotal);
+export function SpendChart({ actuals, budgetTotal, maxDataPoints = 25 }: SpendChartProps) {
+  // Transform data for the chart with smoothing
+  const chartData = toSpendSeries(actuals, budgetTotal, maxDataPoints);
   
   // Calculate current spend percentage
   const currentSpend = chartData.length > 0 ? chartData[chartData.length - 1].actual : 0;
@@ -33,87 +47,87 @@ export function SpendChart({ actuals, budgetTotal }: SpendChartProps) {
   const remaining = budgetTotal - currentSpend;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Cumulative Spend Trend</CardTitle>
-        <CardDescription>
-          {budgetTotal > 0 && (
-            <>
-              Spent: {formatCurrency(currentSpend)} of {formatCurrency(budgetTotal)} • 
-              <span className={spendPercent > 90 ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}>
-                {' '}{formatPercent(spendPercent)} utilized
-              </span> • 
-              <span className={remaining >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
-                {' '}{formatCurrency(Math.abs(remaining))} {remaining >= 0 ? 'remaining' : 'over budget'}
-              </span>
-            </>
-          )}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {chartData.length === 0 ? (
-          <div className="flex h-[350px] items-center justify-center text-muted-foreground">
-            No spending data available
-          </div>
-        ) : (
-          <ChartContainer config={chartConfig} className="h-[350px] w-full">
+    <ChartCard
+      title="Cumulative Spend Trend"
+      description={
+        budgetTotal > 0 && (
+          <>
+            Spent: {formatCurrency(currentSpend)} of {formatCurrency(budgetTotal)} estimate • 
+            <span className={spendPercent > 90 ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}>
+              {' '}{formatPercent(spendPercent)} utilized
+            </span> • 
+            <span className={remaining >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+              {' '}{formatCurrency(Math.abs(remaining))} {remaining >= 0 ? 'remaining' : 'over estimate'}
+            </span>
+          </>
+        )
+      }>
+
+      {chartData.length === 0 ? (
+        <div className="flex h-full items-center justify-center text-muted-foreground">
+          No spending data available
+        </div>
+      ) : (
+        <ChartContainer config={chartConfig} className="h-full w-full">
+          <ResponsiveContainer width="100%" height="100%">
             <AreaChart 
               data={chartData}
-              margin={{ top: 20, right: 20, bottom: 80, left: 60 }}
+              margin={{ left: 8, right: 8, top: 10, bottom: 60 }}
             >
               <defs>
-                <linearGradient id="spendGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0} />
+                <linearGradient id="spendArea" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0.02} />
                 </linearGradient>
-                <linearGradient id="budgetGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.1} />
-                  <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0} />
+                <linearGradient id="budgetArea" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--color-muted)" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="var(--color-muted)" stopOpacity={0.05} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.15} className="stroke-border" />
               <XAxis 
                 dataKey="date"
+                tickLine={false}
+                axisLine={false}
                 angle={-45}
                 textAnchor="end"
-                height={80}
+                height={60}
+                tickMargin={8}
                 tick={{ fontSize: 11 }}
-                className="text-muted-foreground"
               />
               <YAxis 
-                tickFormatter={(value) => formatCurrency(value)}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`}
+                width={40}
                 tick={{ fontSize: 11 }}
-                className="text-muted-foreground"
               />
-              <ChartTooltip 
-                content={
-                  <ChartTooltipContent 
-                    formatter={(value) => formatCurrency(value as number)}
-                  />
-                }
-              />
+              <Tooltip content={<PrettyTooltip currencyFormat={true} />} />
+              <Legend verticalAlign="top" height={24} />
               <Area
                 type="monotone"
                 dataKey="budget"
-                stroke="hsl(var(--chart-1))"
+                name="Estimate"
+                stroke="var(--color-muted)"
                 strokeWidth={2}
                 strokeDasharray="5 5"
-                fill="url(#budgetGradient)"
-                strokeOpacity={0.5}
+                fill="url(#budgetArea)"
+                strokeOpacity={0.7}
               />
               <Area
                 type="monotone"
                 dataKey="actual"
-                stroke="hsl(var(--chart-2))"
-                strokeWidth={3}
-                fill="url(#spendGradient)"
-                dot={{ fill: "hsl(var(--chart-2))", strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6 }}
+                name="Actual Spend"
+                stroke="var(--color-primary)"
+                strokeWidth={2.5}
+                fill="url(#spendArea)"
+                dot={{ r: 2, fill: "var(--color-primary)" }}
+                activeDot={{ r: 5, fill: "var(--color-primary)" }}
               />
             </AreaChart>
-          </ChartContainer>
-        )}
-      </CardContent>
-    </Card>
+          </ResponsiveContainer>
+        </ChartContainer>
+      )}
+    </ChartCard>
   );
 }
