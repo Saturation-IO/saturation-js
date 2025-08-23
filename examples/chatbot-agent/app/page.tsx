@@ -19,6 +19,7 @@ export default function Home() {
   const client = useSaturation();
 
 
+
   useEffect(() => {
     // Load previously saved key (for demo purposes only).
     const storedKey = localStorage.getItem('saturation_api_key');
@@ -26,7 +27,6 @@ export default function Home() {
       setSavedKey(storedKey);
       setApiKey(storedKey);
     }
-
   }, []);
 
   // Save the key so the SaturationProvider can pick it up on next render.
