@@ -58,6 +58,20 @@ const INITIAL_COMPONENTS: Partial<Components> = {
   hr: function HrComponent(props) {
     return <hr className={cn("my-3 border-border/70", (props as any).className)} {...props} />
   },
+  p: function P({ className, children, ...props }) {
+    return (
+      <p
+        className={cn(
+          // Add vertical rhythm between paragraphs, but avoid extra outer gaps
+          "my-2 first:mt-0 last:mb-0",
+          className
+        )}
+        {...(props as any)}
+      >
+        {children}
+      </p>
+    )
+  },
   h1: function H1({ className, children, ...props }) {
     return (
       <h1

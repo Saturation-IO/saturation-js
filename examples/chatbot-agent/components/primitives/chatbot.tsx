@@ -176,13 +176,13 @@ function ConversationPromptInput({ api = "/api/chat", headers, fullHeight }: Cha
           {status === "error" && error && <ErrorMessage error={error} />}
         </ChatContainerContent>
       </ChatContainerRoot>
-      <div className="w-full shrink-0 px-3 pb-3 md:px-5 md:pb-5 bg-background pt-2">
+      <div className="w-full shrink-0 px-3 pb-3 md:px-5 md:pb-5 bg-transparent pt-2">
         <PromptInput
           isLoading={status !== "ready"}
           value={input}
           onValueChange={setInput}
           onSubmit={handleSubmit}
-          className="border-input bg-popover relative z-10 w-full rounded-3xl border p-0 pt-1 shadow-xs"
+          className="border-input bg-transparent relative z-10 w-full rounded-3xl border p-0 pt-1 shadow-xs"
         >
           <div className="flex flex-col">
             <PromptInputTextarea
@@ -219,6 +219,7 @@ function ConversationPromptInput({ api = "/api/chat", headers, fullHeight }: Cha
                 </PromptInputAction>
 
                 <Button
+                  variant="outline"
                   size="icon"
                   disabled={!input.trim() || (status !== "ready" && status !== "error")}
                   onClick={handleSubmit}
@@ -227,7 +228,7 @@ function ConversationPromptInput({ api = "/api/chat", headers, fullHeight }: Cha
                   {status === "ready" || status === "error" ? (
                     <ArrowUp size={18} />
                   ) : (
-                    <span className="size-3 rounded-xs bg-white" />
+                    <span className="size-3 rounded-xs bg-foreground" />
                   )}
                 </Button>
               </div>

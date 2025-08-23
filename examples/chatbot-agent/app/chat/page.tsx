@@ -45,7 +45,7 @@ export default function ChatPage() {
                   </Button>
                   {savedOpenAIKey && (
                     <span className="text-xs text-green-700 border border-green-200 bg-green-50 rounded px-2 py-0.5">
-                      ✓ OpenAI Configured
+                      ✓ Configured
                     </span>
                   )}
                 </div>
