@@ -10,7 +10,6 @@ import { SpendChart } from '@/components/dashboard/spend-chart';
 import { PoChart } from '@/components/dashboard/po-chart';
 import { VendorsChart } from '@/components/dashboard/vendors-chart';
 import { CashflowTable } from '@/components/dashboard/cashflow-table';
-import { Separator } from '@/components/ui/separator';
 import { ThemeToggle } from '@/components/theme-toggle';
 import type { Project, Budget, Actual, PurchaseOrder } from '@saturation-api/js';
 
@@ -142,40 +141,24 @@ export default function DashboardPage() {
           </div>
         ) : (
           // Dashboard content
-          <div className="space-y-8">
-            {/* KPI Cards */}
-            <section>
-              <h2 className="text-lg font-semibold mb-4">Key Metrics</h2>
-              <KpiCards 
-                budget={budget} 
+          <div className="space-y-6">
+            <KpiCards 
+              budget={budget} 
+              actuals={actuals} 
+              purchaseOrders={purchaseOrders} 
+            />
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <BudgetChart budget={budget} />
+              <SpendChart 
                 actuals={actuals} 
-                purchaseOrders={purchaseOrders} 
+                budgetTotal={budget?.account?.totals?.estimate || 0}
               />
-            </section>
+              <PoChart purchaseOrders={purchaseOrders} />
+              <VendorsChart actuals={actuals} purchaseOrders={purchaseOrders} />
+            </div>
 
-            <Separator />
-
-            {/* Charts Grid */}
-            <section>
-              <h2 className="text-lg font-semibold mb-4">Financial Analysis</h2>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <BudgetChart budget={budget} />
-                <SpendChart 
-                  actuals={actuals} 
-                  budgetTotal={budget?.account?.totals?.estimate || 0}
-                />
-                <PoChart purchaseOrders={purchaseOrders} />
-                <VendorsChart actuals={actuals} purchaseOrders={purchaseOrders} />
-              </div>
-            </section>
-
-            <Separator />
-
-            {/* Cashflow Table */}
-            <section>
-              <h2 className="text-lg font-semibold mb-4">Monthly Cashflow</h2>
-              <CashflowTable actuals={actuals} />
-            </section>
+            <CashflowTable actuals={actuals} />
           </div>
         )}
       </main>

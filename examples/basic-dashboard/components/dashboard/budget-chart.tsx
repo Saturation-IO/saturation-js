@@ -20,13 +20,58 @@ interface BudgetChartProps {
 const chartConfig = {
   estimate: {
     label: "Estimate",
-    color: "var(--muted)",
+    color: "var(--muted-foreground)",
   },
   actual: {
     label: "Actual", 
     color: "var(--primary)",
   },
 } satisfies ChartConfig;
+
+// Custom Y-axis tick component with better line spacing
+const CustomYAxisTick = (props: any) => {
+  const { x, y, payload } = props;
+  
+  // Ensure payload.value is a string
+  const text = String(payload?.value || '');
+  const words = text.split(' ');
+  const lineHeight = 14;
+  
+  // Split into lines if too long
+  const lines: string[] = [];
+  let currentLine = '';
+  
+  words.forEach((word: string) => {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    if (testLine.length > 20 && currentLine) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = testLine;
+    }
+  });
+  if (currentLine) lines.push(currentLine);
+  
+  const startY = y - ((lines.length - 1) * lineHeight) / 2;
+  
+  return (
+    <g>
+      {lines.map((line, index) => (
+        <text
+          key={index}
+          x={x - 8}
+          y={startY + index * lineHeight}
+          fill="var(--foreground)"
+          fontSize={10}
+          textAnchor="end"
+          dominantBaseline="middle"
+        >
+          {line}
+        </text>
+      ))}
+    </g>
+  );
+};
 
 export function BudgetChart({ budget }: BudgetChartProps) {
   // Return early if no budget
@@ -60,15 +105,14 @@ export function BudgetChart({ budget }: BudgetChartProps) {
     item.account !== ''
   );
   
-  // Prepare data with background (larger value) and foreground (smaller value) for each account
-  const chartData = filteredData.slice(0, 8).map(item => ({
-    account: item.account.length > 25 ? item.account.substring(0, 25) + '...' : item.account,
-    // Background bar is the larger value - ensure minimum width for text
-    background: Math.max(item.actual, item.estimate, 1000),
-    // Foreground bar is the smaller value
-    foreground: Math.min(item.actual, item.estimate),
-    // Track which is which for coloring and labels
-    isActualLarger: item.actual > item.estimate,
+  // Prepare data with background (actual) and foreground (estimate) for each account
+  // Remove the slice limit to show all accounts
+  const chartData = filteredData.map(item => ({
+    account: item.account,
+    // Actual bar is always the background (purple) - ensure minimum width
+    background: Math.max(item.actual, 5000), // increased minimum for better visibility
+    // Estimate bar is always the foreground (gray) on top
+    foreground: item.estimate,
     actual: item.actual,
     estimate: item.estimate,
     displayValue: `${formatCurrency(item.actual)} / ${formatCurrency(item.estimate)}`,
@@ -92,93 +136,100 @@ export function BudgetChart({ budget }: BudgetChartProps) {
     <Card className="rounded-2xl shadow-sm border-muted bg-card">
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-medium text-foreground/90">Estimate vs Actuals</CardTitle>
-        <CardDescription>By Account</CardDescription>
+        <CardDescription>Comparing budgeted amounts to actual spending by account</CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig}>
-          <BarChart
-            accessibilityLayer
-            data={chartData}
-            layout="vertical"
-            margin={{
-              left: 16,
-              right: 140,
+        <div className="overflow-y-auto overflow-x-hidden" style={{ maxHeight: '400px' }}>
+          <ChartContainer 
+            config={chartConfig}
+            style={{ 
+              height: `${Math.max(chartData.length * 50, 320)}px`,
+              minHeight: '320px',
+              width: '100%'
             }}
           >
-            <CartesianGrid horizontal={false} />
-            <YAxis
-              dataKey="account"
-              type="category"
-              tickLine={false}
-              tickMargin={10}
-              axisLine={false}
-              hide
-            />
-            <XAxis type="number" hide />
-            <ChartTooltip
-              cursor={false}
-              content={
-                <ChartTooltipContent 
-                  formatter={(value, name, item) => {
-                    const data = item.payload;
-                    return (
-                      <div className="flex flex-col gap-1">
-                        <span className="flex justify-between gap-4">
-                          <span>Actual:</span>
-                          <span className="font-mono font-medium">{formatCurrency(data.actual)}</span>
-                        </span>
-                        <span className="flex justify-between gap-4">
-                          <span>Estimate:</span>
-                          <span className="font-mono font-medium">{formatCurrency(data.estimate)}</span>
-                        </span>
-                      </div>
-                    );
-                  }}
-                />
-              }
-            />
-            {/* Background bar (larger value) */}
-            <Bar
-              dataKey="background"
-              radius={4}
+            <BarChart
+              accessibilityLayer
+              data={chartData}
+              layout="vertical"
+              margin={{
+                left: 0,
+                right: 140,
+                top: 10,
+                bottom: 10,
+              }}
+              height={Math.max(chartData.length * 50, 320)}
+              barCategoryGap="20%"
             >
-              {chartData.map((entry, index) => (
-                <Cell
-                  key={`bg-${index}`}
-                  fill={entry.isActualLarger ? "var(--color-actual)" : "var(--color-estimate)"}
-                  fillOpacity={0.2}
-                />
-              ))}
-              <LabelList
+              <CartesianGrid horizontal={false} />
+              <YAxis
                 dataKey="account"
-                position="insideLeft"
-                offset={8}
-                className="fill-foreground whitespace-nowrap"
-                fontSize={11}
-                fontWeight={500}
+                type="category"
+                tickLine={false}
+                tickMargin={8}
+                axisLine={false}
+                width={140}
+                tick={<CustomYAxisTick />}
               />
-            </Bar>
-            {/* Foreground bar (smaller value) */}
-            <Bar
-              dataKey="foreground"
-              radius={4}
-            >
-              {chartData.map((entry, index) => (
-                <Cell
-                  key={`fg-${index}`}
-                  fill={entry.isActualLarger ? "var(--color-estimate)" : "var(--color-actual)"}
+              <XAxis type="number" hide />
+              <ChartTooltip
+                cursor={false}
+                content={
+                  <ChartTooltipContent 
+                    formatter={(value, name, item) => {
+                      const data = item.payload;
+                      return (
+                        <div className="flex flex-col gap-1">
+                          <span className="flex justify-between gap-4">
+                            <span>Actual:</span>
+                            <span className="font-mono font-medium">{formatCurrency(data.actual)}</span>
+                          </span>
+                          <span className="flex justify-between gap-4">
+                            <span>Estimate:</span>
+                            <span className="font-mono font-medium">{formatCurrency(data.estimate)}</span>
+                          </span>
+                        </div>
+                      );
+                    }}
+                  />
+                }
+              />
+              {/* Background bar - Always actual (purple) */}
+              <Bar
+                dataKey="background"
+                radius={4}
+              >
+                {chartData.map((entry, index) => (
+                  <Cell
+                    key={`bg-${index}`}
+                    fill="var(--color-actual)"
+                  />
+                ))}
+              </Bar>
+              {/* Foreground bar - Always estimate (gray) */}
+              <Bar
+                dataKey="foreground"
+                radius={4}
+              >
+                {chartData.map((entry, index) => (
+                  <Cell
+                    key={`fg-${index}`}
+                    fill="var(--color-estimate)"
+                    fillOpacity={0.6}
+                  />
+                ))}
+                <LabelList
+                  dataKey="displayValue"
+                  position="right"
+                  offset={8}
+                  className="fill-foreground"
+                  fontSize={10}
+                  style={{ whiteSpace: 'nowrap' }}
                 />
-              ))}
-              <LabelList
-                dataKey="displayValue"
-                position="right"
-                offset={8}
-                className="fill-foreground whitespace-nowrap"
-                fontSize={10}
-              />
-            </Bar>
-          </BarChart>
-        </ChartContainer>
+              </Bar>
+            </BarChart>
+          </ChartContainer>
+        </div>
       </CardContent>
       <CardFooter className="flex-col items-start gap-2 text-sm">
         <div className="flex items-center gap-4 text-xs">
@@ -187,7 +238,7 @@ export function BudgetChart({ budget }: BudgetChartProps) {
             Actual
           </span>
           <span className="flex items-center gap-1.5">
-            <div className="h-2 w-2 rounded-sm bg-muted" />
+            <div className="h-2 w-2 rounded-sm bg-muted-foreground opacity-30" />
             Estimate
           </span>
         </div>
