@@ -161,12 +161,27 @@ function sampleDataPoints<T>(data: T[], targetCount: number): T[] {
  * Transform POs for status breakdown pie chart
  */
 export function toPoStatusData(purchaseOrders: PurchaseOrder[]) {
-  // Group by status
+  // Group by status, excluding cancelled and merging waiting statuses
   const byStatus: Record<string, number> = {};
   
   purchaseOrders.forEach(po => {
     const status = po.status || 'unknown';
-    byStatus[status] = (byStatus[status] || 0) + (po.amount || 0);
+    
+    // Skip cancelled POs
+    if (status.toLowerCase() === 'cancelled') {
+      return;
+    }
+    
+    // Merge all waiting/pending statuses into "Waiting"
+    let groupedStatus = status;
+    if (status.toLowerCase() === 'pending' || 
+        status.toLowerCase() === 'waiting' || 
+        status.toLowerCase() === 'waitingapproval' ||
+        status.toLowerCase() === 'waiting_approval') {
+      groupedStatus = 'waiting';
+    }
+    
+    byStatus[groupedStatus] = (byStatus[groupedStatus] || 0) + (po.amount || 0);
   });
 
   // Convert to chart format

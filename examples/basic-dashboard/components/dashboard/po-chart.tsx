@@ -1,116 +1,150 @@
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import * as React from 'react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { PieChart, Pie, Label } from 'recharts';
+import { ChartContainer, ChartConfig, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { formatCurrency, formatPercent } from '@/lib/format';
 import { toPoStatusData } from '@/lib/calc';
-import { PrettyTooltip } from './pretty-tooltip';
+import { TrendingUp } from 'lucide-react';
 import type { PurchaseOrder } from '@saturation-api/js';
 
 interface PoChartProps {
   purchaseOrders: PurchaseOrder[];
 }
 
-// Define status colors using CSS variables
-const poStatusColors = {
-  Draft: '#94a3b8',  // Slate color for draft
-  Pending: '#fbbf24', // Amber for pending
-  Approved: '#34d399', // Emerald for approved  
-  Paid: '#a78bfa', // Violet for paid (matches primary theme)
-  Cancelled: '#f87171', // Red for cancelled
-};
+// Define chart config with colors
+const chartConfig = {
+  Paid: {
+    label: "Paid",
+    color: "var(--color-violet-500)",
+  },
+  Approved: {
+    label: "Approved",
+    color: "var(--color-blue-500)",
+  },
+  Waiting: {
+    label: "Waiting",
+    color: "var(--color-amber-500)",
+  },
+  Draft: {
+    label: "Draft",
+    color: "var(--color-gray-500)",
+  },
 
-function ChartCard({ title, description, children }: { title: string; description?: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <Card className="rounded-2xl shadow-sm border-muted bg-card">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base font-medium text-foreground/90">{title}</CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
-      </CardHeader>
-      <CardContent className="h-[320px] md:h-[360px]">{children}</CardContent>
-    </Card>
-  );
-}
+} satisfies ChartConfig;
 
 export function PoChart({ purchaseOrders }: PoChartProps) {
   // Transform data for the chart
   const chartData = toPoStatusData(purchaseOrders);
   
-  // Calculate total
+  // Calculate totals
   const total = purchaseOrders.reduce((sum, po) => sum + (po.amount || 0), 0);
+  const approvedAmount = purchaseOrders
+    .filter(po => po.status === 'approved')
+    .reduce((sum, po) => sum + (po.amount || 0), 0);
   const count = purchaseOrders.length;
   
-  // Add percentages and colors to data
-  const dataWithDetails = chartData.map((item, index) => ({
-    ...item,
-    percentage: total > 0 ? (item.value / total) * 100 : 0,
-    fill: poStatusColors[item.name as keyof typeof poStatusColors] || '#94a3b8'
-  }));
-  
-  // Custom label renderer
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const renderLabel = (props: any) => {
-    const entry = dataWithDetails.find(d => d.name === props.name);
-    if (!entry) return '';
-    return entry.percentage > 5 ? `${entry.percentage.toFixed(0)}%` : '';
-  };
+  // Transform data with proper labels and colors
+  const dataWithFill = chartData.map((item) => {
+    // Map to color based on status name
+    return {
+      ...item,
+      fill: `var(--color-${item.name})`,
+    };
+  });
 
   return (
-    <ChartCard
-      title="Purchase Orders by Status"
-      description={
-        <>Total POs: {count} • Total Value: {formatCurrency(total)}</>
-      }>
-
-      {chartData.length === 0 ? (
-        <div className="flex h-full items-center justify-center text-muted-foreground">
-          No purchase orders found
-        </div>
-      ) : (
-        <div className="h-full flex flex-col">
-          <ResponsiveContainer width="100%" height="75%">
+    <Card className="rounded-2xl shadow-sm border-muted bg-card">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base font-medium text-foreground/90">Purchase Orders</CardTitle>
+        <CardDescription>
+          Total POs: {count} • Total Value: {formatCurrency(total)}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {chartData.length === 0 ? (
+          <div className="flex h-[400px] items-center justify-center text-muted-foreground">
+            No purchase orders found
+          </div>
+        ) : (
+          <ChartContainer config={chartConfig} className="h-[400px] w-full">
             <PieChart>
-              <Tooltip content={<PrettyTooltip currencyFormat={true} />} />
-              <Pie
-                data={dataWithDetails}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={renderLabel}
-                innerRadius={52}
-                outerRadius={90}
-                paddingAngle={6}
-                dataKey="value"
-                animationBegin={0}
-                animationDuration={800}
-              >
-                {dataWithDetails.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={entry.fill}
+              <ChartTooltip
+                cursor={false}
+                content={
+                  <ChartTooltipContent 
+                    hideLabel
+                    formatter={(value) => formatCurrency(Number(value))}
                   />
-                ))}
-              </Pie>
-              <Legend verticalAlign="bottom" height={28} />
-            </PieChart>
-          </ResponsiveContainer>
-            
-          {/* Custom Legend */}
-          <div className="flex flex-wrap gap-3 justify-center pt-2">
-            {dataWithDetails.map((item) => (
-              <div key={item.name} className="flex items-center gap-1.5">
-                <div 
-                  className="h-2.5 w-2.5 rounded-sm" 
-                  style={{ backgroundColor: item.fill }}
+                }
+              />
+              <Pie
+                data={dataWithFill}
+                dataKey="value"
+                nameKey="name"
+                innerRadius={70}
+                outerRadius={120}
+                strokeWidth={2}
+                paddingAngle={2}
+              >
+                <Label
+                  content={({ viewBox }) => {
+                    if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                      return (
+                        <text
+                          x={viewBox.cx}
+                          y={viewBox.cy}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                        >
+                          <tspan
+                            x={viewBox.cx}
+                            y={viewBox.cy}
+                            className="fill-foreground text-2xl font-bold"
+                          >
+                            {formatCurrency(approvedAmount)}
+                          </tspan>
+                          <tspan
+                            x={viewBox.cx}
+                            y={(viewBox.cy || 0) + 24}
+                            className="fill-muted-foreground text-sm"
+                          >
+                            Approved
+                          </tspan>
+                        </text>
+                      );
+                    }
+                  }}
                 />
-                <span className="text-xs text-muted-foreground">
-                  {item.name}: {formatCurrency(item.value)} ({formatPercent(item.percentage)})
+              </Pie>
+            </PieChart>
+          </ChartContainer>
+        )}
+      </CardContent>
+      <CardFooter>
+        <div className="flex w-full flex-wrap gap-3 text-sm">
+          {/* Show all possible statuses */}
+          {Object.entries(chartConfig).map(([key, status]) => {
+            // Find the actual data for this status
+            const dataItem = dataWithFill.find(d => d.name === status.label);
+            const value = dataItem?.value || 0;
+            const percentage = total > 0 && dataItem ? (dataItem.value / total) * 100 : 0;
+            
+            return (
+              <div key={key} className="flex items-center gap-1.5">
+                <div 
+                  className="h-2.5 w-2.5 rounded-full" 
+                  style={{ backgroundColor: status.color }}
+                />
+                <span className="text-muted-foreground">
+                  {status.label}: {value > 0 ? `${formatCurrency(value)} (${formatPercent(percentage)})` : '—'}
                 </span>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
-      )}
-    </ChartCard>
+      </CardFooter>
+    </Card>
   );
 }
