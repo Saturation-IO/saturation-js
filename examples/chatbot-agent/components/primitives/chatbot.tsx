@@ -17,11 +17,13 @@ import {
   PromptInputActions,
   PromptInputTextarea,
 } from "@/components/prompt-kit/prompt-input"
+import { Tool } from "@/components/prompt-kit/tool"
+import type { ToolPart } from "@/components/prompt-kit/tool"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import type { UIMessage } from "ai"
+import type { UIDataTypes, UIMessage, UIMessagePart, UITools } from "ai"
 import {
   AlertTriangle,
   ArrowUp,
@@ -40,6 +42,15 @@ type MessageComponentProps = {
   isLastMessage: boolean
 }
 
+const renderToolPart = (
+  part: UIMessagePart<UIDataTypes, UITools>,
+  index: number
+): React.ReactNode => {
+  if (!part.type?.startsWith("tool-")) return null
+
+  return <Tool key={`${part.type}-${index}`} toolPart={part as ToolPart} />
+}
+
 export const MessageComponent = memo(
   ({ message, isLastMessage }: MessageComponentProps) => {
     const isAssistant = message.role === "assistant"
@@ -52,13 +63,21 @@ export const MessageComponent = memo(
         )}
       >
         {isAssistant ? (
-          <div className="group flex w-full flex-col gap-0">
+          <div className="group flex w-full flex-col gap-0 space-y-2">
+            <div className="w-full">
+              {message.parts
+                .filter(
+                  (part) => part.type && part.type.startsWith("tool-")
+                )
+                .map((part, index) => renderToolPart(part, index))}
+            </div>
             <MessageContent
               className="text-foreground prose w-full min-w-0 flex-1 rounded-lg bg-transparent p-0"
               markdown
             >
               {message.parts
-                .map((part) => (part.type === "text" ? part.text : null))
+                .filter((part) => part.type === "text")
+                .map((part) => part.text)
                 .join("")}
             </MessageContent>
             <MessageActions

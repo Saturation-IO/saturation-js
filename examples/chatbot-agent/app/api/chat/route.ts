@@ -1,6 +1,6 @@
 import { createOpenAI, openai } from "@ai-sdk/openai"
 import { convertToModelMessages, streamText, tool, UIMessage } from "ai"
-import { Saturation } from "@saturation-api/js"
+import { Project, Saturation } from "@saturation-api/js"
 import { z } from "zod"
 
 // Allow streaming responses up to 30 seconds
@@ -9,12 +9,12 @@ export const maxDuration = 30
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } =
     await req.json()
-  
+
+    console.log(JSON.stringify(messages, null, 2))
   // Accept key via env, header, or request body (in that order)
   const openAIKey = req.headers.get("x-openai-key")
   const saturationKey = req.headers.get("x-saturation-key")
-
-  console.log(openAIKey, saturationKey)
+  
   if (!openAIKey) {
     return new Response("OpenAI API key is required", { status: 400 })
   }
@@ -34,17 +34,14 @@ export async function POST(req: Request) {
     tools: {
       listProjects: tool({
         description: "List the user's projects from the Saturation API.",
-        inputSchema: z.object({
-          status: z
-            .enum(["active", "archived", "all"]) // 'all' treated as no filter
-            .optional()
-            .describe("Optional status filter: active | archived | all"),
+        inputSchema: z.object({         
         }),
         execute: async (input) => {          
-          try {
-            const { projects } = await saturation.listProjects()
-            return projects.map((p: any) => ({ id: p.id, name: p.name, status: p.status }))
+          try {            
+            const { projects } = await saturation.listProjects()            
+            return projects
           } catch (err: any) {
+            console.log(err)
             return { error: err?.message || "Failed to fetch projects" }
           }
         },
