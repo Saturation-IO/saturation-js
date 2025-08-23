@@ -89,9 +89,13 @@ export function ProjectSelector({ onProjectChange }: ProjectSelectorProps) {
         {projects.map((project) => (
           <SelectItem key={project.id} value={project.id}>
             {project.name}
-            {project.status && (
-              <span className="ml-2 text-xs text-gray-500">
-                ({project.status})
+            {project.labels && project.labels.length > 0 && (
+              <span className="ml-2 text-xs text-muted-foreground">
+                {project.labels.map(label => (
+                  <span key={label} className="inline-block px-1.5 py-0.5 bg-muted rounded mr-1">
+                    {label}
+                  </span>
+                ))}
               </span>
             )}
           </SelectItem>

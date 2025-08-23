@@ -64,11 +64,20 @@ export function calcKpis(
 export function toBudgetVsActuals(budget: Budget) {
   // Map each line directly since accountIds are unique
   return budget.account.lines
-    .map(line => ({
-      account: line.description || line.accountId || 'Uncategorized',
-      estimate: line.totals?.estimate || 0,
-      actual: line.totals?.actual || 0
-    }))
+    .map(line => {
+      // Format as "AccountId - Description"
+      const accountId = line.accountId || '';
+      const description = line.description || '';
+      const displayName = accountId && description 
+        ? `${accountId} - ${description}` 
+        : description || accountId || 'Uncategorized';
+      
+      return {
+        account: displayName,
+        estimate: line.totals?.estimate || 0,
+        actual: line.totals?.actual || 0
+      };
+    })
     .filter(item => item.estimate > 0 || item.actual > 0) // Only include lines with values
     .sort((a, b) => b.estimate - a.estimate); // Sort by estimate descending
 }
@@ -198,10 +207,11 @@ export function toTopVendors(actuals: Actual[], purchaseOrders: PurchaseOrder[],
 
 /**
  * Transform actuals into cashflow matrix
- * Groups by month and account for tabular display
+ * Groups by month and top-level account for tabular display
  */
 export function toCashflowMatrix(
-  actuals: Actual[]
+  actuals: Actual[],
+  budget: Budget
 ): {
   months: string[];
   accounts: string[];
@@ -213,54 +223,66 @@ export function toCashflowMatrix(
     }>;
   }>;
 } {
-  const accountDescriptions: Record<string, string> = {};
+  const topLevelDescriptions: Record<string, string> = {};
   
-  // Group actuals by month and account
+  // Build top-level account descriptions from budget
+  // Format as "AccountID - Description"
+  budget.account.lines.forEach(line => {
+    const pathParts = line.path.split('/').filter(p => p);
+    if (pathParts.length === 1) {
+      // This is a top-level account
+      const topLevelId = pathParts[0];
+      const accountId = line.accountId || topLevelId;
+      const description = line.description || '';
+      topLevelDescriptions[topLevelId] = `${accountId} - ${description}`;
+    }
+  });
+  
+  // Group actuals by month and top-level account
   const actualsByMonthAccount: Record<string, Record<string, number>> = {};
   
   actuals.forEach(actual => {
     const month = toMonthKey(actual.date);
     if (!month) return; // Skip if date is invalid
     
-    const accountId = actual.account?.accountId || 'Uncategorized';
-    // Store description if we haven't seen this account before
-    if (actual.account?.accountDescription) {
-      accountDescriptions[accountId] = actual.account.accountDescription;
-    }
+    // Get the top-level account from the path (first item split by '/')
+    const accountPath = actual.account?.path || '';
+    const pathParts = accountPath.split('/').filter(p => p); // Remove empty strings
+    const topLevelAccount = pathParts[0] || 'Uncategorized';
     
     if (!actualsByMonthAccount[month]) {
       actualsByMonthAccount[month] = {};
     }
     
-    actualsByMonthAccount[month][accountId] = 
-      (actualsByMonthAccount[month][accountId] || 0) + (actual.amount || 0);
+    actualsByMonthAccount[month][topLevelAccount] = 
+      (actualsByMonthAccount[month][topLevelAccount] || 0) + (actual.amount || 0);
   });
   
-  // Get all unique months and accounts
+  // Get all unique months and top-level accounts
   const allMonths = [...new Set(Object.keys(actualsByMonthAccount))].filter(month => month).sort();
   
-  const allAccountIds = [...new Set(
+  const allTopLevelAccounts = [...new Set(
     Object.values(actualsByMonthAccount).flatMap(Object.keys)
   )].sort();
   
   // Ensure "Uncategorized" appears last if it exists
-  const uncategorizedIndex = allAccountIds.indexOf('Uncategorized');
+  const uncategorizedIndex = allTopLevelAccounts.indexOf('Uncategorized');
   if (uncategorizedIndex > -1) {
-    allAccountIds.splice(uncategorizedIndex, 1);
-    allAccountIds.push('Uncategorized');
+    allTopLevelAccounts.splice(uncategorizedIndex, 1);
+    allTopLevelAccounts.push('Uncategorized');
   }
   
   // Build matrix data with display names
-  const data = allAccountIds.map(accountId => ({
-    account: accountDescriptions[accountId] || accountId, // Display description or fall back to ID
+  const data = allTopLevelAccounts.map(topLevel => ({
+    account: topLevelDescriptions[topLevel] || topLevel, // Display description or fall back to top-level key
     months: allMonths.map(month => ({
       month,
-      amount: actualsByMonthAccount[month]?.[accountId] || 0
+      amount: actualsByMonthAccount[month]?.[topLevel] || 0
     }))
   }));
   
-  // Return display names for accounts but keep IDs as keys internally
-  const displayAccounts = allAccountIds.map(id => accountDescriptions[id] || id);
+  // Return display names for accounts
+  const displayAccounts = allTopLevelAccounts.map(key => topLevelDescriptions[key] || key);
   
   return {
     months: allMonths,

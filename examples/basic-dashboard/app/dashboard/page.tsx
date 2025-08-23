@@ -170,7 +170,7 @@ export default function DashboardPage() {
               <VendorsChart actuals={actuals} purchaseOrders={purchaseOrders} />
             </div>
 
-            <CashflowTable actuals={actuals} />
+            {budget && <CashflowTable actuals={actuals} budget={budget} />}
           </div>
         )}
       </main>

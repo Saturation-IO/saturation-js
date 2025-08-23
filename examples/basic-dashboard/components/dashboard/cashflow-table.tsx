@@ -3,15 +3,16 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatFullCurrency, formatMonth } from '@/lib/format';
 import { toCashflowMatrix } from '@/lib/calc';
-import type { Actual } from '@saturation-api/js';
+import type { Actual, Budget } from '@saturation-api/js';
 
 interface CashflowTableProps {
   actuals: Actual[];
+  budget: Budget;
 }
 
-export function CashflowTable({ actuals }: CashflowTableProps) {
+export function CashflowTable({ actuals, budget }: CashflowTableProps) {
   // Generate cashflow matrix data
-  const cashflow = toCashflowMatrix(actuals);
+  const cashflow = toCashflowMatrix(actuals, budget);
 
   // Calculate totals for each month
   const monthTotals = cashflow.months.map(month => ({
@@ -56,7 +57,7 @@ export function CashflowTable({ actuals }: CashflowTableProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b">
-                <th className="text-left py-2 px-2 font-medium">Account</th>
+                <th className="text-left py-2 px-2 font-medium min-w-[200px]">Account</th>
                 {cashflow.months.map(month => (
                   <th key={month} className="text-right py-2 px-2 font-medium min-w-[100px]">
                     {formatMonth(month)}
@@ -71,8 +72,8 @@ export function CashflowTable({ actuals }: CashflowTableProps) {
               {cashflow.data.map((accountData, idx) => {
                 const accountTotal = accountTotals.find(a => a.account === accountData.account);
                 return (
-                  <tr key={idx} className="border-b hover:bg-gray-50">
-                    <td className="py-2 px-2 font-medium">
+                  <tr key={idx} className="border-b hover:bg-muted/50 transition-colors">
+                    <td className="py-2 px-2 font-medium whitespace-nowrap">
                       {accountData.account}
                     </td>
                     {accountData.months.map((monthData) => (
@@ -90,7 +91,7 @@ export function CashflowTable({ actuals }: CashflowTableProps) {
               })}
             </tbody>
             <tfoot>
-              <tr className="border-t-2 font-bold">
+              <tr className="border-t-2 font-bold bg-muted/30">
                 <td className="py-2 px-2">Total</td>
                 {monthTotals.map((monthTotal) => (
                   <td key={monthTotal.month} className="text-right py-2 px-2">
