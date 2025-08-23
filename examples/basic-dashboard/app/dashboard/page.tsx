@@ -8,7 +8,7 @@ import { KpiCards } from '@/components/dashboard/kpi-cards';
 import { BudgetChart } from '@/components/dashboard/budget-chart';
 import { SpendChart } from '@/components/dashboard/spend-chart';
 import { PoChart } from '@/components/dashboard/po-chart';
-import { VendorsChart } from '@/components/dashboard/vendors-chart';
+import { ContactsChart } from '@/components/dashboard/contacts-chart';
 import { CashflowTable } from '@/components/dashboard/cashflow-table';
 import { ThemeToggle } from '@/components/theme-toggle';
 import Image from 'next/image';
@@ -57,7 +57,7 @@ export default function DashboardPage() {
             expands: ['lines.phaseData', 'lines.contact'] 
           }),
           saturation.listActuals(selectedProject.id, {
-            expands: ['account']
+            expands: ['account', 'contact']
           }),
           saturation.listPurchaseOrders(selectedProject.id)
         ]);
@@ -167,7 +167,7 @@ export default function DashboardPage() {
                 budgetTotal={budget?.account?.totals?.estimate || 0}
               />
               <PoChart purchaseOrders={purchaseOrders} />
-              <VendorsChart actuals={actuals} purchaseOrders={purchaseOrders} />
+              <ContactsChart actuals={actuals} />
             </div>
 
             {budget && <CashflowTable actuals={actuals} budget={budget} />}

@@ -10,7 +10,7 @@ import type { Actual } from '@saturation-api/js';
 
 const chartConfig = {
   actual: {
-    label: "Actual Spend",
+    label: "Actual",
     color: "var(--primary)",
   },
   budget: {
@@ -100,7 +100,7 @@ export function SpendChart({ actuals, budgetTotal, maxDataPoints = 25 }: SpendCh
                 content={
                   <ChartTooltipContent 
                     formatter={(value, name) => {
-                      const label = name === 'actual' ? 'Actual Spend' : 'Estimate';
+                      const label = name === 'actual' ? 'Actual' : 'Estimate';
                       const colorClass = name === 'actual' ? 'bg-primary' : 'bg-muted-foreground/30';
                       return (
                         <div className="flex items-center gap-2">

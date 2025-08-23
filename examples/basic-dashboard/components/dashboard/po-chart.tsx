@@ -40,8 +40,8 @@ export function PoChart({ purchaseOrders }: PoChartProps) {
   
   // Calculate totals
   const total = purchaseOrders.reduce((sum, po) => sum + (po.amount || 0), 0);
-  const approvedAmount = purchaseOrders
-    .filter(po => po.status === 'approved')
+  const paidAmount = purchaseOrders
+    .filter(po => po.status === 'paid')
     .reduce((sum, po) => sum + (po.amount || 0), 0);
   const count = purchaseOrders.length;
   
@@ -74,8 +74,22 @@ export function PoChart({ purchaseOrders }: PoChartProps) {
                 cursor={false}
                 content={
                   <ChartTooltipContent 
-                    hideLabel
-                    formatter={(value) => formatCurrency(Number(value))}
+                    formatter={(value, name) => {
+                      // Find the color for this status
+                      const statusConfig = chartConfig[name as keyof typeof chartConfig];
+                      const color = statusConfig?.color || 'var(--color-muted)';
+                      
+                      return (
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-2.5 h-2.5 rounded-full" 
+                            style={{ backgroundColor: color }}
+                          />
+                          <span className="font-medium">{name}:</span>
+                          <span>{formatCurrency(Number(value))}</span>
+                        </div>
+                      );
+                    }}
                   />
                 }
               />
@@ -83,8 +97,8 @@ export function PoChart({ purchaseOrders }: PoChartProps) {
                 data={dataWithFill}
                 dataKey="value"
                 nameKey="name"
-                innerRadius={70}
-                outerRadius={120}
+                innerRadius={100}
+                outerRadius={140}
                 strokeWidth={2}
                 paddingAngle={2}
               >
@@ -103,14 +117,14 @@ export function PoChart({ purchaseOrders }: PoChartProps) {
                             y={viewBox.cy}
                             className="fill-foreground text-2xl font-bold"
                           >
-                            {formatCurrency(approvedAmount)}
+                            {formatCurrency(paidAmount)}
                           </tspan>
                           <tspan
                             x={viewBox.cx}
                             y={(viewBox.cy || 0) + 24}
                             className="fill-muted-foreground text-sm"
                           >
-                            Approved
+                            Paid
                           </tspan>
                         </text>
                       );

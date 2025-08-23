@@ -28,7 +28,6 @@ export function calcKpis(
   actuals: Actual[],
   purchaseOrders: PurchaseOrder[]
 ): KPIMetrics {
-  console.log(JSON.stringify(budget?.account?.totals, null, 2));
   // Get total budget from the account totals (estimate phase)
   const totalBudget = budget?.account?.totals?.estimate || 0;
 
@@ -173,7 +172,7 @@ export function toPoStatusData(purchaseOrders: PurchaseOrder[]) {
     }
     
     // Merge all waiting/pending statuses into "Waiting"
-    let groupedStatus = status;
+    let groupedStatus: string = status;
     if (status.toLowerCase() === 'pending' || 
         status.toLowerCase() === 'waiting' || 
         status.toLowerCase() === 'waitingapproval' ||
@@ -192,32 +191,35 @@ export function toPoStatusData(purchaseOrders: PurchaseOrder[]) {
 }
 
 /**
- * Calculate top vendors from actuals and POs
+ * Calculate top contacts from actuals only
  */
-export function toTopVendors(actuals: Actual[], purchaseOrders: PurchaseOrder[], limit = 10) {
-  const vendorTotals: Record<string, number> = {};
+export function toTopContacts(actuals: Actual[], limit = 10) {
+  const contactTotals: Record<string, { name: string; amount: number }> = {};
 
-  // Sum actuals by contact/vendor
+  // Sum actuals by contact ID
   actuals.forEach(actual => {
-    if (actual.contact?.name) {
-      vendorTotals[actual.contact.name] = (vendorTotals[actual.contact.name] || 0) + (actual.amount || 0);
+    if (actual.contact?.id && actual.contact?.name) {
+      const contactId = actual.contact.id;
+      if (!contactTotals[contactId]) {
+        contactTotals[contactId] = {
+          name: actual.contact.name,
+          amount: 0
+        };
+      }
+      contactTotals[contactId].amount += (actual.amount || 0);
     }
   });
-
-  // Sum POs by contact/vendor
-  purchaseOrders.forEach(po => {
-    if (po.contact?.name) {
-      vendorTotals[po.contact.name] = (vendorTotals[po.contact.name] || 0) + (po.amount || 0);
-    }
-  });
-
+  
   // Convert to array and sort by total descending
-  const vendors = Object.entries(vendorTotals)
-    .map(([name, total]) => ({ name, total }))
-    .sort((a, b) => b.total - a.total)
+  const contacts = Object.values(contactTotals)
+    .map(({ name, amount }) => ({ 
+      contact: name, 
+      amount 
+    }))
+    .sort((a, b) => b.amount - a.amount)
     .slice(0, limit);
 
-  return vendors;
+  return contacts;
 }
 
 /**
