@@ -11,6 +11,7 @@ import { PoChart } from '@/components/dashboard/po-chart';
 import { VendorsChart } from '@/components/dashboard/vendors-chart';
 import { CashflowTable } from '@/components/dashboard/cashflow-table';
 import { ThemeToggle } from '@/components/theme-toggle';
+import Image from 'next/image';
 import type { Project, Budget, Actual, PurchaseOrder } from '@saturation-api/js';
 
 export default function DashboardPage() {
@@ -99,14 +100,25 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-card border-b">
+      <header className="bg-background border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Saturation Dashboard</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Real-time project financial insights
-              </p>
+            <div className="flex items-center gap-3">
+              <Image 
+                src="/favicon.svg" 
+                alt="Saturation Logo" 
+                width={48} 
+                height={48}
+                className="flex-shrink-0"
+              />
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">
+                  {selectedProject ? selectedProject.name : 'Saturation Dashboard'}
+                </h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Demo dashboard built with Saturation SDK • <a href="https://docs.saturation.io" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground transition-colors">View API docs</a>
+                </p>
+              </div>
             </div>
             <div className="flex items-center gap-4">
               <ProjectSelector onProjectChange={setSelectedProject} />

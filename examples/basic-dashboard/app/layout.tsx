@@ -16,6 +16,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Saturation Dashboard",
   description: "Dashboard application using the Saturation API SDK",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
