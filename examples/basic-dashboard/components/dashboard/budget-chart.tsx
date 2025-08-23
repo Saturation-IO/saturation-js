@@ -105,16 +105,20 @@ export function BudgetChart({ budget }: BudgetChartProps) {
     item.account !== ''
   );
   
+  // Sort by actual spending (highest to lowest)
+  const sortedData = filteredData.sort((a, b) => b.actual - a.actual);
+  
   // Prepare data with background (actual) and foreground (estimate) for each account
   // Remove the slice limit to show all accounts
-  const chartData = filteredData.map(item => ({
+  const chartData = sortedData.map(item => ({
     account: item.account,
-    // Actual bar is always the background (purple) - ensure minimum width
+    // Actual bar is always the background - ensure minimum width
     background: Math.max(item.actual, 5000), // increased minimum for better visibility
     // Estimate bar is always the foreground (gray) on top
     foreground: item.estimate,
     actual: item.actual,
     estimate: item.estimate,
+    isOverBudget: item.actual > item.estimate, // Track if over budget
     displayValue: `${formatCurrency(item.actual)} / ${formatCurrency(item.estimate)}`,
   }));
 
@@ -186,7 +190,10 @@ export function BudgetChart({ budget }: BudgetChartProps) {
                         <div className="flex flex-col gap-1.5">
                           <div className="font-medium text-sm">{data.account}</div>
                           <div className="flex items-center gap-2">
-                            <div className="h-2 w-2 rounded-sm bg-primary" />
+                            <div 
+                              className="h-2 w-2 rounded-sm" 
+                              style={{ backgroundColor: data.isOverBudget ? "hsl(346, 77%, 50%)" : "var(--primary)" }}
+                            />
                             <span className="flex justify-between gap-4 flex-1">
                               <span>Actual:</span>
                               <span className="font-mono font-medium">{formatCurrency(data.actual)}</span>
@@ -205,7 +212,7 @@ export function BudgetChart({ budget }: BudgetChartProps) {
                   />
                 }
               />
-              {/* Background bar - Always actual (purple) */}
+              {/* Background bar - Always actual (purple or rose if over budget) */}
               <Bar
                 dataKey="background"
                 radius={4}
@@ -213,7 +220,7 @@ export function BudgetChart({ budget }: BudgetChartProps) {
                 {chartData.map((entry, index) => (
                   <Cell
                     key={`bg-${index}`}
-                    fill="var(--color-actual)"
+                    fill={entry.isOverBudget ? "hsl(346, 77%, 50%)" : "var(--color-actual)"}
                   />
                 ))}
               </Bar>
