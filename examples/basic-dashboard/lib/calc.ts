@@ -22,14 +22,16 @@ export interface KPIMetrics {
  * @param budget - The project budget data
  * @param actuals - List of actual expenses
  * @param purchaseOrders - List of purchase orders
+ * @param phaseAlias - The phase alias to use for budget totals
  */
 export function calcKpis(
   budget: Budget | null,
   actuals: Actual[],
-  purchaseOrders: PurchaseOrder[]
+  purchaseOrders: PurchaseOrder[],
+  phaseAlias: string = 'estimate'
 ): KPIMetrics {
-  // Get total budget from the account totals (estimate phase)
-  const totalBudget = budget?.account?.totals?.estimate || 0;
+  // Get total budget from the account totals for the selected phase
+  const totalBudget = budget?.account?.totals?.[phaseAlias] || 0;
 
   // Sum all actuals
   const totalActuals = actuals.reduce((sum, actual) => sum + (actual.amount || 0), 0);
@@ -59,8 +61,10 @@ export function calcKpis(
 /**
  * Transform data for Budget vs Actuals by Account chart
  * Uses the totals from budget lines (both estimate and actual)
+ * @param budget - The project budget data
+ * @param phaseAlias - The phase alias to use for budget totals
  */
-export function toBudgetVsActuals(budget: Budget) {
+export function toBudgetVsActuals(budget: Budget, phaseAlias: string = 'estimate') {
   // Map each line directly since accountIds are unique
   return budget.account.lines
     .map(line => {
@@ -73,7 +77,7 @@ export function toBudgetVsActuals(budget: Budget) {
       
       return {
         account: displayName,
-        estimate: line.totals?.estimate || 0,
+        estimate: line.totals?.[phaseAlias] || 0,
         actual: line.totals?.actual || 0
       };
     })
@@ -84,7 +88,7 @@ export function toBudgetVsActuals(budget: Budget) {
 /**
  * Transform actuals into cumulative spend time series
  * @param actuals - List of actual expenses
- * @param budgetTotal - Total budget amount
+ * @param budgetTotal - Total budget amount for the selected phase
  * @param maxDataPoints - Maximum number of data points to show (default: 20)
  */
 export function toSpendSeries(actuals: Actual[], budgetTotal: number, maxDataPoints: number = 20) {

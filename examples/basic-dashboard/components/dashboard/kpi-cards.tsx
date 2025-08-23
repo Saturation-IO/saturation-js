@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
 import { formatCurrency, formatPercent } from '@/lib/format';
 import { calcKpis } from '@/lib/calc';
 import { PhaseSelector } from './phase-selector';
-import type { Budget, Actual, PurchaseOrder, Phase } from '@saturation-api/js';
+import { usePhase } from '@/contexts/PhaseContext';
+import type { Budget, Actual, PurchaseOrder } from '@saturation-api/js';
 
 interface KpiCardsProps {
   budget: Budget | null;
@@ -16,16 +16,16 @@ interface KpiCardsProps {
 }
 
 export function KpiCards({ budget, actuals, purchaseOrders, projectId }: KpiCardsProps) {
-  const [selectedPhase, setSelectedPhase] = useState<Phase | null>(null);
+  const { selectedPhase } = usePhase();
   
-  // Calculate all KPIs using the utility function
-  const kpis = calcKpis(budget, actuals, purchaseOrders);
+  // Calculate all KPIs using the utility function with selected phase
+  const kpis = calcKpis(budget, actuals, purchaseOrders, selectedPhase.alias);
 
   const cards = [
     {
       title: 'Total Estimate',
       value: formatCurrency(kpis.totalBudget),
-      description: 'Estimate phase',
+      description: selectedPhase.name,
       icon: null,
       iconColor: '',
     },
@@ -56,7 +56,7 @@ export function KpiCards({ budget, actuals, purchaseOrders, projectId }: KpiCard
     <div className="space-y-4">
       {/* Phase selector on the left */}
       <div className="flex justify-start">
-        <PhaseSelector projectId={projectId} onPhaseChange={setSelectedPhase} />
+        <PhaseSelector projectId={projectId} />
       </div>
       
       {/* KPI Cards */}

@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/chart';
 import { formatCurrency } from '@/lib/format';
 import { toBudgetVsActuals } from '@/lib/calc';
+import { usePhase } from '@/contexts/PhaseContext';
 import type { Budget } from '@saturation-api/js';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 
@@ -19,7 +20,7 @@ interface BudgetChartProps {
 
 const chartConfig = {
   estimate: {
-    label: "Estimate",
+    label: "Phase",
     color: "var(--muted-foreground)",
   },
   actual: {
@@ -74,12 +75,14 @@ const CustomYAxisTick = (props: any) => {
 };
 
 export function BudgetChart({ budget }: BudgetChartProps) {
+  const { selectedPhase } = usePhase();
+  
   // Return early if no budget
   if (!budget) {
     return (
       <Card className="rounded-2xl shadow-sm border-muted bg-card">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-medium text-foreground/90">Actuals vs Estimate</CardTitle>
+          <CardTitle className="text-base font-medium text-foreground/90">Actuals vs {selectedPhase.name}</CardTitle>
           <CardDescription>No budget data available</CardDescription>
         </CardHeader>
         <CardContent className="h-[320px] md:h-[360px] flex items-center justify-center text-muted-foreground">
@@ -89,8 +92,8 @@ export function BudgetChart({ budget }: BudgetChartProps) {
     );
   }
 
-  // Transform data for the chart
-  const rawData = toBudgetVsActuals(budget);
+  // Transform data for the chart with selected phase
+  const rawData = toBudgetVsActuals(budget, selectedPhase.alias);
 
   // Calculate totals for the footer
   const totalEstimate = rawData.reduce((sum, item) => sum + item.estimate, 0);
@@ -126,7 +129,7 @@ export function BudgetChart({ budget }: BudgetChartProps) {
     return (
       <Card className="rounded-2xl shadow-sm border-muted bg-card">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-medium text-foreground/90">Actuals vs Estimate</CardTitle>
+          <CardTitle className="text-base font-medium text-foreground/90">Actuals vs {selectedPhase.name}</CardTitle>
           <CardDescription>No data available</CardDescription>
         </CardHeader>
         <CardContent className="h-[320px] md:h-[360px] flex items-center justify-center text-muted-foreground">
@@ -139,7 +142,7 @@ export function BudgetChart({ budget }: BudgetChartProps) {
   return (
     <Card className="rounded-2xl shadow-sm border-muted bg-card">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-medium text-foreground/90">Actuals vs Estimate</CardTitle>
+        <CardTitle className="text-base font-medium text-foreground/90">Actuals vs {selectedPhase?.name || 'Estimate'}</CardTitle>
         <CardDescription>Comparing budgeted amounts to actual spending by account</CardDescription>
       </CardHeader>
       <CardContent>
@@ -202,7 +205,7 @@ export function BudgetChart({ budget }: BudgetChartProps) {
                           <div className="flex items-center gap-2">
                             <div className="h-2 w-2 rounded-sm bg-muted-foreground opacity-60" />
                             <span className="flex justify-between gap-4 flex-1">
-                              <span>Estimate:</span>
+                              <span>Phase:</span>
                               <span className="font-mono font-medium">{formatCurrency(data.estimate)}</span>
                             </span>
                           </div>
@@ -270,24 +273,24 @@ export function BudgetChart({ budget }: BudgetChartProps) {
           </span>
           <span className="flex items-center gap-1.5">
             <div className="h-2 w-2 rounded-sm bg-muted-foreground opacity-30" />
-            Estimate
+            {selectedPhase.name}
           </span>
         </div>
         <div className="flex gap-2 leading-none font-medium">
           {variance >= 0 ? (
             <>
-              Under estimate by {formatCurrency(Math.abs(variance))} ({Math.abs(variancePercent).toFixed(1)}%)
+              Under {selectedPhase.name.toLowerCase()} by {formatCurrency(Math.abs(variance))} ({Math.abs(variancePercent).toFixed(1)}%)
               <TrendingDown className="h-4 w-4 text-green-600" />
             </>
           ) : (
             <>
-              Over estimate by {formatCurrency(Math.abs(variance))} ({Math.abs(variancePercent).toFixed(1)}%)
+              Over {selectedPhase.name.toLowerCase()} by {formatCurrency(Math.abs(variance))} ({Math.abs(variancePercent).toFixed(1)}%)
               <TrendingUp className="h-4 w-4 text-red-600" />
             </>
           )}
         </div>
         <div className="text-muted-foreground leading-none text-xs">
-          Total Estimate: {formatCurrency(totalEstimate)} • Total Actual: {formatCurrency(totalActual)}
+          Total {selectedPhase.name}: {formatCurrency(totalEstimate)} • Total Actual: {formatCurrency(totalActual)}
         </div>
       </CardFooter>
     </Card>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSaturation } from '@/contexts/SaturationContext';
+import { usePhase } from '@/contexts/PhaseContext';
 import { Phase } from '@saturation-api/js';
 import {
   Select,
@@ -13,11 +14,11 @@ import {
 
 interface PhaseSelectorProps {
   projectId: string | null;
-  onPhaseChange: (phase: Phase | null) => void;
 }
 
-export function PhaseSelector({ projectId, onPhaseChange }: PhaseSelectorProps) {
+export function PhaseSelector({ projectId }: PhaseSelectorProps) {
   const saturation = useSaturation();
+  const { setSelectedPhase } = usePhase();
   const [phases, setPhases] = useState<Phase[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedPhaseAlias, setSelectedPhaseAlias] = useState<string>('estimate');
@@ -25,6 +26,13 @@ export function PhaseSelector({ projectId, onPhaseChange }: PhaseSelectorProps) 
   useEffect(() => {
     if (!projectId) {
       setPhases([]);
+      // Set default phase when no project
+      setSelectedPhase({ 
+        id: 'estimate',
+        alias: 'estimate', 
+        name: 'Estimate',
+        type: 'estimate'
+      } as Phase);
       return;
     }
 
@@ -41,27 +49,44 @@ export function PhaseSelector({ projectId, onPhaseChange }: PhaseSelectorProps) 
         const estimatePhase = estimatePhases.find(p => p.alias === 'estimate' || p.id === 'estimate');
         if (estimatePhase) {
           setSelectedPhaseAlias(estimatePhase.alias);
-          onPhaseChange(estimatePhase);
+          setSelectedPhase(estimatePhase);
         } else if (estimatePhases.length > 0) {
           // Fallback to first phase if no "estimate" phase found
           setSelectedPhaseAlias(estimatePhases[0].alias);
-          onPhaseChange(estimatePhases[0]);
+          setSelectedPhase(estimatePhases[0]);
+        } else {
+          // No phases available, use default
+          setSelectedPhase({ 
+            id: 'estimate',
+            alias: 'estimate', 
+            name: 'Estimate',
+            type: 'estimate'
+          } as Phase);
         }
       } catch (err) {
         console.error('Error fetching phases:', err);
         setPhases([]);
+        // Set default phase on error
+        setSelectedPhase({ 
+          id: 'estimate',
+          alias: 'estimate', 
+          name: 'Estimate',
+          type: 'estimate'
+        } as Phase);
       } finally {
         setLoading(false);
       }
     };
 
     fetchPhases();
-  }, [projectId, saturation]);
+  }, [projectId, saturation, setSelectedPhase]);
 
   const handlePhaseChange = (phaseAlias: string) => {
     setSelectedPhaseAlias(phaseAlias);
     const phase = phases.find(p => p.alias === phaseAlias);
-    onPhaseChange(phase || null);
+    if (phase) {
+      setSelectedPhase(phase);
+    }
   };
 
   if (!projectId || phases.length === 0) {

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSaturation } from '@/contexts/SaturationContext';
+import { PhaseProvider } from '@/contexts/PhaseContext';
 import { ProjectSelector } from '@/components/dashboard/project-selector';
 import { KpiCards } from '@/components/dashboard/kpi-cards';
 import { BudgetChart } from '@/components/dashboard/budget-chart';
@@ -99,7 +100,8 @@ export default function DashboardPage() {
   }, [selectedProject, saturation]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <PhaseProvider>
+      <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-background border-b">
         <div className="container mx-auto px-4 py-4">
@@ -166,7 +168,7 @@ export default function DashboardPage() {
               <BudgetChart budget={budget} />
               <SpendChart 
                 actuals={actuals} 
-                budgetTotal={budget?.account?.totals?.estimate || 0}
+                budget={budget}
               />
               <PoChart purchaseOrders={purchaseOrders} />
               <ContactsChart actuals={actuals} />
@@ -177,5 +179,6 @@ export default function DashboardPage() {
         )}
       </main>
     </div>
+    </PhaseProvider>
   );
 }

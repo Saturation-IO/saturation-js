@@ -5,8 +5,9 @@ import { XAxis, YAxis, CartesianGrid, Area, AreaChart } from 'recharts';
 import { ChartContainer, ChartConfig, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { formatCurrency, formatPercent } from '@/lib/format';
 import { toSpendSeries } from '@/lib/calc';
+import { usePhase } from '@/contexts/PhaseContext';
 import { TrendingUp, TrendingDown } from 'lucide-react';
-import type { Actual } from '@saturation-api/js';
+import type { Actual, Budget } from '@saturation-api/js';
 
 const chartConfig = {
   actual: {
@@ -14,19 +15,24 @@ const chartConfig = {
     color: "var(--primary)",
   },
   budget: {
-    label: "Estimate",
+    label: "Phase",
     color: "var(--muted-foreground)",
   },
 } satisfies ChartConfig;
 
 interface SpendChartProps {
   actuals: Actual[];
-  budgetTotal: number;
+  budget: Budget | null;
   maxDataPoints?: number;
 }
 
 
-export function SpendChart({ actuals, budgetTotal, maxDataPoints = 25 }: SpendChartProps) {
+export function SpendChart({ actuals, budget, maxDataPoints = 25 }: SpendChartProps) {
+  const { selectedPhase } = usePhase();
+  
+  // Get budget total for selected phase
+  const budgetTotal = budget?.account?.totals?.[selectedPhase.alias] || 0;
+  
   // Transform data for the chart with smoothing
   const chartData = toSpendSeries(actuals, budgetTotal, maxDataPoints);
   
@@ -50,7 +56,7 @@ export function SpendChart({ actuals, budgetTotal, maxDataPoints = 25 }: SpendCh
           <div>
             <CardTitle className="text-base font-medium text-foreground/90">Spend Over Time</CardTitle>
             <CardDescription>
-              Tracking actual spending against {formatCurrency(budgetTotal)} estimate
+              Tracking actual spending against {formatCurrency(budgetTotal)} {selectedPhase.name.toLowerCase()}
             </CardDescription>
           </div>
           <div className="flex items-center gap-4 text-sm">
@@ -60,7 +66,7 @@ export function SpendChart({ actuals, budgetTotal, maxDataPoints = 25 }: SpendCh
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-full bg-muted-foreground/30" />
-              <span className="text-muted-foreground">Estimate</span>
+              <span className="text-muted-foreground">{selectedPhase.name}</span>
             </div>
           </div>
         </div>
@@ -100,7 +106,7 @@ export function SpendChart({ actuals, budgetTotal, maxDataPoints = 25 }: SpendCh
                 content={
                   <ChartTooltipContent 
                     formatter={(value, name) => {
-                      const label = name === 'actual' ? 'Actual' : 'Estimate';
+                      const label = name === 'actual' ? 'Actual' : selectedPhase.name;
                       const colorClass = name === 'actual' ? 'bg-primary' : 'bg-muted-foreground/30';
                       return (
                         <div className="flex items-center gap-2">
@@ -152,18 +158,18 @@ export function SpendChart({ actuals, budgetTotal, maxDataPoints = 25 }: SpendCh
               <div className="flex items-center gap-2 leading-none font-medium">
                 {remaining >= 0 ? (
                   <>
-                    {formatCurrency(Math.abs(remaining))} under estimate
+                    {formatCurrency(Math.abs(remaining))} under {selectedPhase.name}
                     <TrendingDown className="h-4 w-4 text-green-600" />
                   </>
                 ) : (
                   <>
-                    {formatCurrency(Math.abs(remaining))} over estimate
+                    {formatCurrency(Math.abs(remaining))} over {selectedPhase.name}
                     <TrendingUp className="h-4 w-4 text-red-600" />
                   </>
                 )}
               </div>
               <div className="text-muted-foreground flex items-center gap-2 leading-none">
-                {formatPercent(spendPercent)} of estimate utilized
+                {formatPercent(spendPercent)} of {selectedPhase.name} utilized
                 {trendPercent !== 0 && (
                   <span className="text-xs">
                     ({trendPercent > 0 ? '+' : ''}{trendPercent.toFixed(1)}% recent change)
