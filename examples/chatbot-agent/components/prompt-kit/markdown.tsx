@@ -55,10 +55,10 @@ const INITIAL_COMPONENTS: Partial<Components> = {
   pre: function PreComponent({ children }) {
     return <>{children}</>
   },
-  hr: function HrComponent(props) {
-    return <hr className={cn("my-3 border-border/70", (props as any).className)} {...props} />
+  hr: function HrComponent({ className, ...props }: React.HTMLProps<HTMLHRElement>) {
+    return <hr className={cn("my-3 border-border/70", className)} {...props} />
   },
-  p: function P({ className, children, ...props }) {
+  p: function P({ className, children, ...props }: React.HTMLProps<HTMLParagraphElement>) {
     return (
       <p
         className={cn(
@@ -66,59 +66,59 @@ const INITIAL_COMPONENTS: Partial<Components> = {
           "my-2 first:mt-0 last:mb-0",
           className
         )}
-        {...(props as any)}
+        {...props}
       >
         {children}
       </p>
     )
   },
-  h1: function H1({ className, children, ...props }) {
+  h1: function H1({ className, children, ...props }: React.HTMLProps<HTMLHeadingElement>) {
     return (
       <h1
         className={cn(
           "mt-4 mb-2 text-2xl md:text-3xl font-semibold leading-tight",
           className
         )}
-        {...(props as any)}
+        {...props}
       >
         {children}
       </h1>
     )
   },
-  h2: function H2({ className, children, ...props }) {
+  h2: function H2({ className, children, ...props }: React.HTMLProps<HTMLHeadingElement>) {
     return (
       <h2
         className={cn(
           "mt-4 mb-2 text-xl md:text-2xl font-semibold leading-tight",
           className
         )}
-        {...(props as any)}
+        {...props}
       >
         {children}
       </h2>
     )
   },
-  h3: function H3({ className, children, ...props }) {
+  h3: function H3({ className, children, ...props }: React.HTMLProps<HTMLHeadingElement>) {
     return (
       <h3
         className={cn(
           "mt-3 mb-1.5 text-lg md:text-xl font-semibold leading-tight",
           className
         )}
-        {...(props as any)}
+        {...props}
       >
         {children}
       </h3>
     )
   },
-  h4: function H4({ className, children, ...props }) {
+  h4: function H4({ className, children, ...props }: React.HTMLProps<HTMLHeadingElement>) {
     return (
       <h4
         className={cn(
           "mt-3 mb-1 text-base md:text-lg font-semibold leading-tight",
           className
         )}
-        {...(props as any)}
+        {...props}
       >
         {children}
       </h4>

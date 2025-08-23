@@ -1,6 +1,6 @@
-import { createOpenAI, openai } from "@ai-sdk/openai"
+import { createOpenAI } from "@ai-sdk/openai"
 import { convertToModelMessages, streamText, tool, UIMessage } from "ai"
-import { Project, Saturation } from "@saturation-api/js"
+import { Saturation } from "@saturation-api/js"
 import { z } from "zod"
 
 // Allow streaming responses up to 30 seconds
@@ -35,13 +35,14 @@ export async function POST(req: Request) {
         description: "List the user's projects from the Saturation API.",
         inputSchema: z.object({         
         }),
-        execute: async (input) => {          
+        execute: async () => {          
           try {            
             const { projects } = await saturation.listProjects()            
             return projects
-          } catch (err: any) {
+          } catch (err) {
             console.log(err)
-            return { error: err?.message || "Failed to fetch projects" }
+            const errorMessage = err instanceof Error ? err.message : "Failed to fetch projects"
+            return { error: errorMessage }
           }
         },
       }),
