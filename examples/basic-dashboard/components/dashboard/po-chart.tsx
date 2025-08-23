@@ -78,7 +78,7 @@ export function PoChart({ purchaseOrders }: PoChartProps) {
                       // Find the color for this status
                       const statusConfig = chartConfig[name as keyof typeof chartConfig];
                       const color = statusConfig?.color || 'var(--color-muted)';
-                      
+                                   
                       return (
                         <div className="flex items-center gap-2">
                           <div 
