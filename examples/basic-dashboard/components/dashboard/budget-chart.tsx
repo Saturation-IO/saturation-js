@@ -30,11 +30,8 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 // Custom Y-axis tick component with better line spacing
-const CustomYAxisTick = (props: {
-  x: number;
-  y: number;
-  payload: { value: string };
-}) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const CustomYAxisTick = (props: any) => {
   const { x, y, payload } = props;
   
   // Ensure payload.value is a string
@@ -180,7 +177,7 @@ export function BudgetChart({ budget }: BudgetChartProps) {
                 tickMargin={8}
                 axisLine={false}
                 width={140}
-                tick={<CustomYAxisTick />}
+                tick={CustomYAxisTick}
               />
               <XAxis type="number" hide />
               <ChartTooltip
@@ -188,7 +185,8 @@ export function BudgetChart({ budget }: BudgetChartProps) {
                 content={
                   <ChartTooltipContent 
                     hideLabel
-                    formatter={(value, name, item) => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    formatter={(value: any, name: any, item: any) => {
                       const data = item.payload;
                       // Only show the tooltip for the first bar to avoid duplication
                       if (name === 'foreground') return null;
@@ -248,13 +246,8 @@ export function BudgetChart({ budget }: BudgetChartProps) {
                   position="right"
                   offset={8}
                   fontSize={10}
-                  content={(props: {
-                    x: number;
-                    y: number;
-                    width: number;
-                    height: number;
-                    value: string;
-                  }) => {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  content={(props: any) => {
                     const { x, y, width, height, value } = props;
                     return (
                       <text

@@ -105,7 +105,8 @@ export function SpendChart({ actuals, budget, maxDataPoints = 25 }: SpendChartPr
                 cursor={false}
                 content={
                   <ChartTooltipContent 
-                    formatter={(value, name) => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    formatter={(value: any, name: any) => {
                       const label = name === 'actual' ? 'Actual' : selectedPhase.name;
                       const colorClass = name === 'actual' ? 'bg-primary' : 'bg-muted-foreground/30';
                       return (

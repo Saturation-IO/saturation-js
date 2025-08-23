@@ -4,7 +4,7 @@
  */
 
 import { formatMonth, toMonthKey } from './format';
-import type { Budget, BudgetLine, BudgetLineItem, Actual, PurchaseOrder } from '@saturation-api/js';
+import type { Budget, Actual, PurchaseOrder } from '@saturation-api/js';
 
 /**
  * KPI Metrics type

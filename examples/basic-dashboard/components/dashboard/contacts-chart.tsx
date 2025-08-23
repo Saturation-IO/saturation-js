@@ -83,7 +83,8 @@ export function ContactsChart({ actuals }: ContactsChartProps) {
                   cursor={false}
                   content={
                     <ChartTooltipContent 
-                      formatter={(value) => formatCurrency(Number(value))}
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      formatter={(value: any) => formatCurrency(Number(value))}
                     />
                   }
                 />

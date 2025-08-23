@@ -28,11 +28,9 @@ export function PhaseSelector({ projectId }: PhaseSelectorProps) {
       setPhases([]);
       // Set default phase when no project
       setSelectedPhase({ 
-        id: 'estimate',
         alias: 'estimate', 
-        name: 'Estimate',
-        type: 'estimate'
-      } as Phase);
+        name: 'Estimate'
+      });
       return;
     }
 
@@ -49,30 +47,33 @@ export function PhaseSelector({ projectId }: PhaseSelectorProps) {
         const estimatePhase = estimatePhases.find(p => p.alias === 'estimate' || p.id === 'estimate');
         if (estimatePhase) {
           setSelectedPhaseAlias(estimatePhase.alias);
-          setSelectedPhase(estimatePhase);
+          setSelectedPhase({
+            alias: estimatePhase.alias,
+            name: estimatePhase.name || estimatePhase.alias
+          });
         } else if (estimatePhases.length > 0) {
           // Fallback to first phase if no "estimate" phase found
-          setSelectedPhaseAlias(estimatePhases[0].alias);
-          setSelectedPhase(estimatePhases[0]);
+          const firstPhase = estimatePhases[0];
+          setSelectedPhaseAlias(firstPhase.alias);
+          setSelectedPhase({
+            alias: firstPhase.alias,
+            name: firstPhase.name || firstPhase.alias
+          });
         } else {
           // No phases available, use default
           setSelectedPhase({ 
-            id: 'estimate',
             alias: 'estimate', 
-            name: 'Estimate',
-            type: 'estimate'
-          } as Phase);
+            name: 'Estimate'
+          });
         }
       } catch (err) {
         console.error('Error fetching phases:', err);
         setPhases([]);
         // Set default phase on error
         setSelectedPhase({ 
-          id: 'estimate',
           alias: 'estimate', 
-          name: 'Estimate',
-          type: 'estimate'
-        } as Phase);
+          name: 'Estimate'
+        });
       } finally {
         setLoading(false);
       }
@@ -85,7 +86,10 @@ export function PhaseSelector({ projectId }: PhaseSelectorProps) {
     setSelectedPhaseAlias(phaseAlias);
     const phase = phases.find(p => p.alias === phaseAlias);
     if (phase) {
-      setSelectedPhase(phase);
+      setSelectedPhase({
+        alias: phase.alias,
+        name: phase.name || phase.alias
+      });
     }
   };
 

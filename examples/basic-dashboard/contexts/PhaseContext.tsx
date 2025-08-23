@@ -1,23 +1,26 @@
 'use client';
 
 import { createContext, useContext, useState, ReactNode } from 'react';
-import type { Phase } from '@saturation-api/js';
+
+// Simple UI-friendly phase object
+interface SelectedPhase {
+  alias: string;
+  name: string;
+}
 
 interface PhaseContextType {
-  selectedPhase: Phase;
-  setSelectedPhase: (phase: Phase) => void;
+  selectedPhase: SelectedPhase;
+  setSelectedPhase: (phase: SelectedPhase) => void;
 }
 
 const PhaseContext = createContext<PhaseContextType | undefined>(undefined);
 
 export function PhaseProvider({ children }: { children: ReactNode }) {
   // Initialize with default estimate phase
-  const [selectedPhase, setSelectedPhase] = useState<Phase>({
-    id: 'estimate',
+  const [selectedPhase, setSelectedPhase] = useState<SelectedPhase>({
     alias: 'estimate',
-    name: 'Estimate',
-    type: 'estimate'
-  } as Phase);
+    name: 'Estimate'
+  });
 
   return (
     <PhaseContext.Provider value={{ selectedPhase, setSelectedPhase }}>

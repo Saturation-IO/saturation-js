@@ -73,7 +73,8 @@ export function PoChart({ purchaseOrders }: PoChartProps) {
                 cursor={false}
                 content={
                   <ChartTooltipContent 
-                    formatter={(value, name) => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    formatter={(value: any, name: any) => {
                       // Find the color for this status
                       const statusConfig = chartConfig[name as keyof typeof chartConfig];
                       const color = statusConfig?.color || 'var(--color-muted)';
