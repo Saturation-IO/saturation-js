@@ -59,6 +59,7 @@ export default function DashboardPage() {
           saturation.listActuals(selectedProject.id, {
             expands: ['account', 'contact']
           }),
+          
           saturation.listPurchaseOrders(selectedProject.id)
         ]);
 
@@ -157,7 +158,8 @@ export default function DashboardPage() {
             <KpiCards 
               budget={budget} 
               actuals={actuals} 
-              purchaseOrders={purchaseOrders} 
+              purchaseOrders={purchaseOrders}
+              projectId={selectedProject?.id || null}
             />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
