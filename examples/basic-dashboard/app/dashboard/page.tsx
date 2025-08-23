@@ -116,7 +116,7 @@ export default function DashboardPage() {
                   {selectedProject ? selectedProject.name : 'Saturation Dashboard'}
                 </h1>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Demo dashboard built with Saturation SDK • <a href="https://docs.saturation.io" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground transition-colors">View API docs</a>
+                  Demo dashboard built with Saturation API • <a href="https://docs.saturation.io" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground transition-colors">View API docs</a>
                 </p>
               </div>
             </div>

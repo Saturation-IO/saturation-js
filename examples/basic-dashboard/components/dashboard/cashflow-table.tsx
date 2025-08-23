@@ -57,7 +57,7 @@ export function CashflowTable({ actuals, budget }: CashflowTableProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b">
-                <th className="text-left py-2 px-2 font-medium min-w-[200px]">Account</th>
+                <th className="text-left py-2 px-2 font-medium min-w-[200px] sticky left-0 bg-card z-10">Account</th>
                 {cashflow.months.map(month => (
                   <th key={month} className="text-right py-2 px-2 font-medium min-w-[100px]">
                     {formatMonth(month)}
@@ -73,7 +73,7 @@ export function CashflowTable({ actuals, budget }: CashflowTableProps) {
                 const accountTotal = accountTotals.find(a => a.account === accountData.account);
                 return (
                   <tr key={idx} className="border-b hover:bg-muted/50 transition-colors">
-                    <td className="py-2 px-2 font-medium whitespace-nowrap">
+                    <td className="py-2 px-2 font-medium whitespace-nowrap sticky left-0 bg-card z-10">
                       {accountData.account}
                     </td>
                     {accountData.months.map((monthData) => (
@@ -92,7 +92,7 @@ export function CashflowTable({ actuals, budget }: CashflowTableProps) {
             </tbody>
             <tfoot>
               <tr className="border-t-2 font-bold bg-muted/30">
-                <td className="py-2 px-2">Total</td>
+                <td className="py-2 px-2 sticky left-0 bg-muted/30 z-10">Total</td>
                 {monthTotals.map((monthTotal) => (
                   <td key={monthTotal.month} className="text-right py-2 px-2">
                     {formatFullCurrency(monthTotal.total)}
