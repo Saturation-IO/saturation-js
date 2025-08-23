@@ -46,10 +46,24 @@ export function SpendChart({ actuals, budgetTotal, maxDataPoints = 25 }: SpendCh
   return (
     <Card className="rounded-2xl shadow-sm border-muted bg-card">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-medium text-foreground/90">Spend Over Time</CardTitle>
-        <CardDescription>
-          Tracking actual spending against {formatCurrency(budgetTotal)} estimate
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-base font-medium text-foreground/90">Spend Over Time</CardTitle>
+            <CardDescription>
+              Tracking actual spending against {formatCurrency(budgetTotal)} estimate
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-primary" />
+              <span className="text-muted-foreground">Actual Spend</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-muted-foreground/30" />
+              <span className="text-muted-foreground">Estimate</span>
+            </div>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         {chartData.length === 0 ? (
@@ -85,10 +99,18 @@ export function SpendChart({ actuals, budgetTotal, maxDataPoints = 25 }: SpendCh
                 cursor={false}
                 content={
                   <ChartTooltipContent 
-                    indicator="dot"
-                    formatter={(value, name) => (
-                      <span>{formatCurrency(Number(value))}</span>
-                    )}
+                    formatter={(value, name) => {
+                      const label = name === 'actual' ? 'Actual Spend' : 'Estimate';
+                      const colorClass = name === 'actual' ? 'bg-primary' : 'bg-muted-foreground/30';
+                      return (
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2.5 h-2.5 rounded-full ${colorClass}`} />
+                          <span className="font-medium">{label}:</span>
+                          <span>{formatCurrency(Number(value))}</span>
+                        </div>
+                      );
+                    }}
+                    hideIndicator
                   />
                 }
               />

@@ -50,7 +50,7 @@ export function CashflowTable({ actuals, budget }: CashflowTableProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Monthly Cashflow</CardTitle>
+        <CardTitle>Actuals Cashflow</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
