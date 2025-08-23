@@ -46,7 +46,7 @@ export function ProjectSelector({ onProjectChange }: ProjectSelectorProps) {
     };
 
     fetchProjects();
-  }, [saturation]);
+  }, [saturation, onProjectChange]);
 
   const handleProjectChange = (projectId: string) => {
     setSelectedProjectId(projectId);

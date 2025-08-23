@@ -92,9 +92,6 @@ export function PhaseSelector({ projectId }: PhaseSelectorProps) {
   if (!projectId || phases.length === 0) {
     return null;
   }
-
-  // Get the selected phase object to display its name
-  const selectedPhase = phases.find(p => p.alias === selectedPhaseAlias);
   
   return (
     <Select value={selectedPhaseAlias} onValueChange={handlePhaseChange}>

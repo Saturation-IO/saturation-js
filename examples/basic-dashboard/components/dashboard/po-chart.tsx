@@ -6,7 +6,6 @@ import { PieChart, Pie, Label } from 'recharts';
 import { ChartContainer, ChartConfig, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { formatCurrency, formatPercent } from '@/lib/format';
 import { toPoStatusData } from '@/lib/calc';
-import { TrendingUp } from 'lucide-react';
 import type { PurchaseOrder } from '@saturation-api/js';
 
 interface PoChartProps {

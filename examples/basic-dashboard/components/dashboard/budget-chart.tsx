@@ -30,7 +30,11 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 // Custom Y-axis tick component with better line spacing
-const CustomYAxisTick = (props: any) => {
+const CustomYAxisTick = (props: {
+  x: number;
+  y: number;
+  payload: { value: string };
+}) => {
   const { x, y, payload } = props;
   
   // Ensure payload.value is a string
@@ -244,7 +248,13 @@ export function BudgetChart({ budget }: BudgetChartProps) {
                   position="right"
                   offset={8}
                   fontSize={10}
-                  content={(props: any) => {
+                  content={(props: {
+                    x: number;
+                    y: number;
+                    width: number;
+                    height: number;
+                    value: string;
+                  }) => {
                     const { x, y, width, height, value } = props;
                     return (
                       <text
