@@ -79,7 +79,7 @@ export function BudgetChart({ budget }: BudgetChartProps) {
     return (
       <Card className="rounded-2xl shadow-sm border-muted bg-card">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-medium text-foreground/90">Estimate vs Actuals</CardTitle>
+          <CardTitle className="text-base font-medium text-foreground/90">Actuals vs Estimate</CardTitle>
           <CardDescription>No budget data available</CardDescription>
         </CardHeader>
         <CardContent className="h-[320px] md:h-[360px] flex items-center justify-center text-muted-foreground">
@@ -122,7 +122,7 @@ export function BudgetChart({ budget }: BudgetChartProps) {
     return (
       <Card className="rounded-2xl shadow-sm border-muted bg-card">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-medium text-foreground/90">Estimate vs Actuals</CardTitle>
+          <CardTitle className="text-base font-medium text-foreground/90">Actuals vs Estimate</CardTitle>
           <CardDescription>No data available</CardDescription>
         </CardHeader>
         <CardContent className="h-[320px] md:h-[360px] flex items-center justify-center text-muted-foreground">
@@ -135,7 +135,7 @@ export function BudgetChart({ budget }: BudgetChartProps) {
   return (
     <Card className="rounded-2xl shadow-sm border-muted bg-card">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-medium text-foreground/90">Estimate vs Actuals</CardTitle>
+        <CardTitle className="text-base font-medium text-foreground/90">Actuals vs Estimate</CardTitle>
         <CardDescription>Comparing budgeted amounts to actual spending by account</CardDescription>
       </CardHeader>
       <CardContent>
@@ -154,7 +154,7 @@ export function BudgetChart({ budget }: BudgetChartProps) {
               layout="vertical"
               margin={{
                 left: 0,
-                right: 140,
+                right: 160,
                 top: 10,
                 bottom: 10,
               }}
@@ -176,18 +176,29 @@ export function BudgetChart({ budget }: BudgetChartProps) {
                 cursor={false}
                 content={
                   <ChartTooltipContent 
+                    hideLabel
                     formatter={(value, name, item) => {
                       const data = item.payload;
+                      // Only show the tooltip for the first bar to avoid duplication
+                      if (name === 'foreground') return null;
+                      
                       return (
-                        <div className="flex flex-col gap-1">
-                          <span className="flex justify-between gap-4">
-                            <span>Actual:</span>
-                            <span className="font-mono font-medium">{formatCurrency(data.actual)}</span>
-                          </span>
-                          <span className="flex justify-between gap-4">
-                            <span>Estimate:</span>
-                            <span className="font-mono font-medium">{formatCurrency(data.estimate)}</span>
-                          </span>
+                        <div className="flex flex-col gap-1.5">
+                          <div className="font-medium text-sm">{data.account}</div>
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-2 rounded-sm bg-primary" />
+                            <span className="flex justify-between gap-4 flex-1">
+                              <span>Actual:</span>
+                              <span className="font-mono font-medium">{formatCurrency(data.actual)}</span>
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-2 rounded-sm bg-muted-foreground opacity-60" />
+                            <span className="flex justify-between gap-4 flex-1">
+                              <span>Estimate:</span>
+                              <span className="font-mono font-medium">{formatCurrency(data.estimate)}</span>
+                            </span>
+                          </div>
                         </div>
                       );
                     }}
@@ -222,9 +233,22 @@ export function BudgetChart({ budget }: BudgetChartProps) {
                   dataKey="displayValue"
                   position="right"
                   offset={8}
-                  className="fill-foreground"
                   fontSize={10}
-                  style={{ whiteSpace: 'nowrap' }}
+                  content={(props: any) => {
+                    const { x, y, width, height, value } = props;
+                    return (
+                      <text
+                        x={x + width + 8}
+                        y={y + height / 2}
+                        fill="var(--foreground)"
+                        fontSize={10}
+                        dominantBaseline="middle"
+                        style={{ whiteSpace: 'nowrap' }}
+                      >
+                        {value}
+                      </text>
+                    );
+                  }}
                 />
               </Bar>
             </BarChart>
