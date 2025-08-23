@@ -146,13 +146,13 @@ function ConversationPromptInput({ api = "/api/chat", headers, fullHeight }: Cha
   const [input, setInput] = useState("")
 
   const { messages, sendMessage, status, error } = useChat({
-    transport: new DefaultChatTransport({ api, headers }),
+    transport: new DefaultChatTransport({ api }),
   })
 
   const handleSubmit = () => {
     if (!input.trim()) return
 
-    sendMessage({ text: input })
+    sendMessage({ text: input }, { headers})
     setInput("")
   }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Chatbot from '@/components/primitives/chatbot';
@@ -11,10 +11,20 @@ export default function ChatPage() {
   const [openAIModalOpen, setOpenAIModalOpen] = useState(false);
   const [savedOpenAIKey, setSavedOpenAIKey] = useState('');
 
+  const [saturationKey, setSaturationKey] = useState('')
   useEffect(() => {
-    const storedOpenAI = localStorage.getItem('openai_api_key');
-    if (storedOpenAI) setSavedOpenAIKey(storedOpenAI);
+    setSavedOpenAIKey(localStorage.getItem('openai_api_key') || '')
+    setSaturationKey(localStorage.getItem('saturation_api_key') || '')
   }, []);
+
+
+  const headers = useMemo(() => {
+    return {
+      'x-openai-key': savedOpenAIKey,
+      'x-saturation-key': saturationKey
+    }
+  }, [savedOpenAIKey, saturationKey])
+
 
   const handleSaveOpenAIKey = (key: string) => {
     localStorage.setItem('openai_api_key', key);
@@ -26,6 +36,7 @@ export default function ChatPage() {
     localStorage.removeItem('openai_api_key');
     setSavedOpenAIKey('');
   };
+
 
   return (
     <div className="w-full h-screen overflow-hidden py-4 px-4">
@@ -112,7 +123,7 @@ export default function ChatPage() {
           <main className="md:col-span-8 lg:col-span-9 h-full min-h-0 flex flex-col">
             <Chatbot
               api="/api/chat"
-              headers={savedOpenAIKey ? { 'x-openai-key': savedOpenAIKey } : undefined}
+              headers={headers}
               fullHeight
             />
           </main>
