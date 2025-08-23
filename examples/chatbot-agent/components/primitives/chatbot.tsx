@@ -13,6 +13,7 @@ import {
 } from "@/components/prompt-kit/message"
 import {
   PromptInput,
+  PromptInputAction,
   PromptInputActions,
   PromptInputTextarea,
 } from "@/components/prompt-kit/prompt-input"
@@ -25,6 +26,10 @@ import {
   AlertTriangle,
   ArrowUp,
   Copy,
+  Globe,
+  Mic,
+  MoreHorizontal,
+  Plus,
   ThumbsDown,
   ThumbsUp,
 } from "lucide-react"
@@ -42,7 +47,7 @@ export const MessageComponent = memo(
     return (
       <Message
         className={cn(
-          "mx-auto flex w-full max-w-3xl flex-col gap-2 px-2 md:px-10",
+          "flex w-full flex-col gap-0.5 px-2 md:px-4",
           isAssistant ? "items-start" : "items-end"
         )}
       >
@@ -80,8 +85,8 @@ export const MessageComponent = memo(
             </MessageActions>
           </div>
         ) : (
-          <div className="group flex w-full flex-col items-end gap-1">
-            <MessageContent className="bg-muted text-primary max-w-[85%] rounded-3xl px-5 py-2.5 whitespace-pre-wrap sm:max-w-[75%]">
+          <div className="group flex w-full flex-col items-end gap-0">
+            <MessageContent className="bg-muted text-foreground max-w-[85%] rounded-2xl px-3 py-1.5 whitespace-pre-wrap sm:max-w-[75%]">
               {message.parts
                 .map((part) => (part.type === "text" ? part.text : null))
                 .join("")}
@@ -107,7 +112,7 @@ export const MessageComponent = memo(
 MessageComponent.displayName = "MessageComponent"
 
 const LoadingMessage = memo(() => (
-  <Message className="mx-auto flex w-full max-w-3xl flex-col items-start gap-2 px-0 md:px-10">
+  <Message className="flex w-full flex-col items-start gap-0.5 px-0 md:px-4">
     <div className="group flex w-full flex-col gap-0">
       <div className="text-foreground prose w-full min-w-0 flex-1 rounded-lg bg-transparent p-0">
         <DotsLoader />
@@ -119,7 +124,7 @@ const LoadingMessage = memo(() => (
 LoadingMessage.displayName = "LoadingMessage"
 
 const ErrorMessage = memo(({ error }: { error: Error }) => (
-  <Message className="not-prose mx-auto flex w-full max-w-3xl flex-col items-start gap-2 px-0 md:px-10">
+  <Message className="not-prose flex w-full flex-col items-start gap-0.5 px-0 md:px-4">
     <div className="group flex w-full flex-col items-start gap-0">
       <div className="text-primary flex min-w-0 flex-1 flex-row items-center gap-2 rounded-lg border-2 border-red-300 bg-red-300/20 px-2 py-1">
         <AlertTriangle size={16} className="text-red-500" />
@@ -134,9 +139,10 @@ ErrorMessage.displayName = "ErrorMessage"
 type ChatbotProps = {
   api?: string
   headers?: Record<string, string>
+  fullHeight?: boolean
 }
 
-function ConversationPromptInput({ api = "/api/chat", headers }: ChatbotProps) {
+function ConversationPromptInput({ api = "/api/chat", headers, fullHeight }: ChatbotProps) {
   const [input, setInput] = useState("")
 
   const { messages, sendMessage, status, error } = useChat({
@@ -151,9 +157,9 @@ function ConversationPromptInput({ api = "/api/chat", headers }: ChatbotProps) {
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
-      <ChatContainerRoot className="relative flex-1 space-y-0 overflow-y-auto">
-        <ChatContainerContent className="space-y-12 px-4 py-12">
+    <div className={cn("flex min-h-0 flex-col", fullHeight ? "h-full" : "min-h-screen") }>
+      <ChatContainerRoot className="relative flex-1 min-h-0 overflow-y-auto">
+        <ChatContainerContent className="space-y-1 px-3 py-4 pb-2">
           {messages.map((message, index) => {
             const isLastMessage = index === messages.length - 1
 
@@ -170,7 +176,7 @@ function ConversationPromptInput({ api = "/api/chat", headers }: ChatbotProps) {
           {status === "error" && error && <ErrorMessage error={error} />}
         </ChatContainerContent>
       </ChatContainerRoot>
-      <div className="inset-x-0 bottom-0 mx-auto w-full max-w-3xl shrink-0 px-3 pb-3 md:px-5 md:pb-5">
+      <div className="w-full shrink-0 px-3 pb-3 md:px-5 md:pb-5 bg-background pt-2">
         <PromptInput
           isLoading={status !== "ready"}
           value={input}
@@ -184,14 +190,37 @@ function ConversationPromptInput({ api = "/api/chat", headers }: ChatbotProps) {
               className="min-h-[44px] pt-3 pl-4 text-base leading-[1.3] sm:text-base md:text-base"
             />
 
-            <PromptInputActions className="mt-3 flex w-full items-center justify-between gap-2 p-2">
-              <div />
+            <PromptInputActions className="mt-5 flex w-full items-center justify-between gap-2 px-3 pb-3">
               <div className="flex items-center gap-2">
+                <PromptInputAction tooltip="Add a new action">
+                  <Button variant="outline" size="icon" className="size-9 rounded-full">
+                    <Plus size={18} />
+                  </Button>
+                </PromptInputAction>
+
+                <PromptInputAction tooltip="Search">
+                  <Button variant="outline" className="rounded-full">
+                    <Globe size={18} />
+                    Search
+                  </Button>
+                </PromptInputAction>
+
+                <PromptInputAction tooltip="More actions">
+                  <Button variant="outline" size="icon" className="size-9 rounded-full">
+                    <MoreHorizontal size={18} />
+                  </Button>
+                </PromptInputAction>
+              </div>
+              <div className="flex items-center gap-2">
+                <PromptInputAction tooltip="Voice input">
+                  <Button variant="outline" size="icon" className="size-9 rounded-full">
+                    <Mic size={18} />
+                  </Button>
+                </PromptInputAction>
+
                 <Button
                   size="icon"
-                  disabled={
-                    !input.trim() || (status !== "ready" && status !== "error")
-                  }
+                  disabled={!input.trim() || (status !== "ready" && status !== "error")}
                   onClick={handleSubmit}
                   className="size-9 rounded-full"
                 >

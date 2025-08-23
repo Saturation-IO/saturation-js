@@ -1,4 +1,4 @@
-import { createOpenAI } from "@ai-sdk/openai"
+import { createOpenAI, openai } from "@ai-sdk/openai"
 import { convertToModelMessages, streamText, tool, UIMessage } from "ai"
 import { z } from "zod"
 
@@ -6,17 +6,22 @@ import { z } from "zod"
 export const maxDuration = 30
 
 export async function POST(req: Request) {
-  const { messages, apiKey }: { messages: UIMessage[]; apiKey?: string } =
+  const { messages, apiKey: bodyKey }: { messages: UIMessage[]; apiKey?: string } =
     await req.json()
 
-  if (!apiKey) {
+  // Accept key via env, header, or request body (in that order)
+  const envKey = process.env.OPENAI_API_KEY
+  const headerKey = req.headers.get("x-openai-key") || undefined
+  const key = envKey || headerKey || bodyKey
+
+  if (!key) {
     return new Response("OpenAI API key is required", { status: 400 })
   }
 
-  const openai = createOpenAI({ apiKey })
+  const provider = envKey && !headerKey && !bodyKey ? openai : createOpenAI({ apiKey: key })
 
   const result = streamText({
-    model: openai("gpt-5"),
+    model: provider("gpt-4.1-nano"),
     system:
       "You are a helpful assistant with access to tools. Use the getCurrentDate tool when users ask about dates, time, or current information. You are also able to use the getTime tool to get the current time in a specific timezone.",
     messages: convertToModelMessages(messages),
