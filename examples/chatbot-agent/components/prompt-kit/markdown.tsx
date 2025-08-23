@@ -55,6 +55,61 @@ const INITIAL_COMPONENTS: Partial<Components> = {
   pre: function PreComponent({ children }) {
     return <>{children}</>
   },
+  hr: function HrComponent(props) {
+    return <hr className={cn("my-3 border-border/70", (props as any).className)} {...props} />
+  },
+  h1: function H1({ className, children, ...props }) {
+    return (
+      <h1
+        className={cn(
+          "mt-4 mb-2 text-2xl md:text-3xl font-semibold leading-tight",
+          className
+        )}
+        {...(props as any)}
+      >
+        {children}
+      </h1>
+    )
+  },
+  h2: function H2({ className, children, ...props }) {
+    return (
+      <h2
+        className={cn(
+          "mt-4 mb-2 text-xl md:text-2xl font-semibold leading-tight",
+          className
+        )}
+        {...(props as any)}
+      >
+        {children}
+      </h2>
+    )
+  },
+  h3: function H3({ className, children, ...props }) {
+    return (
+      <h3
+        className={cn(
+          "mt-3 mb-1.5 text-lg md:text-xl font-semibold leading-tight",
+          className
+        )}
+        {...(props as any)}
+      >
+        {children}
+      </h3>
+    )
+  },
+  h4: function H4({ className, children, ...props }) {
+    return (
+      <h4
+        className={cn(
+          "mt-3 mb-1 text-base md:text-lg font-semibold leading-tight",
+          className
+        )}
+        {...(props as any)}
+      >
+        {children}
+      </h4>
+    )
+  },
 }
 
 const MemoizedMarkdownBlock = memo(

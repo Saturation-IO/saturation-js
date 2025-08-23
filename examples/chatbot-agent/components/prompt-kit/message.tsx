@@ -58,7 +58,10 @@ const MessageContent = ({
   ...props
 }: MessageContentProps) => {
   const classNames = cn(
+    // Base bubble + typography
     "rounded-lg p-2 text-foreground bg-secondary prose break-words whitespace-normal",
+    // Add comfortable spacing around horizontal rules inside markdown content
+    "prose-hr:my-3 prose-hr:border-border/70",
     className
   )
 
