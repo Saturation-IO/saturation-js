@@ -10,7 +10,6 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } =
     await req.json()
 
-    console.log(JSON.stringify(messages, null, 2))
   // Accept key via env, header, or request body (in that order)
   const openAIKey = req.headers.get("x-openai-key")
   const saturationKey = req.headers.get("x-saturation-key")
