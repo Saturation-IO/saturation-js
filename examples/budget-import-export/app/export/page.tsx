@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useSaturation } from '@/contexts/SaturationContext';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/components/ui/sonner';
+import { ExportCsvButton } from '@/components/export/ExportCsvButton';
 import type { Project } from '@saturation-api/js';
 
 export default function ExportPage() {
@@ -110,21 +110,10 @@ export default function ExportPage() {
 
             {/* Actions */}
             <div className="mt-4 flex items-center gap-3">
-              <Button
-                disabled={!selectedProjectId}
-                onClick={() => {
-                  toast("Export started", {
-                    description: "Preparing CSV for download...",
-                  });
-                  setTimeout(() => {
-                    toast.success("Export complete", {
-                      description: "Your CSV will download shortly.",
-                    });
-                  }, 800);
-                }}
-              >
-                Export CSV
-              </Button>
+              <ExportCsvButton
+                projectId={selectedProjectId}
+                projectName={projects.find(p => p.id === selectedProjectId)?.name || undefined}
+              />
               <Button variant="outline" disabled={!selectedProjectId}>
                 Export to Google Sheets
               </Button>
