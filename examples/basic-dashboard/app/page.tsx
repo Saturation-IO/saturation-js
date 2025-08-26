@@ -62,7 +62,7 @@ export default function Home() {
                 <Input
                   id="api-key"
                   type="password"
-                  placeholder="sk_test_..."
+                  placeholder="sk_..."
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   onKeyDown={(e) => {
