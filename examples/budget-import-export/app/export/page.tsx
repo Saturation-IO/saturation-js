@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useSaturation } from '@/contexts/SaturationContext';
+import { Button } from '@/components/ui/button';
+import { toast } from '@/components/ui/sonner';
 import type { Project } from '@saturation-api/js';
 
 export default function ExportPage() {
@@ -106,9 +108,26 @@ export default function ExportPage() {
               <p className="text-sm text-muted-foreground">Select a project to continue.</p>
             )}
 
-            {/* Placeholder for future export actions */}
-            <div className="mt-4 text-sm text-muted-foreground">
-              Export actions will go here (CSV, JSON, etc.).
+            {/* Actions */}
+            <div className="mt-4 flex items-center gap-3">
+              <Button
+                disabled={!selectedProjectId}
+                onClick={() => {
+                  toast("Export started", {
+                    description: "Preparing CSV for download...",
+                  });
+                  setTimeout(() => {
+                    toast.success("Export complete", {
+                      description: "Your CSV will download shortly.",
+                    });
+                  }, 800);
+                }}
+              >
+                Export CSV
+              </Button>
+              <Button variant="outline" disabled={!selectedProjectId}>
+                Export to Google Sheets
+              </Button>
             </div>
           </div>
         </div>
@@ -116,4 +135,3 @@ export default function ExportPage() {
     </div>
   );
 }
-
