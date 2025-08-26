@@ -4,8 +4,11 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useSaturation } from '@/contexts/SaturationContext';
-import { Button } from '@/components/ui/button';
 import { ExportCsvButton } from '@/components/export/ExportCsvButton';
+import { ColumnsMultiSelect } from '@/components/export/ColumnsMultiSelect';
+import { PhasesMultiSelect } from '@/components/export/PhasesMultiSelect';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import type { Project } from '@saturation-api/js';
 
 export default function ExportPage() {
@@ -16,6 +19,10 @@ export default function ExportPage() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Selection state for header actions
+  const [columnSelection, setColumnSelection] = useState<string[]>(['id', 'description']);
+  const [phaseSelection, setPhaseSelection] = useState<string[]>([]);
+  const [allPhaseIds, setAllPhaseIds] = useState<string[]>([]);
 
   // Redirect to home if no API key
   useEffect(() => {
@@ -98,27 +105,43 @@ export default function ExportPage() {
 
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-6">
-          <div className="rounded-xl border p-6">
-            <h2 className="text-lg font-semibold mb-2">Export Options</h2>
-            {selectedProjectId ? (
-              <p className="text-sm text-muted-foreground">
-                Ready to export data for project: <span className="font-medium">{projects.find(p => p.id === selectedProjectId)?.name}</span>
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground">Select a project to continue.</p>
-            )}
-
-            {/* Actions */}
-            <div className="mt-4 flex items-center gap-3">
-              <ExportCsvButton
+          <Card>
+            <CardHeader className="border-b">
+              <CardTitle>Export Options</CardTitle>
+              <CardDescription>
+                {selectedProjectId ? (
+                  <span>
+                    Ready to export data for project: <span className="font-medium">{projects.find(p => p.id === selectedProjectId)?.name}</span>
+                  </span>
+                ) : (
+                  <span>Select a project to continue.</span>
+                )}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-6">
+              <ColumnsMultiSelect value={columnSelection as any} onChange={(v) => setColumnSelection(v as string[])} />
+              <PhasesMultiSelect
                 projectId={selectedProjectId}
-                projectName={projects.find(p => p.id === selectedProjectId)?.name || undefined}
+                value={phaseSelection}
+                onChange={setPhaseSelection}
+                onLoaded={(phases) => setAllPhaseIds(phases.map((p) => p.id))}
               />
-              <Button variant="outline" disabled={!selectedProjectId}>
-                Export to Google Sheets
-              </Button>
-            </div>
-          </div>
+            </CardContent>
+            <CardFooter className="justify-between border-t">
+              <div className="text-xs text-muted-foreground">
+                CSV export downloads a file to your device.
+              </div>
+              <div className="flex items-center gap-3">
+                <ExportCsvButton
+                  projectId={selectedProjectId}
+                  projectName={projects.find(p => p.id === selectedProjectId)?.name || undefined}
+                />
+                <Button variant="outline" disabled={!selectedProjectId}>
+                  Export to Google Sheets
+                </Button>
+              </div>
+            </CardFooter>
+          </Card>
         </div>
       </main>
     </div>

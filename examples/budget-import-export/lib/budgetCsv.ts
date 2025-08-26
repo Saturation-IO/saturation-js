@@ -24,7 +24,6 @@ export async function fetchBudgetTopSheet(
 ): Promise<Budget> {
   const budget = await client.getBudget(projectId, {
     expands: ['phases'],
-    idMode: 'user',
   });
   return budget;
 }
@@ -32,7 +31,7 @@ export async function fetchBudgetTopSheet(
 /**
  * CSV options to control how topsheet lines are exported.
  */
-export type BudgetCsvOptions = {
+type BudgetCsvOptions = {
   /**
    * Which line types to include in the CSV (default: line, account, subtotal)
    */
@@ -123,4 +122,3 @@ function formatNumber(value: unknown): string {
  * const csv = budgetTopSheetToCsv(budget);
  * console.log(csv);
  */
-
