@@ -1,52 +1,40 @@
 /**
  * Budget → CSV utilities (framework-agnostic)
  *
- * This small library shows how to:
- * - Fetch a project's budget “topsheet” using the Saturation SDK
- * - Transform the top-level budget lines into a CSV string
+ * This educational module shows how to:
+ * - Fetch a project's budget using the Saturation SDK
+ * - Convert budget lines into CSV with per-phase totals and fields
+ * - Traverse sub-accounts: root table, second-level tables, third-level subrows
  *
- * It is intentionally independent from React so it can be reused from any environment
- * (pages, API routes, node scripts, etc.).
+ * Framework-agnostic: can be used from pages, API routes, or scripts.
  */
 
-import type { Budget, Phase, Saturation, BudgetLine, Account } from '@saturation-api/js';
+import type { Budget, Phase, Saturation, BudgetLine, Account, LinePhaseData, Contact } from '@saturation-api/js';
+import { csvEscape, formatNumber, safeCell, pathDepth } from './csvHelpers';
 
-/**
- * Fetch the budget topsheet for a project.
- *
- * Notes:
- * - We request `expands: ['phases']` so we can map totals to readable phase aliases.
- * - By default, budget.account.lines returns the top-level lines (topsheet).
- */
-export async function fetchBudgetTopSheet(
+/** Fetch a project's budget with useful expansions. */
+export async function fetchBudget(
   client: Saturation,
   projectId: string
 ): Promise<Budget> {
-  const budget = await client.getBudget(projectId, {
-    // Include phases for headers and lines.phaseData/contact for column details
+  return client.getBudget(projectId, {
     expands: ['phases', 'lines.phaseData', 'lines.contact'],
   });
-
-  console.log('budget', budget);
-  return budget;
 }
 
-/**
- * CSV options to control how topsheet lines are exported.
- */
-export type TopSheetColumn =
+/** CSV options for budget → CSV conversion. */
+export type BudgetColumn =
   | 'id'
   | 'description'
   | 'tags'
   | 'contact'
-  | 'notes'
   | 'fringes'
   | 'dates'
   | 'quantity'
   | 'rate'
   | 'x';
 
-type BudgetCsvOptions = {
+export type BudgetToCsvOptions = {
   /**
    * Which line types to include in the CSV (default: line, account, subtotal)
    */
@@ -59,52 +47,44 @@ type BudgetCsvOptions = {
    * Which non-phase columns to include (order respected).
    * Defaults to ['id','description'] if omitted.
    */
-  columns?: TopSheetColumn[];
+  columns?: BudgetColumn[];
   /**
    * Limit phases to this set of phase aliases (order respected). Defaults to all budget phases.
    */
   phases?: string[]; // aliases
 };
 
-/**
- * Convert a budget topsheet into a CSV string.
- *
- * Columns:
- * - type, accountId, description
- * - one column per visible phase (using the phase alias from the budget)
- *
- * Totals are taken from each line's `totals[phase.id]` value where available.
- */
-export function budgetTopSheetToCsv(budget: Budget, options: BudgetCsvOptions = {}): string {
+/** Convert a budget into a CSV string. */
+export function budgetToCsv(budget: Budget, options: BudgetToCsvOptions = {}): string {
   const {
     includeHeaders = true,
     includeLineTypes = ['line', 'account', 'subtotal'],
     columns = ['id', 'description'],
-    phases: phaseFilter,
+    phases: phaseAliases,
   } = options;
 
-  console.log('budget', budget.phases, phaseFilter);
   const allPhases: Phase[] = budget.phases ?? [];
-  // If specific phases were requested, map them by alias (fallback to id/name if needed), preserving input order
-  const phases: Phase[] = phaseFilter && phaseFilter.length
-    ? phaseFilter.map((aliasOrKey) => allPhases.find((p) => p.alias === aliasOrKey || p.id === aliasOrKey || p.name === aliasOrKey)).filter((p): p is Phase => Boolean(p))
+  // Resolve phases strictly by alias (user mode) and preserve order
+  const phases: Phase[] = Array.isArray(phaseAliases) && phaseAliases.length
+    ? phaseAliases.map((alias) => allPhases.find((p) => p.alias === alias)).filter((p): p is Phase => Boolean(p))
     : allPhases;
   const lines = budget.account?.lines ?? [];
 
   // Partition selected columns into global vs phase-scoped
-  const phaseScoped: TopSheetColumn[] = columns.filter((c): c is TopSheetColumn => PHASE_SCOPED_COLUMNS.has(c as TopSheetColumn));
-  const globalCols: TopSheetColumn[] = columns.filter((c): c is TopSheetColumn => GLOBAL_COLUMNS.has(c as TopSheetColumn));
+  const phaseScoped: BudgetColumn[] = columns.filter((c): c is BudgetColumn => PHASE_SCOPED_BUDGET_COLUMNS.has(c as BudgetColumn));
+  const globalCols: BudgetColumn[] = columns.filter((c): c is BudgetColumn => GLOBAL_BUDGET_COLUMNS.has(c as BudgetColumn));
 
   // Build headers: global columns first, then for each phase add Total and any selected phase-scoped subcolumns
   const headers: string[] = [];
   headers.push(...globalCols);
   for (const phase of phases) {
-    const phaseLabel = phase.name ?? phase.alias ?? phase.id;
+    const alias = phase.alias ?? phase.id;
+    const label = alias;
     // Totals column for this phase
-    headers.push(phaseLabel);
+    headers.push(`${label} total`);
     // Selected phase-scoped subcolumns
     for (const col of phaseScoped) {
-      headers.push(`${phaseLabel} ${humanizeColumn(col)}`);
+      headers.push(`${label} ${humanizeColumn(col)}`);
     }
   }
 
@@ -119,7 +99,7 @@ export function budgetTopSheetToCsv(budget: Budget, options: BudgetCsvOptions = 
     return out;
   };
 
-  // Root table (topsheet)
+  // Root table (top-level)
   const tables: string[][][] = [];
   tables.push(buildRowsForLines(lines, 0));
 
@@ -130,29 +110,38 @@ export function budgetTopSheetToCsv(budget: Budget, options: BudgetCsvOptions = 
     if (acc.accountId) byAccountId.set(acc.accountId, acc);
   }
 
-  // Identify 2nd-layer accounts (direct children of root) by path depth
-  const rootChildren = subAccounts.filter((acc) => getPathDepth(acc.path) === 1);
+  // Identify second-level accounts (direct children of root) by path depth
+  const secondLevelAccounts = subAccounts.filter((acc) => pathDepth(acc.path) === 1);
 
-  // For each 2nd-layer account, create its own table. Inline its 3rd-level children as subrows.
-  for (const acc of rootChildren) {
+  // For each second-level account, create its own table. Inline third-level children as subrows.
+  for (const acc of secondLevelAccounts) {
     const rows: string[][] = [];
+    // Table title row
+    const title = `Account ${acc.accountId ?? acc.id}${acc.description ? ` - ${acc.description}` : ''}`;
+    rows.push([title, ...Array(Math.max(0, headers.length - 1)).fill('')]);
     if (includeHeaders) rows.push(headers);
-    for (const line of acc.lines as BudgetLine[]) {
+    let dataRowCount = 0;
+    for (const line of acc.lines) {
       if (!includeLineTypes.includes(line.type)) continue;
       // Parent row (no indent)
       rows.push(buildRowForLine(line, phases, globalCols, phaseScoped, 0));
+      dataRowCount++;
       // If this is an account line, inline its child account's lines with indent
       if (line.type === 'account' && line.accountId) {
         const childAcc = byAccountId.get(line.accountId);
         if (childAcc && Array.isArray(childAcc.lines) && childAcc.lines.length) {
-          for (const subLine of childAcc.lines as BudgetLine[]) {
+          for (const subLine of childAcc.lines) {
             if (!includeLineTypes.includes(subLine.type)) continue;
             rows.push(buildRowForLine(subLine, phases, globalCols, phaseScoped, 4));
+            dataRowCount++;
           }
         }
       }
     }
-    tables.push(rows);
+    // Skip empty tables (no data rows after filtering)
+    if (dataRowCount > 0) {
+      tables.push(rows);
+    }
   }
 
   // Convert tables to CSV and separate by two blank rows
@@ -162,10 +151,14 @@ export function budgetTopSheetToCsv(budget: Budget, options: BudgetCsvOptions = 
 
 // --- helpers ----------------------------------------------------------------
 
-const GLOBAL_COLUMNS = new Set<TopSheetColumn>(['id', 'description', 'tags', 'contact', 'notes']);
-const PHASE_SCOPED_COLUMNS = new Set<TopSheetColumn>(['fringes', 'dates', 'quantity', 'rate', 'x']);
+const GLOBAL_BUDGET_COLUMNS = new Set<BudgetColumn>(['id', 'description', 'tags', 'contact']);
+const PHASE_SCOPED_BUDGET_COLUMNS = new Set<BudgetColumn>(['fringes', 'dates', 'quantity', 'rate', 'x']);
 
-function buildGlobalColumnsForLine(line: BudgetLine, columns: TopSheetColumn[], indentSpaces = 0): string[] {
+function buildGlobalColumnsForLine(
+  line: BudgetLine,
+  columns: BudgetColumn[],
+  indentSpaces = 0
+): string[] {
   return columns.map((col) => {
     switch (col) {
       case 'id':
@@ -175,11 +168,9 @@ function buildGlobalColumnsForLine(line: BudgetLine, columns: TopSheetColumn[], 
       case 'tags':
         return Array.isArray(line.tags) ? safeCell(line.tags.join('; ')) : '';
       case 'contact': {
-        const contact = (line as any).contact; // contact is optional on lines
+        const contact: Contact | undefined = line.contact;
         return safeCell(contact?.name ?? contact?.company ?? '');
       }
-      case 'notes':
-        return safeCell((line as any).notes ?? '');
       default:
         // Ignore phase-scoped here
         return '';
@@ -187,8 +178,13 @@ function buildGlobalColumnsForLine(line: BudgetLine, columns: TopSheetColumn[], 
   });
 }
 
-function buildPhaseScopedCell(line: BudgetLine, col: TopSheetColumn, phaseId: string): string {
-  const pd = (line as any).phaseData?.[phaseId] as any | undefined;
+function buildPhaseScopedCell(
+  line: BudgetLine,
+  col: BudgetColumn,
+  phaseAlias: string
+): string {
+  const phaseData: Record<string, LinePhaseData> | undefined = line.phaseData;
+  const pd: LinePhaseData | undefined = phaseData?.[phaseAlias];
   switch (col) {
     case 'fringes': {
       const list = Array.isArray(pd?.fringes) ? pd.fringes : [];
@@ -213,8 +209,8 @@ function buildPhaseScopedCell(line: BudgetLine, col: TopSheetColumn, phaseId: st
 function buildRowForLine(
   line: BudgetLine,
   phases: Phase[],
-  globalCols: TopSheetColumn[],
-  phaseScoped: TopSheetColumn[],
+  globalCols: BudgetColumn[],
+  phaseScoped: BudgetColumn[],
   indentSpaces: number
 ): string[] {
   const base = buildGlobalColumnsForLine(line, globalCols, indentSpaces);
@@ -229,70 +225,25 @@ function buildRowForLine(
   return [...base, ...perPhaseCells];
 }
 
-function getPathDepth(path: string): number {
-  return path.split('/').filter(Boolean).length;
-}
-
-function getLineTotalForPhase(line: BudgetLine, phase: Phase): unknown {
-  const totals = (line as any).totals as Record<string, unknown> | undefined;
+function getLineTotalForPhase(line: BudgetLine, phase: Phase): number | undefined {
+  const totals = line.totals as Record<string, number> | undefined;
   if (!totals) return undefined;
-  const keys = [phase.alias, phase.id, phase.name].filter(Boolean) as string[];
-  for (const k of keys) {
-    const v = totals[k as keyof typeof totals];
-    if (v !== undefined && v !== null) return v;
-  }
-  return undefined;
+  // assume user mode: totals keyed by alias
+  return phase.alias ? totals[phase.alias] : undefined;
 }
 
-function humanizeColumn(col: TopSheetColumn): string {
-  switch (col) {
-    case 'x':
-      return 'multiplier';
-    default:
-      return col;
-  }
-}
-
-/** Escape a CSV cell (basic RFC4180-friendly escaping). */
-function csvEscape(value: string): string {
-  // Escape double quotes and wrap in quotes if the value contains special chars
-  const mustQuote = /[",\n]/.test(value);
-  let out = value.replace(/"/g, '""');
-  if (mustQuote) out = `"${out}"`;
-  return out;
-}
-
-/**
- * Normalize string cells (avoid null/undefined in CSV).
- */
-function safeCell(value: unknown): string {
-  if (value === null || value === undefined) return '';
-  return String(value);
-}
-
-/**
- * Format numeric totals. For CSV, raw numbers are usually best; you can customize here.
- */
-function formatNumber(value: unknown): string {
-  // Accept native numbers
-  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
-  // Accept numeric strings (some backends serialize money as strings)
-  if (typeof value === 'string') {
-    const num = Number(value);
-    if (Number.isFinite(num)) return String(num);
-  }
-  // Fall back to empty for invalid numbers
-  return '';
+function humanizeColumn(col: BudgetColumn): string {
+  return col === 'x' ? 'multiplier' : col;
 }
 
 /**
  * Example usage (pseudo-code):
  *
  * import { Saturation } from '@saturation-api/js';
- * import { fetchBudgetTopSheet, budgetTopSheetToCsv } from './budgetCsv';
+ * import { fetchBudget, budgetToCsv } from './budgetCsv';
  *
  * const client = new Saturation({ apiKey: 'sk_...' });
- * const budget = await fetchBudgetTopSheet(client, 'my-project');
- * const csv = budgetTopSheetToCsv(budget);
+ * const budget = await fetchBudget(client, 'my-project');
+ * const csv = budgetToCsv(budget);
  * console.log(csv);
  */

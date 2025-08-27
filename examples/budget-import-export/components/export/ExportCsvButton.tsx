@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/sonner';
 import { useSaturation } from '@/contexts/SaturationContext';
-import { fetchBudgetTopSheet, budgetTopSheetToCsv } from '@/lib/budgetCsv';
+import { fetchBudget, budgetToCsv, type BudgetColumn } from '@/lib/budgetCsv';
 
 type Props = {
   projectId?: string;
@@ -25,11 +25,11 @@ export function ExportCsvButton({ projectId, projectName, columns, phases }: Pro
     }
     try {
       setLoading(true);
-      toast('Export started', { description: 'Loading budget topsheet…' });
-      const budget = await fetchBudgetTopSheet(saturation, projectId);
-      const csv = budgetTopSheetToCsv(budget, {
+      toast('Export started', { description: 'Loading budget…' });
+      const budget = await fetchBudget(saturation, projectId);
+      const csv = budgetToCsv(budget, {
         includeHeaders: true,
-        columns: (columns as any) || undefined,
+        columns: (columns as BudgetColumn[] | undefined),
         phases: phases || undefined,
       });
       const lines = csv.split('\n').filter(Boolean);

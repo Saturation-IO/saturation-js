@@ -10,7 +10,6 @@ export const COLUMN_KEYS = [
   'description',
   'tags',
   'contact',
-  'notes',
   'fringes',
   'dates',
   'quantity',
