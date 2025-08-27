@@ -9,7 +9,7 @@
  * (pages, API routes, node scripts, etc.).
  */
 
-import type { Budget, Phase, Saturation, BudgetLine } from '@saturation-api/js';
+import type { Budget, Phase, Saturation, BudgetLine, Account } from '@saturation-api/js';
 
 /**
  * Fetch the budget topsheet for a project.
@@ -108,33 +108,56 @@ export function budgetTopSheetToCsv(budget: Budget, options: BudgetCsvOptions = 
     }
   }
 
-  const rows: string[][] = [];
-  if (includeHeaders) {
-    rows.push(headers);
+  // Build a function to create a CSV table (rows) for a list of lines
+  const buildRowsForLines = (srcLines: BudgetLine[], indentSpaces = 0): string[][] => {
+    const out: string[][] = [];
+    if (includeHeaders) out.push(headers);
+    for (const line of srcLines) {
+      if (!includeLineTypes.includes(line.type)) continue;
+      out.push(buildRowForLine(line, phases, globalCols, phaseScoped, indentSpaces));
+    }
+    return out;
+  };
+
+  // Root table (topsheet)
+  const tables: string[][][] = [];
+  tables.push(buildRowsForLines(lines, 0));
+
+  // Index sub-accounts by accountId for quick lookup
+  const subAccounts = budget.subAccounts ? Object.values(budget.subAccounts) : [];
+  const byAccountId = new Map<string, Account>();
+  for (const acc of subAccounts) {
+    if (acc.accountId) byAccountId.set(acc.accountId, acc);
   }
 
-  for (const line of lines as BudgetLine[]) {
-    if (!includeLineTypes.includes(line.type)) continue;
+  // Identify 2nd-layer accounts (direct children of root) by path depth
+  const rootChildren = subAccounts.filter((acc) => getPathDepth(acc.path) === 1);
 
-    // Global (non-phase) columns
-    const base = buildGlobalColumnsForLine(line, globalCols);
-
-    // Phase totals and selected subcolumns, in phase order
-  const perPhaseCells: string[] = [];
-  for (const phase of phases) {
-      const phaseKey = phase.alias || phase.id;
-      // Total for the phase (SDK uses phase alias keys; fall back to id/name just in case)
-      perPhaseCells.push(formatNumber(getLineTotalForPhase(line, phase)));
-      // Phase-scoped columns
-      for (const col of phaseScoped) {
-        perPhaseCells.push(buildPhaseScopedCell(line, col, phaseKey));
+  // For each 2nd-layer account, create its own table. Inline its 3rd-level children as subrows.
+  for (const acc of rootChildren) {
+    const rows: string[][] = [];
+    if (includeHeaders) rows.push(headers);
+    for (const line of acc.lines as BudgetLine[]) {
+      if (!includeLineTypes.includes(line.type)) continue;
+      // Parent row (no indent)
+      rows.push(buildRowForLine(line, phases, globalCols, phaseScoped, 0));
+      // If this is an account line, inline its child account's lines with indent
+      if (line.type === 'account' && line.accountId) {
+        const childAcc = byAccountId.get(line.accountId);
+        if (childAcc && Array.isArray(childAcc.lines) && childAcc.lines.length) {
+          for (const subLine of childAcc.lines as BudgetLine[]) {
+            if (!includeLineTypes.includes(subLine.type)) continue;
+            rows.push(buildRowForLine(subLine, phases, globalCols, phaseScoped, 4));
+          }
+        }
       }
     }
-
-    rows.push([...base, ...perPhaseCells]);
+    tables.push(rows);
   }
 
-  return rows.map((r) => r.map(csvEscape).join(',')).join('\n');
+  // Convert tables to CSV and separate by two blank rows
+  const tableCsvs = tables.map((rows) => rows.map((r) => r.map(csvEscape).join(',')).join('\n'));
+  return tableCsvs.join('\n\n\n');
 }
 
 // --- helpers ----------------------------------------------------------------
@@ -142,13 +165,13 @@ export function budgetTopSheetToCsv(budget: Budget, options: BudgetCsvOptions = 
 const GLOBAL_COLUMNS = new Set<TopSheetColumn>(['id', 'description', 'tags', 'contact', 'notes']);
 const PHASE_SCOPED_COLUMNS = new Set<TopSheetColumn>(['fringes', 'dates', 'quantity', 'rate', 'x']);
 
-function buildGlobalColumnsForLine(line: BudgetLine, columns: TopSheetColumn[]): string[] {
+function buildGlobalColumnsForLine(line: BudgetLine, columns: TopSheetColumn[], indentSpaces = 0): string[] {
   return columns.map((col) => {
     switch (col) {
       case 'id':
         return safeCell(line.accountId ?? '');
       case 'description':
-        return safeCell(line.description ?? '');
+        return safeCell(`${' '.repeat(indentSpaces)}${line.description ?? ''}`);
       case 'tags':
         return Array.isArray(line.tags) ? safeCell(line.tags.join('; ')) : '';
       case 'contact': {
@@ -185,6 +208,29 @@ function buildPhaseScopedCell(line: BudgetLine, col: TopSheetColumn, phaseId: st
     default:
       return '';
   }
+}
+
+function buildRowForLine(
+  line: BudgetLine,
+  phases: Phase[],
+  globalCols: TopSheetColumn[],
+  phaseScoped: TopSheetColumn[],
+  indentSpaces: number
+): string[] {
+  const base = buildGlobalColumnsForLine(line, globalCols, indentSpaces);
+  const perPhaseCells: string[] = [];
+  for (const phase of phases) {
+    const phaseKey = phase.alias || phase.id;
+    perPhaseCells.push(formatNumber(getLineTotalForPhase(line, phase)));
+    for (const col of phaseScoped) {
+      perPhaseCells.push(buildPhaseScopedCell(line, col, phaseKey));
+    }
+  }
+  return [...base, ...perPhaseCells];
+}
+
+function getPathDepth(path: string): number {
+  return path.split('/').filter(Boolean).length;
 }
 
 function getLineTotalForPhase(line: BudgetLine, phase: Phase): unknown {
