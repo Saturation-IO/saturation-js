@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useSaturation } from '@/contexts/SaturationContext';
 import { ExportCsvButton } from '@/components/export/ExportCsvButton';
-import { ColumnsMultiSelect } from '@/components/export/ColumnsMultiSelect';
+import { ColumnsMultiSelect, type ColumnKey } from '@/components/export/ColumnsMultiSelect';
 import { PhasesMultiSelect } from '@/components/export/PhasesMultiSelect';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,9 +20,8 @@ export default function ExportPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Selection state for header actions
-  const [columnSelection, setColumnSelection] = useState<string[]>(['id', 'description']);
+  const [columnSelection, setColumnSelection] = useState<ColumnKey[]>(['id', 'description']);
   const [phaseSelection, setPhaseSelection] = useState<string[]>([]); // phase aliases
-  const [allPhaseAliases, setAllPhaseAliases] = useState<string[]>([]);
 
   // Redirect to home if no API key
   useEffect(() => {
@@ -119,12 +118,11 @@ export default function ExportPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6 space-y-6">
-              <ColumnsMultiSelect value={columnSelection as any} onChange={(v) => setColumnSelection(v as string[])} />
+              <ColumnsMultiSelect value={columnSelection} onChange={setColumnSelection} />
               <PhasesMultiSelect
                 projectId={selectedProjectId}
                 value={phaseSelection}
                 onChange={setPhaseSelection}
-                onLoaded={(phases) => setAllPhaseAliases(phases.map((p) => p.alias))}
               />
             </CardContent>
             <CardFooter className="justify-between border-t">

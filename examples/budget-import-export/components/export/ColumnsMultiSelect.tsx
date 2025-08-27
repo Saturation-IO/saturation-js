@@ -17,7 +17,7 @@ export const COLUMN_KEYS = [
   'x',
 ] as const;
 
-type ColumnKey = (typeof COLUMN_KEYS)[number];
+export type ColumnKey = (typeof COLUMN_KEYS)[number];
 
 type Props = {
   value?: ColumnKey[];

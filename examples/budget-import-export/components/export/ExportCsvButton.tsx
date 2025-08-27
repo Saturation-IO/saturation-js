@@ -16,7 +16,7 @@ type Props = {
 export function ExportCsvButton({ projectId, projectName, columns, phases }: Props) {
   const saturation = useSaturation();
   const [loading, setLoading] = useState(false);
-  const [rowCount, setRowCount] = useState<number | null>(null);
+  // no-op
 
   const handleClick = async () => {
     if (!projectId) {
@@ -34,7 +34,6 @@ export function ExportCsvButton({ projectId, projectName, columns, phases }: Pro
       });
       const lines = csv.split('\n').filter(Boolean);
       const count = Math.max(0, lines.length - 1); // exclude header
-      setRowCount(count);
 
       // Trigger file download
       const name = (projectName?.trim()?.replace(/\s+/g, '_') || 'project') + '_budget.csv';
