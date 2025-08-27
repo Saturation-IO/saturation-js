@@ -9,7 +9,7 @@
  * (pages, API routes, node scripts, etc.).
  */
 
-import type { Budget, Phase, Saturation } from '@saturation-api/js';
+import type { Budget, Phase, Saturation, BudgetLine } from '@saturation-api/js';
 
 /**
  * Fetch the budget topsheet for a project.
@@ -26,13 +26,15 @@ export async function fetchBudgetTopSheet(
     // Include phases for headers and lines.phaseData/contact for column details
     expands: ['phases', 'lines.phaseData', 'lines.contact'],
   });
+
+  console.log('budget', budget);
   return budget;
 }
 
 /**
  * CSV options to control how topsheet lines are exported.
  */
-type TopSheetColumn =
+export type TopSheetColumn =
   | 'id'
   | 'description'
   | 'tags'
@@ -59,9 +61,9 @@ type BudgetCsvOptions = {
    */
   columns?: TopSheetColumn[];
   /**
-   * Limit phases to this set of phase IDs (order respected). Defaults to all budget phases.
+   * Limit phases to this set of phase aliases (order respected). Defaults to all budget phases.
    */
-  phases?: string[];
+  phases?: string[]; // aliases
 };
 
 /**
@@ -81,33 +83,55 @@ export function budgetTopSheetToCsv(budget: Budget, options: BudgetCsvOptions = 
     phases: phaseFilter,
   } = options;
 
+  console.log('budget', budget.phases, phaseFilter);
   const allPhases: Phase[] = budget.phases ?? [];
+  // If specific phases were requested, map them by alias (fallback to id/name if needed), preserving input order
   const phases: Phase[] = phaseFilter && phaseFilter.length
-    ? allPhases.filter((p) => phaseFilter.includes(p.id))
+    ? phaseFilter.map((aliasOrKey) => allPhases.find((p) => p.alias === aliasOrKey || p.id === aliasOrKey || p.name === aliasOrKey)).filter((p): p is Phase => Boolean(p))
     : allPhases;
   const lines = budget.account?.lines ?? [];
 
-  // Build header from selected columns, then one column per selected phase
-  const headers = [
-    ...columns.map((c) => c),
-    ...phases.map((p) => p.name ?? p.alias ?? ''),
-  ];
+  // Partition selected columns into global vs phase-scoped
+  const phaseScoped: TopSheetColumn[] = columns.filter((c): c is TopSheetColumn => PHASE_SCOPED_COLUMNS.has(c as TopSheetColumn));
+  const globalCols: TopSheetColumn[] = columns.filter((c): c is TopSheetColumn => GLOBAL_COLUMNS.has(c as TopSheetColumn));
+
+  // Build headers: global columns first, then for each phase add Total and any selected phase-scoped subcolumns
+  const headers: string[] = [];
+  headers.push(...globalCols);
+  for (const phase of phases) {
+    const phaseLabel = phase.name ?? phase.alias ?? phase.id;
+    // Totals column for this phase
+    headers.push(phaseLabel);
+    // Selected phase-scoped subcolumns
+    for (const col of phaseScoped) {
+      headers.push(`${phaseLabel} ${humanizeColumn(col)}`);
+    }
+  }
 
   const rows: string[][] = [];
   if (includeHeaders) {
     rows.push(headers);
   }
 
-  for (const line of lines) {
+  for (const line of lines as BudgetLine[]) {
     if (!includeLineTypes.includes(line.type)) continue;
 
-    const primaryPhaseId = phases[0]?.id || allPhases[0]?.id || '';
-    const base = buildColumnsForLine(line as any, columns, primaryPhaseId);
+    // Global (non-phase) columns
+    const base = buildGlobalColumnsForLine(line, globalCols);
 
-    // Map totals for each phase (in the order of budget.phases)
-    const phaseTotals = phases.map((phase) => formatNumber((line as any).totals?.[phase.id] ?? 0));
+    // Phase totals and selected subcolumns, in phase order
+  const perPhaseCells: string[] = [];
+  for (const phase of phases) {
+      const phaseKey = phase.alias || phase.id;
+      // Total for the phase (SDK uses phase alias keys; fall back to id/name just in case)
+      perPhaseCells.push(formatNumber(getLineTotalForPhase(line, phase)));
+      // Phase-scoped columns
+      for (const col of phaseScoped) {
+        perPhaseCells.push(buildPhaseScopedCell(line, col, phaseKey));
+      }
+    }
 
-    rows.push([...base, ...phaseTotals]);
+    rows.push([...base, ...perPhaseCells]);
   }
 
   return rows.map((r) => r.map(csvEscape).join(',')).join('\n');
@@ -115,11 +139,10 @@ export function budgetTopSheetToCsv(budget: Budget, options: BudgetCsvOptions = 
 
 // --- helpers ----------------------------------------------------------------
 
-function buildColumnsForLine(
-  line: any,
-  columns: TopSheetColumn[],
-  primaryPhaseId: string
-): string[] {
+const GLOBAL_COLUMNS = new Set<TopSheetColumn>(['id', 'description', 'tags', 'contact', 'notes']);
+const PHASE_SCOPED_COLUMNS = new Set<TopSheetColumn>(['fringes', 'dates', 'quantity', 'rate', 'x']);
+
+function buildGlobalColumnsForLine(line: BudgetLine, columns: TopSheetColumn[]): string[] {
   return columns.map((col) => {
     switch (col) {
       case 'id':
@@ -129,38 +152,59 @@ function buildColumnsForLine(
       case 'tags':
         return Array.isArray(line.tags) ? safeCell(line.tags.join('; ')) : '';
       case 'contact': {
-        const contact = line.contact;
+        const contact = (line as any).contact; // contact is optional on lines
         return safeCell(contact?.name ?? contact?.company ?? '');
       }
       case 'notes':
-        return safeCell(line.notes ?? '');
-      case 'fringes': {
-        const pd = line.phaseData?.[primaryPhaseId];
-        const list = Array.isArray(pd?.fringes) ? pd.fringes : [];
-        return safeCell(list.join('; '));
-      }
-      case 'dates': {
-        const pd = line.phaseData?.[primaryPhaseId];
-        const start = pd?.date?.startDate ?? '';
-        const end = pd?.date?.endDate ?? '';
-        return start || end ? safeCell(`${start}..${end}`) : '';
-      }
-      case 'quantity': {
-        const q = line.phaseData?.[primaryPhaseId]?.quantity;
-        return formatNumber(q);
-      }
-      case 'rate': {
-        const r = line.phaseData?.[primaryPhaseId]?.rate;
-        return formatNumber(r);
-      }
-      case 'x': {
-        const m = line.phaseData?.[primaryPhaseId]?.multiplier;
-        return formatNumber(m);
-      }
+        return safeCell((line as any).notes ?? '');
       default:
+        // Ignore phase-scoped here
         return '';
     }
   });
+}
+
+function buildPhaseScopedCell(line: BudgetLine, col: TopSheetColumn, phaseId: string): string {
+  const pd = (line as any).phaseData?.[phaseId] as any | undefined;
+  switch (col) {
+    case 'fringes': {
+      const list = Array.isArray(pd?.fringes) ? pd.fringes : [];
+      return safeCell(list.join('; '));
+    }
+    case 'dates': {
+      const start = pd?.date?.startDate ?? '';
+      const end = pd?.date?.endDate ?? '';
+      return start || end ? safeCell(`${start}..${end}`) : '';
+    }
+    case 'quantity':
+      return formatNumber(pd?.quantity);
+    case 'rate':
+      return formatNumber(pd?.rate);
+    case 'x':
+      return formatNumber(pd?.multiplier);
+    default:
+      return '';
+  }
+}
+
+function getLineTotalForPhase(line: BudgetLine, phase: Phase): unknown {
+  const totals = (line as any).totals as Record<string, unknown> | undefined;
+  if (!totals) return undefined;
+  const keys = [phase.alias, phase.id, phase.name].filter(Boolean) as string[];
+  for (const k of keys) {
+    const v = totals[k as keyof typeof totals];
+    if (v !== undefined && v !== null) return v;
+  }
+  return undefined;
+}
+
+function humanizeColumn(col: TopSheetColumn): string {
+  switch (col) {
+    case 'x':
+      return 'multiplier';
+    default:
+      return col;
+  }
 }
 
 /** Escape a CSV cell (basic RFC4180-friendly escaping). */

@@ -21,8 +21,8 @@ export default function ExportPage() {
   const [error, setError] = useState<string | null>(null);
   // Selection state for header actions
   const [columnSelection, setColumnSelection] = useState<string[]>(['id', 'description']);
-  const [phaseSelection, setPhaseSelection] = useState<string[]>([]);
-  const [allPhaseIds, setAllPhaseIds] = useState<string[]>([]);
+  const [phaseSelection, setPhaseSelection] = useState<string[]>([]); // phase aliases
+  const [allPhaseAliases, setAllPhaseAliases] = useState<string[]>([]);
 
   // Redirect to home if no API key
   useEffect(() => {
@@ -124,7 +124,7 @@ export default function ExportPage() {
                 projectId={selectedProjectId}
                 value={phaseSelection}
                 onChange={setPhaseSelection}
-                onLoaded={(phases) => setAllPhaseIds(phases.map((p) => p.id))}
+                onLoaded={(phases) => setAllPhaseAliases(phases.map((p) => p.alias))}
               />
             </CardContent>
             <CardFooter className="justify-between border-t">

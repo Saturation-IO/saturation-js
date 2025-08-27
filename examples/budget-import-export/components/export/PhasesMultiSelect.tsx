@@ -9,8 +9,8 @@ import { Check, CheckSquare, Eraser } from 'lucide-react';
 
 type Props = {
   projectId?: string;
-  value?: string[]; // phase ids
-  onChange?: (phaseIds: string[]) => void;
+  value?: string[]; // phase aliases
+  onChange?: (phaseAliases: string[]) => void;
   onLoaded?: (phases: Phase[]) => void;
   hideInlineActions?: boolean;
 };
@@ -40,7 +40,7 @@ export function PhasesMultiSelect({ projectId, value, onChange, onLoaded, hideIn
         onLoaded?.(phases ?? []);
         // Initialize selection to all phases if empty
         if ((value ?? []).length === 0) {
-          const all = new Set((phases ?? []).map((p) => p.id));
+          const all = new Set((phases ?? []).map((p) => p.alias));
           // Defer notifying parent to after paint to avoid setState-during-render warnings
           setTimeout(() => onChange?.(Array.from(all)), 0);
         }
@@ -64,7 +64,7 @@ export function PhasesMultiSelect({ projectId, value, onChange, onLoaded, hideIn
   };
 
   const selectAll = () => {
-    onChange?.(phases.map((p) => p.id));
+    onChange?.(phases.map((p) => p.alias));
   };
 
   const clearAll = () => {
@@ -91,7 +91,7 @@ export function PhasesMultiSelect({ projectId, value, onChange, onLoaded, hideIn
             <span className="text-xs text-muted-foreground">No phases</span>
           ) : (
             phases.map((phase) => {
-              const isActive = selectedSet.has(phase.id);
+              const isActive = selectedSet.has(phase.alias);
               return (
                 <Button
                   key={phase.id}
@@ -100,7 +100,7 @@ export function PhasesMultiSelect({ projectId, value, onChange, onLoaded, hideIn
                   size="sm"
                   className="capitalize"
                   aria-pressed={isActive}
-                  onClick={() => toggle(phase.id)}
+                  onClick={() => toggle(phase.alias)}
                 >
                   {isActive && <Check className="mr-1.5" />}
                   {phase.alias || phase.name || phase.id}
