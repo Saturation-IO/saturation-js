@@ -116,10 +116,9 @@ export function budgetToCsv(budget: Budget, options: BudgetToCsvOptions = {}): s
   // For each second-level account, create its own table. Inline third-level children as subrows.
   for (const acc of secondLevelAccounts) {
     const rows: string[][] = [];
-    // Table title row
+    // Table title row (omit per-table headers)
     const title = `Account ${acc.accountId ?? acc.id}${acc.description ? ` - ${acc.description}` : ''}`;
     rows.push([title, ...Array(Math.max(0, headers.length - 1)).fill('')]);
-    if (includeHeaders) rows.push(headers);
     let dataRowCount = 0;
     for (const line of acc.lines) {
       if (!includeLineTypes.includes(line.type)) continue;
