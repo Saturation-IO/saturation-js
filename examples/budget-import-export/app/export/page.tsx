@@ -135,6 +135,8 @@ export default function ExportPage() {
                 <ExportCsvButton
                   projectId={selectedProjectId}
                   projectName={projects.find(p => p.id === selectedProjectId)?.name || undefined}
+                  columns={columnSelection}
+                  phases={phaseSelection}
                 />
                 <Button variant="outline" disabled={!selectedProjectId}>
                   Export to Google Sheets

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Check, CheckSquare, Eraser } from 'lucide-react';
@@ -27,32 +27,25 @@ type Props = {
 };
 
 export function ColumnsMultiSelect({ value, onChange, hideInlineActions }: Props) {
-  const [internal, setInternal] = useState<Set<ColumnKey>>(
-    new Set(value ?? ['id', 'description'])
+  const selectedSet = useMemo(
+    () => new Set<ColumnKey>((value as ColumnKey[] | undefined) ?? ['id', 'description']),
+    [value]
   );
-
-  const selected = useMemo(() => Array.from(internal), [internal]);
+  const selected = useMemo(() => Array.from(selectedSet), [selectedSet]);
 
   const toggle = (key: ColumnKey) => {
-    setInternal((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      onChange?.(Array.from(next));
-      return next;
-    });
+    const next = new Set<ColumnKey>(selectedSet);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    onChange?.(Array.from(next));
   };
 
   const selectAll = () => {
-    const next = new Set<ColumnKey>(COLUMN_KEYS);
-    setInternal(next);
-    onChange?.(Array.from(next));
+    onChange?.(Array.from(COLUMN_KEYS));
   };
 
   const clearAll = () => {
-    const next = new Set<ColumnKey>();
-    setInternal(next);
-    onChange?.(Array.from(next));
+    onChange?.([]);
   };
 
   return (
@@ -67,7 +60,7 @@ export function ColumnsMultiSelect({ value, onChange, hideInlineActions }: Props
       </div>
       <div id="columns" className="flex flex-wrap gap-2">
         {COLUMN_KEYS.map((col) => {
-          const isActive = internal.has(col);
+          const isActive = selectedSet.has(col);
           return (
             <Button
               key={col}

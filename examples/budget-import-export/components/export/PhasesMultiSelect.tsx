@@ -20,12 +20,10 @@ export function PhasesMultiSelect({ projectId, value, onChange, onLoaded, hideIn
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [phases, setPhases] = useState<Phase[]>([]);
-  const [internal, setInternal] = useState<Set<string>>(new Set(value ?? []));
+  // Controlled selection: derive from value
+  const selectedSet = useMemo(() => new Set<string>(value ?? []), [value]);
 
-  // Sync external value
-  useEffect(() => {
-    if (value) setInternal(new Set(value));
-  }, [value]);
+  // No internal selection state to sync
 
   useEffect(() => {
     const load = async () => {
@@ -43,8 +41,8 @@ export function PhasesMultiSelect({ projectId, value, onChange, onLoaded, hideIn
         // Initialize selection to all phases if empty
         if ((value ?? []).length === 0) {
           const all = new Set((phases ?? []).map((p) => p.id));
-          setInternal(all);
-          onChange?.(Array.from(all));
+          // Defer notifying parent to after paint to avoid setState-during-render warnings
+          setTimeout(() => onChange?.(Array.from(all)), 0);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load phases');
@@ -56,28 +54,21 @@ export function PhasesMultiSelect({ projectId, value, onChange, onLoaded, hideIn
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, saturation]);
 
-  const selected = useMemo(() => Array.from(internal), [internal]);
+  const selected = useMemo(() => Array.from(selectedSet), [selectedSet]);
 
   const toggle = (id: string) => {
-    setInternal((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      onChange?.(Array.from(next));
-      return next;
-    });
+    const next = new Set(selectedSet);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    onChange?.(Array.from(next));
   };
 
   const selectAll = () => {
-    const next = new Set<string>(phases.map((p) => p.id));
-    setInternal(next);
-    onChange?.(Array.from(next));
+    onChange?.(phases.map((p) => p.id));
   };
 
   const clearAll = () => {
-    const next = new Set<string>();
-    setInternal(next);
-    onChange?.(Array.from(next));
+    onChange?.([]);
   };
 
   return (
@@ -100,7 +91,7 @@ export function PhasesMultiSelect({ projectId, value, onChange, onLoaded, hideIn
             <span className="text-xs text-muted-foreground">No phases</span>
           ) : (
             phases.map((phase) => {
-              const isActive = internal.has(phase.id);
+              const isActive = selectedSet.has(phase.id);
               return (
                 <Button
                   key={phase.id}

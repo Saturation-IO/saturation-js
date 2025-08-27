@@ -9,9 +9,11 @@ import { fetchBudgetTopSheet, budgetTopSheetToCsv } from '@/lib/budgetCsv';
 type Props = {
   projectId?: string;
   projectName?: string;
+  columns?: string[];
+  phases?: string[];
 };
 
-export function ExportCsvButton({ projectId, projectName }: Props) {
+export function ExportCsvButton({ projectId, projectName, columns, phases }: Props) {
   const saturation = useSaturation();
   const [loading, setLoading] = useState(false);
   const [rowCount, setRowCount] = useState<number | null>(null);
@@ -25,7 +27,11 @@ export function ExportCsvButton({ projectId, projectName }: Props) {
       setLoading(true);
       toast('Export started', { description: 'Loading budget topsheet…' });
       const budget = await fetchBudgetTopSheet(saturation, projectId);
-      const csv = budgetTopSheetToCsv(budget);
+      const csv = budgetTopSheetToCsv(budget, {
+        includeHeaders: true,
+        columns: (columns as any) || undefined,
+        phases: phases || undefined,
+      });
       const lines = csv.split('\n').filter(Boolean);
       const count = Math.max(0, lines.length - 1); // exclude header
       setRowCount(count);
