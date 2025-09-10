@@ -168,6 +168,19 @@ export class Saturation {
     });
   }
 
+  
+  async listBudgetAccounts(
+    projectId: string,
+    params?: Types.ListBudgetAccountsData['query'],
+  ): Promise<{ budgetLines: Types.AccountSummary[] }> {
+    const result = await sdk.listBudgetAccounts({
+      client: this.client,
+      path: { projectId },
+      query: params,
+    });
+    return result.data as { budgetLines: Types.AccountSummary[] };
+  }
+
   // Actuals
 
   async listActuals(
