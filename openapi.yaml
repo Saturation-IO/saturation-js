@@ -1,7 +1,7 @@
   openapi: 3.0.3
   info:
     title: ⚒️ API Reference
-    version: 1.0.0
+    version: 1.0.1
     description: |
       The **Saturation API** lets you work with your workspace data including projects, budgets, actuals, contacts, purchase orders, and attachments.
 
@@ -86,6 +86,7 @@
     - name: Project
       tags:
         - Budget
+        - Budget - Accounts
         - Budget - Phases
         - Budget - Fringes
         - Budget - Globals
@@ -695,7 +696,7 @@
               type: array
               items:
                 type: string
-                enum: [contact, subactual, account]
+                enum: [contact, subactual, account, subactual.account]
             style: form
             explode: true
             example: ["contact", "account"]
@@ -1554,6 +1555,74 @@
         responses:
           '204':
             description: Global deleted successfully
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /projects/{projectId}/budget/accounts:
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      
+      get:
+        operationId: listBudgetAccounts
+        summary: List budget accounts
+        description: |-
+          Get a list of all budget accounts in your project, organized from top to bottom.
+          
+          Returns every account that appears as its own section in your budget. Each account 
+          is a budget category (like "Camera Department" or "Post-Production") that contains 
+          its own line items and subtotals.
+          
+          Perfect for:
+          - Building dropdown menus to select accounts
+          - Showing where you are in the budget (like breadcrumbs: Production > Camera > Equipment)
+          - Getting all account names and codes without loading the entire budget
+          - Understanding your budget's organization
+          
+          The accounts come back in a natural reading order—parent accounts first, then their 
+          children. For example: [/1000 Production, /1000/1100 Camera, /1000/1200 Sound, /2000 Post]
+          
+          Each account includes a path showing its location in your budget structure. For instance, 
+          "/2000/2100" means account 2100 sits inside account 2000.
+        tags:
+          - Budget - Accounts
+        responses:
+          '200':
+            description: List of budget accounts in hierarchical order
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    accounts:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/AccountSummary'
+                example:
+                  accounts:
+                    - id: "abc123"
+                      accountId: "1000"
+                      path: "/1000"
+                      description: "Above-the-Line"
+                    - id: "def456"
+                      accountId: "1100"
+                      path: "/1000/1100"
+                      description: "Directors"
+                    - id: "ghi789"
+                      accountId: "1200"
+                      path: "/1000/1200"
+                      description: "Producers"
+                    - id: "jkl012"
+                      accountId: "2000"
+                      path: "/2000"
+                      description: "Below-the-Line"
+                    - id: "mno345"
+                      accountId: "2100"
+                      path: "/2000/2100"
+                      description: "Camera Department"
           '401':
             $ref: '#/components/responses/Unauthorized'
           '404':
@@ -2863,7 +2932,7 @@
         schema:
           type: string
           format: date-time
-        example: "2024-01-01"
+        example: "2024-01-01T00:00:00Z"
       
       EndDate:
         name: endDate
@@ -2872,7 +2941,7 @@
         schema:
           type: string
           format: date-time
-        example: "2024-01-31"
+        example: "2024-01-31T23:59:59Z"
       
       HasAttachments:
         name: hasAttachments
@@ -3164,11 +3233,51 @@
               variance: 25000.00
           contact:
             $ref: '#/components/schemas/Contact'
+          lastModified:
+            type: string
+            format: date-time
+            description: Last modification time (ISO 8601). Updated whenever the actual or any of its persisted fields change
+            readOnly: true
+            example: "2024-03-15T14:30:00Z"
         required:
           - id
           - path
           - lines
           - totals
+
+      AccountSummary:
+        type: object
+        description: Lightweight account representation for listing endpoints
+        properties:
+          id:
+            type: string
+            description: Account system identifier
+            example: acc-xyz-789
+          accountId:
+            type: string
+            nullable: true
+            description: User-friendly account code/number
+            example: "2150"
+          path:
+            type: string
+            description: Hierarchical path in budget tree
+            example: /2000/2150
+          description:
+            type: string
+            nullable: true
+            description: Account description
+            example: Camera Equipment
+          lastModified:
+            type: string
+            format: date-time
+            description: Last modification time (ISO 8601). Updated whenever this sub-actual or any of its persisted fields change
+            readOnly: true
+            example: "2024-03-15T14:30:00Z"
+        required:
+          - id
+          - accountId
+          - path
+          - description
 
       BudgetLine:
         type: object
@@ -3226,6 +3335,11 @@
             additionalProperties:
               $ref: '#/components/schemas/LinePhaseData'
             description: Detailed phase-specific data (expandable)
+          lastModified:
+            type: string
+            format: date-time
+            description: Last modification time (ISO 8601)
+            example: "2024-03-15T14:30:00Z"
         required:
           - type
           - id
@@ -3502,12 +3616,18 @@
               type: string
             description: Phase IDs to aggregate (for rollup phases)
             example: ["estimate", "actual"]
+          lastModified:
+            type: string
+            format: date-time
+            description: Last modification time (ISO 8601)
+            example: "2024-03-15T14:30:00Z"
         required:
           - type
           - id
           - alias
           - isHidden
           - isLocked
+          - lastModified
 
       Fringe:
         type: object
@@ -3541,9 +3661,15 @@
             nullable: true
             description: Maximum salary subject to this fringe
             example: 160200
+          lastModified:
+            type: string
+            format: date-time
+            description: Last modification time (ISO 8601)
+            example: "2024-03-15T14:30:00Z"
         required:
           - id
           - units
+          - lastModified
 
       Global:
         type: object
@@ -3572,8 +3698,14 @@
             nullable: true
             description: Formula expression for calculating value
             example: "1.08"
+          lastModified:
+            type: string
+            format: date-time
+            description: Last modification time (ISO 8601)
+            example: "2024-03-15T14:30:00Z"
         required:
           - id
+          - lastModified
 
       Actual:
         type: object
@@ -3664,9 +3796,15 @@
             description: Sub-actual entries
           account:
             $ref: '#/components/schemas/BudgetLine'
+          lastModified:
+            type: string
+            format: date-time
+            description: Last modification time (ISO 8601)
+            example: "2024-03-15T14:30:00Z"
         required:
           - id
           - expanded
+          - lastModified
 
       SubActual:
         type: object
@@ -3698,9 +3836,15 @@
             example: /marketing/social-media
           account:
             $ref: '#/components/schemas/BudgetLine'
+          lastModified:
+            type: string
+            format: date-time
+            description: Last modification time (ISO 8601)
+            example: "2024-03-15T14:30:00Z"
         required:
           - id
           - amount
+          - lastModified
 
       Contact:
         type: object
@@ -3745,6 +3889,11 @@
             nullable: true
             description: Contact hourly rate
             example: 150.00
+          lastModified:
+            type: string
+            format: date-time
+            description: Last modification time (ISO 8601)
+            example: "2024-03-15T14:30:00Z"
           secureInfo:
             $ref: '#/components/schemas/ContactSecureInfo'
           origin:
@@ -3778,6 +3927,7 @@
             description: Associated projects
         required:
           - id
+          - lastModified
 
       ContactSecureInfo:
         type: object
@@ -4075,11 +4225,17 @@
             items:
               $ref: '#/components/schemas/Actual'
             description: Associated actual entries
+          lastModified:
+            type: string
+            format: date-time
+            description: Last modification time (ISO 8601)
+            example: "2024-03-15T14:30:00Z"
         required:
           - id
           - amount
           - paidAmount
           - status
+          - lastModified
 
       CreatePurchaseOrderInput:
         type: object
@@ -4373,11 +4529,17 @@
             example: /production/camera
           account:
             $ref: '#/components/schemas/BudgetLine'
+          lastModified:
+            type: string
+            format: date-time
+            description: Last modification time (ISO 8601)
+            example: "2024-03-15T14:30:00Z"
         required:
           - id
           - quantity
           - unitPrice
           - totalPrice
+          - lastModified
 
       Transaction:
         type: object
@@ -5431,6 +5593,9 @@
       description: |
         Set project-wide variables (e.g., exchange rates, shoot days, overhead %)  
         for use in formulas. Updating globals auto-recalculates dependent lines.
+    - name: Budget - Accounts
+      description: |
+        List all the budget accounts with children (i.e. Expanded Accounts)
     - name: Comments
       description: |
         Add notes and discussions directly on budget lines.  

@@ -2,8 +2,12 @@ import { createClient, type Config } from './generated/client/index.js';
 import * as sdk from './generated/sdk.gen.js';
 import type * as Types from './generated/types.gen.js';
 
-export interface SaturationOptions {
+export type SaturationOptions = {
   apiKey: string;
+  baseURL?: string;
+} | {
+  authToken: string;
+  workspaceId: string;
   baseURL?: string;
 }
 
@@ -11,10 +15,20 @@ export class Saturation {
   private client: ReturnType<typeof createClient>;
 
   constructor(options: SaturationOptions) {
+    const headers =
+      'apiKey' in options
+        ? {
+            'X-API-Key': options.apiKey,
+          }
+        : {
+            Authorization: `Bearer ${options.authToken}`,
+            'X-Workspace-Id': options.workspaceId,
+          };
+
     const config: Config = {
       baseUrl: options.baseURL || 'https://api.saturation.io/api/v1',
       headers: {
-        'X-API-Key': options.apiKey,
+        ...headers,
       },
       // Custom query serializer to handle arrays with bracket notation
       querySerializer: (queryParams: Record<string, unknown>) => {
@@ -152,6 +166,19 @@ export class Saturation {
       path: { projectId, lineId },
       query: { idMode },
     });
+  }
+
+  
+  async listBudgetAccounts(
+    projectId: string,
+    params?: Types.ListBudgetAccountsData['query'],
+  ): Promise<{ budgetLines: Types.AccountSummary[] }> {
+    const result = await sdk.listBudgetAccounts({
+      client: this.client,
+      path: { projectId },
+      query: params,
+    });
+    return result.data as { budgetLines: Types.AccountSummary[] };
   }
 
   // Actuals

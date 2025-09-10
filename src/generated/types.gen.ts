@@ -228,6 +228,36 @@ export type Account = {
         [key: string]: number;
     };
     contact?: Contact;
+    /**
+     * Last modification time (ISO 8601). Updated whenever the actual or any of its persisted fields change
+     */
+    readonly lastModified?: string;
+};
+
+/**
+ * Lightweight account representation for listing endpoints
+ */
+export type AccountSummary = {
+    /**
+     * Account system identifier
+     */
+    id: string;
+    /**
+     * User-friendly account code/number
+     */
+    accountId: string | null;
+    /**
+     * Hierarchical path in budget tree
+     */
+    path: string;
+    /**
+     * Account description
+     */
+    description: string | null;
+    /**
+     * Last modification time (ISO 8601). Updated whenever this sub-actual or any of its persisted fields change
+     */
+    readonly lastModified?: string;
 };
 
 export type BudgetLine = {
@@ -268,6 +298,10 @@ export type BudgetLine = {
     phaseData?: {
         [key: string]: LinePhaseData;
     };
+    /**
+     * Last modification time (ISO 8601)
+     */
+    lastModified?: string;
 };
 
 export type BudgetLineItem = BudgetLine & {
@@ -489,6 +523,10 @@ export type Phase = {
      * Phase IDs to aggregate (for rollup phases)
      */
     phaseIds?: Array<string>;
+    /**
+     * Last modification time (ISO 8601)
+     */
+    lastModified: string;
 };
 
 export type Fringe = {
@@ -516,6 +554,10 @@ export type Fringe = {
      * Maximum salary subject to this fringe
      */
     cutoff?: number | null;
+    /**
+     * Last modification time (ISO 8601)
+     */
+    lastModified: string;
 };
 
 export type Global = {
@@ -539,6 +581,10 @@ export type Global = {
      * Formula expression for calculating value
      */
     formula?: string | null;
+    /**
+     * Last modification time (ISO 8601)
+     */
+    lastModified: string;
 };
 
 export type Actual = {
@@ -608,6 +654,10 @@ export type Actual = {
      */
     subactuals?: Array<SubActual>;
     account?: BudgetLine;
+    /**
+     * Last modification time (ISO 8601)
+     */
+    lastModified: string;
 };
 
 export type SubActual = {
@@ -632,6 +682,10 @@ export type SubActual = {
      */
     accountId?: string | null;
     account?: BudgetLine;
+    /**
+     * Last modification time (ISO 8601)
+     */
+    lastModified: string;
 };
 
 export type Contact = {
@@ -667,6 +721,10 @@ export type Contact = {
      * Contact hourly rate
      */
     rate?: number | null;
+    /**
+     * Last modification time (ISO 8601)
+     */
+    lastModified: string;
     secureInfo?: ContactSecureInfo;
     origin?: ContactOrigin;
     /**
@@ -934,6 +992,10 @@ export type PurchaseOrder = {
      * Associated actual entries
      */
     actuals?: Array<Actual>;
+    /**
+     * Last modification time (ISO 8601)
+     */
+    lastModified: string;
 };
 
 /**
@@ -1194,6 +1256,10 @@ export type PurchaseOrderItem = {
      */
     accountId?: string | null;
     account?: BudgetLine;
+    /**
+     * Last modification time (ISO 8601)
+     */
+    lastModified: string;
 };
 
 export type Transaction = {
@@ -2631,7 +2697,7 @@ export type GetActualData = {
         /**
          * Include related data in the response
          */
-        expands?: Array<'contact' | 'subactual' | 'account'>;
+        expands?: Array<'contact' | 'subactual' | 'account' | 'subactual.account'>;
         /**
          * ID interpretation mode. Controls how path and query parameter IDs (like lineId, accountId, phaseId) are interpreted - 'user' for human-readable IDs (account codes, phase names), 'system' for database IDs (UUIDs/nanoids). Also affects the format of IDs in responses.
          */
@@ -3779,6 +3845,46 @@ export type UpdateBudgetGlobalResponses = {
 };
 
 export type UpdateBudgetGlobalResponse = UpdateBudgetGlobalResponses[keyof UpdateBudgetGlobalResponses];
+
+export type ListBudgetAccountsData = {
+    body?: never;
+    path: {
+        /**
+         * Project identifier (alias or ID)
+         */
+        projectId: string;
+    };
+    query?: never;
+    url: '/projects/{projectId}/budget/accounts';
+};
+
+export type ListBudgetAccountsErrors = {
+    /**
+     * Unauthorized - invalid or missing API key
+     */
+    401: _Error;
+    /**
+     * Resource not found
+     */
+    404: _Error;
+    /**
+     * Internal server error
+     */
+    500: _Error;
+};
+
+export type ListBudgetAccountsError = ListBudgetAccountsErrors[keyof ListBudgetAccountsErrors];
+
+export type ListBudgetAccountsResponses = {
+    /**
+     * List of budget accounts in hierarchical order
+     */
+    200: {
+        accounts?: Array<AccountSummary>;
+    };
+};
+
+export type ListBudgetAccountsResponse = ListBudgetAccountsResponses[keyof ListBudgetAccountsResponses];
 
 export type ListCommentsData = {
     body?: never;
