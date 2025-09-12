@@ -545,7 +545,7 @@ export type Fringe = {
     /**
      * Fringe calculation units
      */
-    units: 'percent' | 'flat';
+    units: 'percent' | 'flat' | 'total';
     /**
      * Fringe rate (decimal for percent, amount for flat)
      */
@@ -1856,7 +1856,7 @@ export type CreateFringeRequest = {
     /**
      * Fringe calculation units
      */
-    units: 'percent' | 'flat';
+    units: 'percent' | 'flat' | 'total';
     /**
      * Fringe rate (decimal for percent, amount for flat)
      */
@@ -1886,7 +1886,7 @@ export type UpdateFringeRequest = {
     /**
      * Updated units
      */
-    units?: 'percent' | 'flat';
+    units?: 'percent' | 'flat' | 'total';
     /**
      * Updated rate
      */
@@ -2322,6 +2322,10 @@ export type GetBudgetData = {
          */
         includeHiddenPhases?: boolean;
         /**
+         * Exclude sub-accounts from the response
+         */
+        excludeSubAccounts?: boolean;
+        /**
          * Filter budget by tag names (can be single tag or array of tags)
          */
         tags?: string | Array<string>;
@@ -2469,6 +2473,10 @@ export type GetBudgetLineData = {
         lineId: string;
     };
     query?: {
+        /**
+         * Include hidden phases in the response
+         */
+        includeHiddenPhases?: boolean;
         /**
          * Filter budget line by tag names (can be single tag or array of tags)
          */
