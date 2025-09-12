@@ -328,6 +328,12 @@
             schema:
               type: boolean
             example: false
+          - name: excludeSubAccounts
+            in: query
+            description: Exclude sub-accounts from the response
+            schema:
+              type: boolean
+            example: false
           - name: tags
             in: query
             description: Filter budget by tag names (can be single tag or array of tags)
@@ -467,6 +473,12 @@
         tags:
           - Budget
         parameters:
+          - name: includeHiddenPhases
+            in: query
+            description: Include hidden phases in the response
+            schema:
+              type: boolean
+            example: false
           - name: tags
             in: query
             description: Filter budget line by tag names (can be single tag or array of tags)
@@ -3648,7 +3660,7 @@
             example: Social Security Tax
           units:
             type: string
-            enum: [percent, flat]
+            enum: [percent, flat, total]
             description: Fringe calculation units
             example: percent
           rate:
@@ -5277,7 +5289,7 @@
             example: "Social Security Tax"
           units:
             type: string
-            enum: ["percent", "flat"]
+            enum: ["percent", "flat", "total"]
             description: Fringe calculation units
             example: "percent"
           rate:
@@ -5314,7 +5326,7 @@
             example: "Social Security Tax 2024"
           units:
             type: string
-            enum: ["percent", "flat"]
+            enum: ["percent", "flat", "total"]
             description: Updated units
             example: "percent"
           rate:
