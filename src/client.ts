@@ -2,14 +2,16 @@ import { createClient, type Config } from './generated/client/index.js';
 import * as sdk from './generated/sdk.gen.js';
 import type * as Types from './generated/types.gen.js';
 
-export type SaturationOptions = {
-  apiKey: string;
-  baseURL?: string;
-} | {
-  authToken: string;
-  workspaceId: string;
-  baseURL?: string;
-}
+export type SaturationOptions =
+  | {
+      apiKey: string;
+      baseURL?: string;
+    }
+  | {
+      authToken: string;
+      workspaceId: string;
+      baseURL?: string;
+    };
 
 export class Saturation {
   private client: ReturnType<typeof createClient>;
@@ -168,7 +170,6 @@ export class Saturation {
     });
   }
 
-  
   async listBudgetAccounts(
     projectId: string,
     params?: Types.ListBudgetAccountsData['query'],
