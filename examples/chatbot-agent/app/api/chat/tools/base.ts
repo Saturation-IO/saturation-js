@@ -348,7 +348,10 @@ export const UpdateTransactionInputSchema: z.ZodType<UpdateTransactionInput> = z
 const safe = <I, R>(fn: (input: I) => Promise<R>) =>
   async (input: I) => {
     try {
-      return await fn(input)
+      console.log(input)
+      const ret = await fn(input)
+      console.log(ret)
+      return ret
     } catch (err) {
       console.error(err)
       const errorMessage = err instanceof Error ? err.message : "Unknown error"
@@ -410,7 +413,11 @@ export const createBudgetLinesTool = (saturation: Saturation) =>
   tool({
     description: "Create budget lines in a project.",
     inputSchema: z.object({ projectId: z.string(), data: CreateBudgetLinesInputSchema }),
-    execute: safe(async ({ projectId, data }) => saturation.createBudgetLines(projectId, data)),
+    execute: safe(async ({ projectId, data }) => {
+      const ret = await saturation.createBudgetLines(projectId, data)
+      console.log(ret)
+      return ret
+    }),
   })
 
 export const getBudgetLineTool = (saturation: Saturation) =>
