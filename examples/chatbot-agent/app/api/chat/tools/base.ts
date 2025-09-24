@@ -53,12 +53,22 @@ export const CreateBudgetLinesInputSchema: z.ZodType<CreateBudgetInput> = z.obje
   accountId: z.string().optional(),
   lines: z
     .array(
-      z.object({
-        type: z.enum(["line", "account", "subtotal", "markup"]).optional(),
-        accountId: z.string().optional(),
-        description: z.string().optional(),
-        phaseData: z.record(z.unknown()).optional(),
-      })
+      (() => {
+        const PhaseLineDataSchema = z.object({
+          quantity: z.number().nullable().optional(),
+          unit: z.string().nullable().optional(),
+          rate: z.number().nullable().optional(),
+          multiplier: z.number().nullable().optional(),
+          fringes: z.array(z.string()).optional(),
+        })
+        return z.object({
+          type: z.enum(["line", "account", "subtotal", "markup"]).optional(),
+          accountId: z.string().optional(),
+          description: z.string().optional(),
+          // Per-phase details keyed by phaseId or alias
+          phaseData: z.record(PhaseLineDataSchema).optional(),
+        })
+      })()
     )
     .optional(),
   insert: z
@@ -369,14 +379,14 @@ export const createProjectTool = (saturation: Saturation) =>
   tool({
     description: "Create a project.",
     inputSchema: z.object({ data: CreateProjectInputSchema }),
-    execute: safe(async ({ data }) => saturation.createProject(data as any)),
+    execute: safe(async ({ data }) => saturation.createProject(data)),
   })
 
 export const updateProjectTool = (saturation: Saturation) =>
   tool({
     description: "Update a project.",
     inputSchema: z.object({ projectId: z.string(), data: UpdateProjectInputSchema }),
-    execute: safe(async ({ projectId, data }) => saturation.updateProject(projectId, data as any)),
+    execute: safe(async ({ projectId, data }) => saturation.updateProject(projectId, data)),
   })
 
 export const deleteProjectTool = (saturation: Saturation) =>
@@ -400,7 +410,7 @@ export const createBudgetLinesTool = (saturation: Saturation) =>
   tool({
     description: "Create budget lines in a project.",
     inputSchema: z.object({ projectId: z.string(), data: CreateBudgetLinesInputSchema }),
-    execute: safe(async ({ projectId, data }) => saturation.createBudgetLines(projectId, data as any)),
+    execute: safe(async ({ projectId, data }) => saturation.createBudgetLines(projectId, data)),
   })
 
 export const getBudgetLineTool = (saturation: Saturation) =>
@@ -414,7 +424,7 @@ export const updateBudgetLineTool = (saturation: Saturation) =>
   tool({
     description: "Update a budget line.",
     inputSchema: z.object({ projectId: z.string(), lineId: z.string(), data: UpdateBudgetLineRequestSchema }),
-    execute: safe(async ({ projectId, lineId, data }) => saturation.updateBudgetLine(projectId, lineId, data as any)),
+    execute: safe(async ({ projectId, lineId, data }) => saturation.updateBudgetLine(projectId, lineId, data)),
   })
 
 export const deleteBudgetLineTool = (saturation: Saturation) =>
@@ -452,14 +462,14 @@ export const createActualTool = (saturation: Saturation) =>
   tool({
     description: "Create an actual.",
     inputSchema: z.object({ projectId: z.string(), actualId: z.string(), data: CreateActualInputSchema }),
-    execute: safe(async ({ projectId, actualId, data }) => saturation.createActual(projectId, actualId, data as any)),
+    execute: safe(async ({ projectId, actualId, data }) => saturation.createActual(projectId, actualId, data)),
   })
 
 export const updateActualTool = (saturation: Saturation) =>
   tool({
     description: "Update an actual.",
     inputSchema: z.object({ projectId: z.string(), actualId: z.string(), data: UpdateActualInputSchema }),
-    execute: safe(async ({ projectId, actualId, data }) => saturation.updateActual(projectId, actualId, data as any)),
+    execute: safe(async ({ projectId, actualId, data }) => saturation.updateActual(projectId, actualId, data)),
   })
 
 export const deleteActualTool = (saturation: Saturation) =>
@@ -490,14 +500,14 @@ export const createPurchaseOrderTool = (saturation: Saturation) =>
   tool({
     description: "Create a purchase order.",
     inputSchema: z.object({ projectId: z.string(), purchaseOrderId: z.string(), data: CreatePurchaseOrderInputSchema }),
-    execute: safe(async ({ projectId, purchaseOrderId, data }) => saturation.createPurchaseOrder(projectId, purchaseOrderId, data as any)),
+    execute: safe(async ({ projectId, purchaseOrderId, data }) => saturation.createPurchaseOrder(projectId, purchaseOrderId, data)),
   })
 
 export const updatePurchaseOrderTool = (saturation: Saturation) =>
   tool({
     description: "Update a purchase order.",
     inputSchema: z.object({ projectId: z.string(), purchaseOrderId: z.string(), data: UpdatePurchaseOrderInputSchema }),
-    execute: safe(async ({ projectId, purchaseOrderId, data }) => saturation.updatePurchaseOrder(projectId, purchaseOrderId, data as any)),
+    execute: safe(async ({ projectId, purchaseOrderId, data }) => saturation.updatePurchaseOrder(projectId, purchaseOrderId, data)),
   })
 
 export const deletePurchaseOrderTool = (saturation: Saturation) =>
@@ -528,14 +538,14 @@ export const createBudgetPhaseTool = (saturation: Saturation) =>
   tool({
     description: "Create a budget phase.",
     inputSchema: z.object({ projectId: z.string(), data: CreatePhaseRequestSchema }),
-    execute: safe(async ({ projectId, data }) => saturation.createBudgetPhase(projectId, data as any)),
+    execute: safe(async ({ projectId, data }) => saturation.createBudgetPhase(projectId, data)),
   })
 
 export const updateBudgetPhaseTool = (saturation: Saturation) =>
   tool({
     description: "Update a budget phase.",
     inputSchema: z.object({ projectId: z.string(), phaseId: z.string(), data: UpdatePhaseRequestSchema }),
-    execute: safe(async ({ projectId, phaseId, data }) => saturation.updateBudgetPhase(projectId, phaseId, data as any)),
+    execute: safe(async ({ projectId, phaseId, data }) => saturation.updateBudgetPhase(projectId, phaseId, data)),
   })
 
 export const deleteBudgetPhaseTool = (saturation: Saturation) =>
@@ -566,14 +576,14 @@ export const createBudgetFringeTool = (saturation: Saturation) =>
   tool({
     description: "Create a budget fringe.",
     inputSchema: z.object({ projectId: z.string(), data: CreateFringeRequestSchema }),
-    execute: safe(async ({ projectId, data }) => saturation.createBudgetFringe(projectId, data as any)),
+    execute: safe(async ({ projectId, data }) => saturation.createBudgetFringe(projectId, data)),
   })
 
 export const updateBudgetFringeTool = (saturation: Saturation) =>
   tool({
     description: "Update a budget fringe.",
     inputSchema: z.object({ projectId: z.string(), fringeId: z.string(), data: UpdateFringeRequestSchema }),
-    execute: safe(async ({ projectId, fringeId, data }) => saturation.updateBudgetFringe(projectId, fringeId, data as any)),
+    execute: safe(async ({ projectId, fringeId, data }) => saturation.updateBudgetFringe(projectId, fringeId, data)),
   })
 
 export const deleteBudgetFringeTool = (saturation: Saturation) =>
@@ -604,14 +614,14 @@ export const createBudgetGlobalTool = (saturation: Saturation) =>
   tool({
     description: "Create a budget global.",
     inputSchema: z.object({ projectId: z.string(), data: CreateGlobalRequestSchema }),
-    execute: safe(async ({ projectId, data }) => saturation.createBudgetGlobal(projectId, data as any)),
+    execute: safe(async ({ projectId, data }) => saturation.createBudgetGlobal(projectId, data)),
   })
 
 export const updateBudgetGlobalTool = (saturation: Saturation) =>
   tool({
     description: "Update a budget global.",
     inputSchema: z.object({ projectId: z.string(), globalId: z.string(), data: UpdateGlobalRequestSchema }),
-    execute: safe(async ({ projectId, globalId, data }) => saturation.updateBudgetGlobal(projectId, globalId, data as any)),
+    execute: safe(async ({ projectId, globalId, data }) => saturation.updateBudgetGlobal(projectId, globalId, data)),
   })
 
 export const deleteBudgetGlobalTool = (saturation: Saturation) =>
@@ -642,14 +652,14 @@ export const createTagTool = (saturation: Saturation) =>
   tool({
     description: "Create a tag in a project.",
     inputSchema: z.object({ projectId: z.string(), data: CreateTagRequestSchema }),
-    execute: safe(async ({ projectId, data }) => saturation.createTag(projectId, data as any)),
+    execute: safe(async ({ projectId, data }) => saturation.createTag(projectId, data)),
   })
 
 export const updateTagTool = (saturation: Saturation) =>
   tool({
     description: "Update a tag in a project.",
     inputSchema: z.object({ projectId: z.string(), tagId: z.string(), data: UpdateTagRequestSchema }),
-    execute: safe(async ({ projectId, tagId, data }) => saturation.updateTag(projectId, tagId, data as any)),
+    execute: safe(async ({ projectId, tagId, data }) => saturation.updateTag(projectId, tagId, data)),
   })
 
 export const deleteTagTool = (saturation: Saturation) =>
@@ -680,14 +690,14 @@ export const createContactTool = (saturation: Saturation) =>
   tool({
     description: "Create a contact.",
     inputSchema: z.object({ data: CreateContactInputSchema }),
-    execute: safe(async ({ data }) => saturation.createContact(data as any)),
+    execute: safe(async ({ data }) => saturation.createContact(data)),
   })
 
 export const updateContactTool = (saturation: Saturation) =>
   tool({
     description: "Update a contact.",
     inputSchema: z.object({ contactId: z.string(), data: UpdateContactInputSchema }),
-    execute: safe(async ({ contactId, data }) => saturation.updateContact(contactId, data as any)),
+    execute: safe(async ({ contactId, data }) => saturation.updateContact(contactId, data)),
   })
 
 export const listSpacesTool = (saturation: Saturation) =>
@@ -708,14 +718,14 @@ export const createSpaceTool = (saturation: Saturation) =>
   tool({
     description: "Create a space.",
     inputSchema: z.object({ data: CreateSpaceInputSchema }),
-    execute: safe(async ({ data }) => saturation.createSpace(data as any)),
+    execute: safe(async ({ data }) => saturation.createSpace(data)),
   })
 
 export const updateSpaceTool = (saturation: Saturation) =>
   tool({
     description: "Update a space.",
     inputSchema: z.object({ spaceId: z.string(), data: UpdateSpaceInputSchema }),
-    execute: safe(async ({ spaceId, data }) => saturation.updateSpace(spaceId, data as any)),
+    execute: safe(async ({ spaceId, data }) => saturation.updateSpace(spaceId, data)),
   })
 
 export const deleteSpaceTool = (saturation: Saturation) =>
@@ -746,14 +756,14 @@ export const createWorkspaceRateTool = (saturation: Saturation) =>
   tool({
     description: "Create a workspace rate.",
     inputSchema: z.object({ data: CreateRateInputSchema }),
-    execute: safe(async ({ data }) => saturation.createWorkspaceRate(data as any)),
+    execute: safe(async ({ data }) => saturation.createWorkspaceRate(data)),
   })
 
 export const updateWorkspaceRateTool = (saturation: Saturation) =>
   tool({
     description: "Update a workspace rate.",
     inputSchema: z.object({ rateId: z.string(), data: UpdateRateInputSchema }),
-    execute: safe(async ({ rateId, data }) => saturation.updateWorkspaceRate(rateId, data as any)),
+    execute: safe(async ({ rateId, data }) => saturation.updateWorkspaceRate(rateId, data)),
   })
 
 export const deleteWorkspaceRateTool = (saturation: Saturation) =>
@@ -798,7 +808,7 @@ export const updateTransactionTool = (saturation: Saturation) =>
   tool({
     description: "Update a transaction.",
     inputSchema: z.object({ transactionId: z.string(), data: UpdateTransactionInputSchema }),
-    execute: safe(async ({ transactionId, data }) => saturation.updateTransaction(transactionId, data as any)),
+    execute: safe(async ({ transactionId, data }) => saturation.updateTransaction(transactionId, data)),
   })
 
 // Builder that returns a full set of named tools
