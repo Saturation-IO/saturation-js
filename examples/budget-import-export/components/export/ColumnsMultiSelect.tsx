@@ -15,6 +15,7 @@ export const COLUMN_KEYS = [
   'quantity',
   'rate',
   'x',
+  'overtime',
 ] as const;
 
 export type ColumnKey = (typeof COLUMN_KEYS)[number];
