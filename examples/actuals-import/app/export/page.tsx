@@ -42,6 +42,8 @@ type StoredMappingPreference = {
 type StoredMappingPreferences = Record<string, StoredMappingPreference>;
 
 const STORAGE_KEY = 'actuals-import-preferences';
+const LAST_PROJECT_STORAGE_KEY = 'actuals-import-last-project';
+const BATCH_SIZE = 50;
 
 const ACTUAL_FIELD_CONFIG: ActualFieldConfig[] = [
   {
@@ -263,7 +265,11 @@ export default function ActualImportPage() {
         });
         setProjects(sorted);
         if (sorted.length > 0) {
-          setSelectedProjectId(sorted[0].id);
+          const storedProjectId = localStorage.getItem(LAST_PROJECT_STORAGE_KEY);
+          const initialProject = storedProjectId && sorted.some((project) => project.id === storedProjectId)
+            ? storedProjectId
+            : sorted[0].id;
+          setSelectedProjectId(initialProject);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load projects');
@@ -366,15 +372,17 @@ export default function ActualImportPage() {
     }
   }, [csvData, mapping, importFirstRow, replaceExistingActuals]);
 
-  const previewRows = useMemo(() => {
+  const dataRows = useMemo(() => {
     if (!csvData) {
       return [];
     }
     return importFirstRow ? [csvData.columns, ...csvData.rows] : csvData.rows;
   }, [csvData, importFirstRow]);
 
+  const previewRows = dataRows;
+
   const rowsAvailableForImport = useMemo(() => {
-    return Math.min(5, previewRows.length);
+    return previewRows.length;
   }, [previewRows]);
 
   const canImport = useMemo(() => {
@@ -423,7 +431,7 @@ export default function ActualImportPage() {
       return;
     }
 
-    const rows = previewRows.slice(0, 5);
+    const rows = dataRows;
     if (rows.length === 0) {
       toast.error('No rows available to import.');
       return;
@@ -525,27 +533,85 @@ export default function ActualImportPage() {
     });
 
     if (actuals.length === 0) {
-      toast.error('No valid rows found in the first five rows of the CSV.');
+      toast.error('No valid rows found in the CSV.');
       return;
     }
 
     setIsImporting(true);
 
-    try {
-      const response = await saturation.batchCreateActuals(selectedProjectId, {
-        replace: replaceExistingActuals,
-        actuals,
-      });
+    const totalRows = actuals.length;
+    let processedRows = 0;
+    let totalInserted = 0;
+    let totalErrors = 0;
+    let totalProcessed = 0;
+    let totalReceived = 0;
 
-      const summary = response?.summary;
-      if (summary) {
-        toast.success(
-          `Imported ${summary.inserted} of ${summary.received} actual${summary.received === 1 ? '' : 's'} (processed ${summary.processed}, errors ${summary.errors}).`,
-        );
-      } else {
-        toast.success(`Imported ${actuals.length} actual${actuals.length === 1 ? '' : 's'} (first 5 rows).`);
+    const renderProgress = () => {
+      const percent = totalRows === 0 ? 0 : Math.min(100, Math.round((processedRows / totalRows) * 100));
+      toast.custom(
+        () => (
+          <div className="w-[320px] rounded-md border bg-background p-3 shadow-md">
+            <p className="text-sm font-medium text-foreground">
+              Importing actuals ({processedRows}/{totalRows})
+            </p>
+            <div className="mt-2 h-2 w-full rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-all"
+                style={{ width: `${percent}%` }}
+              />
+            </div>
+            {totalErrors > 0 && (
+              <p className="mt-2 text-xs text-red-600">{totalErrors} error{totalErrors === 1 ? '' : 's'} so far</p>
+            )}
+          </div>
+        ),
+        { id: 'actual-import-progress', duration: Infinity },
+      );
+    };
+
+    renderProgress();
+
+    try {
+      for (let start = 0; start < totalRows; start += BATCH_SIZE) {
+        const chunk = actuals.slice(start, start + BATCH_SIZE);
+        const response = await saturation.batchCreateActuals(selectedProjectId, {
+          replace: start === 0 ? replaceExistingActuals : false,
+          actuals: chunk,
+        });
+
+        const summary = response?.summary;
+        if (summary) {
+          const received = summary.received ?? chunk.length;
+          const processed = summary.processed ?? received;
+          const inserted = summary.inserted ?? processed;
+          const errors = summary.errors ?? Math.max(0, received - inserted);
+
+          totalInserted += inserted;
+          totalErrors += errors;
+          totalProcessed += processed;
+          totalReceived += received;
+          processedRows += received;
+        } else {
+          totalInserted += chunk.length;
+          totalProcessed += chunk.length;
+          totalReceived += chunk.length;
+          processedRows += chunk.length;
+        }
+
+        renderProgress();
       }
+
+      toast.dismiss('actual-import-progress');
+
+      const finalInserted = totalInserted || totalProcessed;
+      const finalReceived = totalReceived || totalRows;
+      toast.success(
+        `Imported ${finalInserted} of ${finalReceived} actual${finalReceived === 1 ? '' : 's'}${
+          totalErrors > 0 ? ` with ${totalErrors} error${totalErrors === 1 ? '' : 's'}` : ''
+        }.`,
+      );
     } catch (error) {
+      toast.dismiss('actual-import-progress');
       console.error('Failed to import actuals', error);
       toast.error(error instanceof Error ? error.message : 'Failed to import actuals.');
     } finally {
@@ -553,8 +619,8 @@ export default function ActualImportPage() {
     }
   }, [
     csvData,
+    dataRows,
     mapping,
-    previewRows,
     saturation,
     replaceExistingActuals,
     selectedProjectId,
@@ -583,7 +649,10 @@ export default function ActualImportPage() {
             <ProjectPicker
               projects={projects}
               value={selectedProjectId}
-              onChange={setSelectedProjectId}
+              onChange={(projectId) => {
+                setSelectedProjectId(projectId);
+                localStorage.setItem(LAST_PROJECT_STORAGE_KEY, projectId);
+              }}
               loading={loading}
               error={error}
               className="max-w-full sm:max-w-xl"
@@ -788,12 +857,12 @@ export default function ActualImportPage() {
                 <div className="rounded-lg border border-dashed p-4">
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div className="text-xs text-muted-foreground">
-                      Imports the first {rowsAvailableForImport || 0} row{rowsAvailableForImport === 1 ? '' : 's'} for testing.
+                      Ready to import {rowsAvailableForImport} row{rowsAvailableForImport === 1 ? '' : 's'} from this CSV.
                     </div>
                     <Button type="button" onClick={handleImportActuals} disabled={!canImport}>
                       {isImporting
                         ? 'Importing…'
-                        : `Import ${rowsAvailableForImport || 0} Actual${rowsAvailableForImport === 1 ? '' : 's'}`}
+                        : `Import ${rowsAvailableForImport} Actual${rowsAvailableForImport === 1 ? '' : 's'}`}
                     </Button>
                   </div>
                   {importDisabledReason && !isImporting && (
