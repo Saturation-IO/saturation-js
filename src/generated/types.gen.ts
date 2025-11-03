@@ -156,10 +156,14 @@ export type CreateBudgetInput = {
          */
         description?: string;
         /**
-         * Phase-specific data
+         * Optional list of account IDs that a markup line should apply to
+         */
+        includeAccounts?: Array<string>;
+        /**
+         * Phase-specific data. For line items, values use CreatePhaseData; for markup lines, values use CreateMarkupPhaseData.
          */
         phaseData?: {
-            [key: string]: unknown;
+            [key: string]: CreatePhaseData | CreateMarkupPhaseData;
         };
     }>;
     /**
@@ -176,6 +180,234 @@ export type CreateBudgetInput = {
      * ID interpretation mode - "user" for human-friendly IDs (default), "system" for database IDs
      */
     idMode?: 'user' | 'system';
+};
+
+/**
+ * Phase-specific data object for updating non-markup budget line calculations
+ */
+export type UpdatePhaseData = {
+    /**
+     * Fringe benefit identifiers to apply to the phase
+     */
+    fringes?: Array<string>;
+    /**
+     * Phase-specific date (set to null to remove)
+     */
+    date?: string | null;
+    /**
+     * Quantity value or formula string (set to null to remove)
+     */
+    quantity?: number | string | unknown;
+    /**
+     * Unit of measurement (set to null to remove)
+     */
+    unit?: string | null;
+    /**
+     * Rate value or formula string (set to null to remove)
+     */
+    rate?: number | string | unknown;
+    /**
+     * Multiplier value or formula string (set to null to remove)
+     */
+    multiplier?: number | string | unknown;
+    /**
+     * Partial overtime configuration (set to null to remove)
+     */
+    overtime?: UpdateOvertimeDetail | unknown;
+};
+
+/**
+ * Phase-specific markup configuration for update requests
+ */
+export type UpdateMarkupPhaseData = {
+    /**
+     * Markup calculation type
+     */
+    type?: 'flat' | 'percent';
+    /**
+     * Markup amount (currency for flat, percentage for percent). Set to null to clear the amount.
+     */
+    amount?: number | null;
+    /**
+     * Whether to exclude fringe totals from the markup base
+     */
+    excludeFringes?: boolean;
+};
+
+/**
+ * Partial overtime configuration updates applied to a phase
+ */
+export type UpdateOvertimeDetail = {
+    /**
+     * Overtime calculation mode
+     */
+    mode?: 'formula' | 'flat';
+    /**
+     * Fixed overtime amount when using flat mode
+     */
+    flatAmount?: number | null;
+    /**
+     * Number of overtime hours to apply
+     */
+    overtimeHours?: number | null;
+    /**
+     * Regular hours before overtime
+     */
+    baseHours?: number | null;
+    /**
+     * Overtime multiplier thresholds
+     */
+    multipliers?: Array<{
+        /**
+         * Hour threshold for this multiplier
+         */
+        threshold?: number;
+        /**
+         * Multiplier rate applied after the threshold
+         */
+        multiplier?: number;
+    }>;
+};
+
+/**
+ * Shared fields for all budget line update payloads
+ */
+export type UpdateBudgetLineBase = {
+    /**
+     * Updated line description (set to null to remove)
+     */
+    description?: string | null;
+    /**
+     * ID interpretation mode - "user" for human-friendly IDs (default), "system" for database IDs
+     */
+    idMode?: 'user' | 'system';
+};
+
+export type UpdateBudgetLineItemRequest = UpdateBudgetLineBase & {
+    /**
+     * Discriminator identifying a standard budget line item update
+     */
+    type: 'line';
+    /**
+     * Updated account ID (set to null to remove)
+     */
+    accountId?: string | null;
+    /**
+     * Convert this line item to an account container
+     */
+    convertToAccount?: boolean;
+    /**
+     * Updated phase-specific data for the line item (partial updates supported)
+     */
+    phaseData?: {
+        [key: string]: UpdatePhaseData;
+    };
+};
+
+export type UpdateBudgetMarkupLineRequest = UpdateBudgetLineBase & {
+    /**
+     * Discriminator identifying a markup line update
+     */
+    type: 'markup';
+    /**
+     * Updated account ID associated with the markup (set to null to remove)
+     */
+    accountId?: string | null;
+    /**
+     * Account IDs the markup should explicitly apply to (empty array clears the selection)
+     */
+    includeAccounts?: Array<string>;
+    /**
+     * Updated markup configuration per phase (partial updates supported)
+     */
+    phaseData?: {
+        [key: string]: UpdateMarkupPhaseData;
+    };
+};
+
+export type UpdateBudgetSubtotalLineRequest = UpdateBudgetLineBase & {
+    /**
+     * Discriminator identifying a subtotal line update
+     */
+    type: 'subtotal';
+    /**
+     * Updated subtotal color (set to null to revert to default)
+     */
+    color?: string | null;
+};
+
+/**
+ * Phase-specific data payload for creating line items
+ */
+export type CreatePhaseData = {
+    /**
+     * Fringe benefit IDs or symbols applied to this phase
+     */
+    fringes?: Array<string>;
+    /**
+     * Optional start/end date for the phase data
+     */
+    date?: {
+        startDate?: string | null;
+        endDate?: string | null;
+    };
+    /**
+     * Quantity value or formula string (e.g., "=hours_per_week * 4")
+     */
+    quantity?: number | string;
+    /**
+     * Unit of measurement for the quantity
+     */
+    unit?: string;
+    /**
+     * Rate value or formula string
+     */
+    rate?: number | string;
+    /**
+     * Multiplier value or formula string
+     */
+    multiplier?: number | string;
+    overtime?: OvertimeDetail;
+};
+
+/**
+ * Phase-specific markup configuration for create requests
+ */
+export type CreateMarkupPhaseData = {
+    /**
+     * Markup calculation type
+     */
+    type: 'flat' | 'percent';
+    /**
+     * Markup amount (currency for flat, percentage for percent)
+     */
+    amount?: number | null;
+    /**
+     * Whether to exclude fringe totals from the markup base
+     */
+    excludeFringes?: boolean;
+};
+
+/**
+ * Warning generated when user-provided identifiers must be resolved to fallback IDs
+ */
+export type ResolutionWarning = {
+    /**
+     * Type of identifier that generated the warning
+     */
+    type: 'account' | 'phase' | 'line' | 'fringe';
+    /**
+     * Human-readable warning message
+     */
+    message: string;
+    /**
+     * Original identifier supplied in the request
+     */
+    userProvidedId: string;
+    /**
+     * Fallback identifier used when resolution failed
+     */
+    fallbackId?: string | null;
 };
 
 export type Budget = {
@@ -529,6 +761,32 @@ export type Phase = {
     lastModified: string;
 };
 
+export type CreatePhaseResponse = {
+    /**
+     * The created budget phase, or null if creation failed
+     */
+    phase: (Phase & {
+        type: 'CreatePhaseResponse';
+    }) | null;
+    /**
+     * Warnings generated during writes
+     */
+    warnings: Array<ResolutionWarning>;
+};
+
+export type UpdatePhaseResponse = {
+    /**
+     * The updated budget phase, or null if not found
+     */
+    phase: (Phase & {
+        type: 'UpdatePhaseResponse';
+    }) | null;
+    /**
+     * Warnings generated during update
+     */
+    warnings: Array<ResolutionWarning>;
+};
+
 export type Fringe = {
     /**
      * Fringe system identifier
@@ -547,7 +805,7 @@ export type Fringe = {
      */
     units: 'percent' | 'flat' | 'total';
     /**
-     * Fringe rate (decimal for percent, amount for flat)
+     * Fringe rate. If units is percent, the value will be percentage (e.g. 7.65 for 7.65%). If units is flat or total, the value will be the amount (e.g. 1000 for $1000).
      */
     rate?: number | null;
     /**
@@ -558,6 +816,28 @@ export type Fringe = {
      * Last modification time (ISO 8601)
      */
     lastModified: string;
+};
+
+export type CreateFringeResponse = {
+    /**
+     * The created fringe benefit, or null if creation failed
+     */
+    fringe: Fringe | null;
+    /**
+     * Warnings generated during writes
+     */
+    warnings: Array<ResolutionWarning>;
+};
+
+export type UpdateFringeResponse = {
+    /**
+     * The updated fringe benefit, or null if not found
+     */
+    fringe: Fringe | null;
+    /**
+     * Warnings generated during update
+     */
+    warnings: Array<ResolutionWarning>;
 };
 
 export type Global = {
@@ -587,13 +867,35 @@ export type Global = {
     lastModified: string;
 };
 
+export type CreateGlobalResponse = {
+    /**
+     * The created global variable, or null if creation failed
+     */
+    global: Global | null;
+    /**
+     * Warnings generated during writes
+     */
+    warnings: Array<ResolutionWarning>;
+};
+
+export type UpdateGlobalResponse = {
+    /**
+     * The updated global variable, or null if not found
+     */
+    global: Global | null;
+    /**
+     * Warnings generated during update
+     */
+    warnings: Array<ResolutionWarning>;
+};
+
 export type Actual = {
     /**
      * Actual entry identifier
      */
     id: string;
     /**
-     * Actual entry description
+     * Human-readable description of the actual entry
      */
     description?: string | null;
     /**
@@ -604,22 +906,23 @@ export type Actual = {
      * Actual entry date
      */
     date?: string | null;
+    mode: ActualMode;
     /**
      * Associated account ID(s)
      */
     accountId?: string | null | Array<string>;
     /**
-     * Whether this actual has sub-actuals
+     * Account path(s) for the actual entry
      */
-    expanded: boolean;
+    accountPath?: string | null | Array<string>;
     /**
      * Actual entry type
      */
-    type?: string;
+    type?: ActualType | null;
     /**
      * Attached files
      */
-    attachments?: Array<File>;
+    attachments?: Array<File> | null;
     /**
      * Reference identifier
      */
@@ -631,7 +934,7 @@ export type Actual = {
     /**
      * Actual entry status
      */
-    status?: string;
+    status?: ActualStatus | null;
     /**
      * Additional notes
      */
@@ -648,12 +951,14 @@ export type Actual = {
      * Associated transaction ID
      */
     transactionId?: string | null;
-    contact?: Contact;
+    contact?: Contact | null;
     /**
-     * Sub-actual entries
+     * Sub-actual line items
      */
-    subactuals?: Array<SubActual>;
-    account?: BudgetLine;
+    subactuals?: Array<SubActual> | null;
+    account?: (BudgetLine & {
+        type: 'Actual';
+    }) | null;
     /**
      * Last modification time (ISO 8601)
      */
@@ -666,22 +971,40 @@ export type SubActual = {
      */
     id: string;
     /**
+     * Line identifier for ordering and referencing
+     */
+    lineId?: string | null;
+    /**
      * Sub-actual description
      */
     description?: string | null;
     /**
      * Sub-actual amount
      */
-    amount: number;
-    /**
-     * Sub-actual date
-     */
-    date?: string | null;
+    amount?: number | null;
     /**
      * Associated account ID
      */
     accountId?: string | null;
-    account?: BudgetLine;
+    /**
+     * Associated account path
+     */
+    accountPath?: string | null;
+    /**
+     * Quantity used for the line item
+     */
+    quantity?: number;
+    /**
+     * Unit of measure for the quantity
+     */
+    unit?: string;
+    /**
+     * Rate applied to the quantity
+     */
+    rate?: number;
+    account?: (BudgetLine & {
+        type: 'SubActual';
+    }) | null;
     /**
      * Last modification time (ISO 8601)
      */
@@ -1097,57 +1420,186 @@ export type CreatePurchaseOrderItemInput = {
 };
 
 /**
+ * Type of actual transaction indicating payment method or source
+ */
+export type ActualType = 'SaturationACH' | 'SaturationPCard' | 'SaturationWire' | 'ACH' | 'Cash' | 'Check' | 'CreditCard' | 'Wire' | 'ETransfer' | 'Invoice' | 'Projection' | 'TimeCard';
+
+/**
+ * Workflow status of the actual transaction
+ */
+export type ActualStatus = 'Unpaid' | 'Pending' | 'Paid' | 'Refund' | 'NeedsReview';
+
+/**
+ * Mode of the actual transaction
+ */
+export type ActualMode = 'default' | 'split';
+
+/**
+ * Supported unit of measure for quantity-based line items
+ */
+export type UnitType = 'Allow' | 'Day' | 'HalfDay' | 'Each' | 'Episodes' | 'Fare' | 'Flat' | 'Foot' | 'Hour' | 'Minute' | 'Month' | 'Night' | 'Percent' | 'Person' | 'SQFT' | 'Unit' | 'Week';
+
+/**
+ * Input for creating a new sub-actual line item
+ */
+export type AddSubActualInput = {
+    /**
+     * Line reference number
+     */
+    number?: string;
+    /**
+     * Sub-actual description
+     */
+    description?: string;
+    /**
+     * Amount for the line item
+     */
+    amount?: number;
+    /**
+     * Account ID or alias for this line item
+     */
+    accountId?: string;
+    /**
+     * Additional notes for the line item
+     */
+    notes?: string;
+    /**
+     * Quantity used for the line item
+     */
+    quantity?: number;
+    unit?: UnitType;
+    /**
+     * Rate applied to the quantity
+     */
+    rate?: number;
+};
+
+/**
+ * Input for updating an existing sub-actual line item
+ */
+export type UpdateSubActualInput = {
+    /**
+     * Sub-actual identifier
+     */
+    id: string;
+    /**
+     * Line reference number
+     */
+    number?: string;
+    /**
+     * Sub-actual description
+     */
+    description?: string;
+    /**
+     * Amount for the line item
+     */
+    amount?: number;
+    /**
+     * Account ID or alias for this line item
+     */
+    accountId?: string;
+    /**
+     * Additional notes for the line item
+     */
+    notes?: string;
+    /**
+     * Quantity used for the line item
+     */
+    quantity?: number;
+    unit?: UnitType;
+    /**
+     * Rate applied to the quantity
+     */
+    rate?: number;
+};
+
+/**
+ * Input for removing an existing sub-actual line item
+ */
+export type RemoveSubActualInput = {
+    /**
+     * Sub-actual identifier
+     */
+    id: string;
+    /**
+     * Flag indicating the sub-actual should be removed
+     */
+    remove: true;
+};
+
+/**
+ * Sub-actual mutation payload supporting add, update, and remove operations
+ */
+export type SubActualWriteOperation = AddSubActualInput | UpdateSubActualInput | RemoveSubActualInput;
+
+/**
  * Input for creating a new actual entry
  */
 export type CreateActualInput = {
     /**
-     * Actual entry description
+     * Type of actual transaction indicating payment method or source
+     */
+    type?: ActualType;
+    /**
+     * Human-readable name for the actual entry
      */
     description: string;
     /**
+     * Associated contact ID
+     */
+    contactId?: string;
+    /**
+     * Actual date (ISO 8601)
+     */
+    date?: string;
+    /**
      * Actual amount
      */
-    amount: number;
+    amount?: number;
     /**
-     * Actual date
+     * Account ID or alias to assign the actual to
      */
-    date: string;
+    accountId?: string;
     /**
-     * Associated account ID(s)
+     * Workflow status to set on the new actual entry
      */
-    accountId?: string | Array<string>;
-    /**
-     * Reference identifier
-     */
-    ref?: string;
-    /**
-     * Payment identifier
-     */
-    payId?: string;
-    /**
-     * Actual entry status
-     */
-    status?: string;
+    status?: ActualStatus;
     /**
      * Additional notes
      */
     notes?: string;
     /**
+     * External reference number or user-supplied actual number
+     */
+    number?: string;
+    /**
      * Associated tags
      */
     tags?: Array<string>;
     /**
-     * Associated purchase order ID
+     * Payment identifier
      */
-    purchaseOrderId?: string;
+    payId?: string;
     /**
-     * Associated transaction ID
+     * Suggested total amount for validation purposes
      */
-    transactionId?: string;
+    suggestedTotal?: number;
     /**
-     * Associated contact ID
+     * Whether to create the actual in split mode with sub-actuals
      */
-    contactId?: string;
+    split?: boolean;
+    /**
+     * Sub-actual line items to create with the parent actual
+     */
+    subActuals?: Array<AddSubActualInput>;
+    /**
+     * Position the new actual after the specified actual ID
+     */
+    after?: string;
+    /**
+     * Position the new actual before the specified actual ID
+     */
+    before?: string;
 };
 
 /**
@@ -1155,53 +1607,102 @@ export type CreateActualInput = {
  */
 export type UpdateActualInput = {
     /**
-     * Actual entry description
+     * Updated transaction type for the actual entry
+     */
+    type?: ActualType;
+    /**
+     * Updated name or description for the actual entry
      */
     description?: string;
+    /**
+     * Associated contact ID
+     */
+    contactId?: string;
+    /**
+     * Actual date (ISO 8601)
+     */
+    date?: string;
     /**
      * Actual amount
      */
     amount?: number;
     /**
-     * Actual date
+     * Account ID or alias to assign the actual to
      */
-    date?: string;
+    accountId?: string;
     /**
-     * Associated account ID(s)
+     * Updated workflow status for the actual entry
      */
-    accountId?: string | Array<string>;
-    /**
-     * Reference identifier
-     */
-    ref?: string;
-    /**
-     * Payment identifier
-     */
-    payId?: string;
-    /**
-     * Actual entry status
-     */
-    status?: string;
+    status?: ActualStatus;
     /**
      * Additional notes
      */
     notes?: string;
     /**
+     * External reference number or user-supplied actual number
+     */
+    number?: string;
+    /**
      * Associated tags
      */
     tags?: Array<string>;
     /**
-     * Associated purchase order ID
+     * Payment identifier
      */
-    purchaseOrderId?: string;
+    payId?: string;
     /**
-     * Associated transaction ID
+     * Suggested total amount for validation purposes
      */
-    transactionId?: string;
+    suggestedTotal?: number;
     /**
-     * Associated contact ID
+     * Toggle split mode for the actual
      */
-    contactId?: string;
+    split?: boolean;
+    /**
+     * Batch operations to add, update, or remove sub-actual line items
+     */
+    subActuals?: Array<SubActualWriteOperation>;
+    /**
+     * Position the actual after the specified actual ID
+     */
+    after?: string;
+    /**
+     * Position the actual before the specified actual ID
+     */
+    before?: string;
+};
+
+/**
+ * Aggregate statistics captured during batch processing
+ */
+export type BatchActualsSummary = {
+    /**
+     * Number of items inserted without field drops
+     */
+    inserted: number;
+    /**
+     * Number of existing actuals deleted when replace=true
+     */
+    deleted: number;
+    /**
+     * Number of items that failed and were not written
+     */
+    errors: number;
+    /**
+     * Number of items processed (successful, partial, or failed)
+     */
+    processed: number;
+    /**
+     * Number of items received in the request payload
+     */
+    received: number;
+};
+
+/**
+ * Response payload for batch actual creation
+ */
+export type BatchActualsResponse = {
+    summary: BatchActualsSummary;
 };
 
 /**
@@ -1209,25 +1710,20 @@ export type UpdateActualInput = {
  */
 export type UpdateTransactionInput = {
     /**
-     * Associated project ID
+     * Optional contact identifier. Accepts either a system ID or contact alias. Set to null to remove the existing association.
+     *
      */
-    projectId?: string;
+    contactId?: string | null;
     /**
-     * Associated account ID
+     * Optional project identifier. Accepts a system ID or project alias. Set to null to clear the project link.
+     *
      */
-    accountId?: string;
+    projectId?: string | null;
     /**
-     * Associated contact ID
+     * Optional budget line identifier (system ID or user-facing account code). Set to null to remove the association.
+     *
      */
-    contactId?: string;
-    /**
-     * Transaction description
-     */
-    description?: string;
-    /**
-     * Additional notes
-     */
-    notes?: string;
+    accountId?: string | null;
 };
 
 export type PurchaseOrderItem = {
@@ -1335,7 +1831,7 @@ export type TransactionSource = {
 
 export type File = {
     /**
-     * File identifier (DigitalOcean Spaces object key)
+     * File identifier (Use this to download the file through files endpoint)
      */
     id: string;
     /**
@@ -1581,9 +2077,9 @@ export type Rate = {
      */
     id: string;
     /**
-     * Item display name
+     * Item identifier
      */
-    name?: string | null;
+    identifier?: string | null;
     /**
      * Item emoji or icon
      */
@@ -1608,14 +2104,6 @@ export type Rate = {
      * Unit of measurement
      */
     unit?: 'hour' | 'day' | 'week' | 'month' | 'year' | 'each' | 'sqft' | 'sqm' | 'lnft' | 'lnm';
-    /**
-     * Rate multiplier
-     */
-    multiplier?: number | null;
-    /**
-     * Associated contact ID
-     */
-    contactId?: string | null;
     contact?: Contact;
 };
 
@@ -1624,9 +2112,9 @@ export type Rate = {
  */
 export type CreateRateInput = {
     /**
-     * Rate name
+     * Rate identifier
      */
-    name?: string;
+    identifier?: string;
     /**
      * Rate emoji or icon
      */
@@ -1651,14 +2139,6 @@ export type CreateRateInput = {
      * Unit of measurement
      */
     unit?: 'hour' | 'day' | 'week' | 'month' | 'year' | 'each' | 'sqft' | 'sqm' | 'lnft' | 'lnm';
-    /**
-     * Rate multiplier
-     */
-    multiplier?: number;
-    /**
-     * Associated contact ID
-     */
-    contactId?: string;
 };
 
 /**
@@ -1668,7 +2148,7 @@ export type UpdateRateInput = {
     /**
      * Updated rate name
      */
-    name?: string;
+    identifier?: string;
     /**
      * Updated rate emoji or icon
      */
@@ -1693,14 +2173,6 @@ export type UpdateRateInput = {
      * Updated unit of measurement
      */
     unit?: 'hour' | 'day' | 'week' | 'month' | 'year' | 'each' | 'sqft' | 'sqm' | 'lnft' | 'lnm';
-    /**
-     * Updated rate multiplier
-     */
-    multiplier?: number;
-    /**
-     * Updated associated contact/vendor ID
-     */
-    contactId?: string;
 };
 
 /**
@@ -1858,7 +2330,7 @@ export type CreateFringeRequest = {
      */
     units: 'percent' | 'flat' | 'total';
     /**
-     * Fringe rate (decimal for percent, amount for flat)
+     * Fringe rate. If units is percent, the value will be percentage (e.g. 7.65 for 7.65%). If units is flat or total, the value will be the amount (e.g. 1000 for $1000).
      */
     rate: number;
     /**
@@ -1956,51 +2428,13 @@ export type UpdateGlobalRequest = {
 /**
  * Request schema for updating an existing budget line
  */
-export type UpdateBudgetLineRequest = {
-    /**
-     * Updated line description (set to null to remove)
-     */
-    description?: string | null;
-    /**
-     * Updated account ID (set to null to remove)
-     */
-    accountId?: string | null;
-    /**
-     * Convert this line to an account type
-     */
-    convertToAccount?: boolean;
-    /**
-     * Updated phase-specific data (partial updates supported)
-     */
-    phaseData?: {
-        [key: string]: {
-            /**
-             * Updated quantity
-             */
-            quantity?: number | null;
-            /**
-             * Updated unit
-             */
-            unit?: string | null;
-            /**
-             * Updated rate
-             */
-            rate?: number | null;
-            /**
-             * Updated multiplier
-             */
-            multiplier?: number | null;
-            /**
-             * Fringe IDs to apply
-             */
-            fringes?: Array<string>;
-        };
-    };
-    /**
-     * ID interpretation mode - "user" for human-friendly IDs (default), "system" for database IDs
-     */
-    idMode?: 'user' | 'system';
-};
+export type UpdateBudgetLineRequest = ({
+    type: 'UpdateBudgetLineItemRequest';
+} & UpdateBudgetLineItemRequest) | ({
+    type: 'UpdateBudgetMarkupLineRequest';
+} & UpdateBudgetMarkupLineRequest) | ({
+    type: 'UpdateBudgetSubtotalLineRequest';
+} & UpdateBudgetSubtotalLineRequest);
 
 /**
  * Financial totals aggregated from all budget line items assigned to this tag
@@ -2241,6 +2675,10 @@ export type GetProjectErrors = {
      * Resource not found
      */
     404: _Error;
+    /**
+     * Payload too large
+     */
+    413: _Error;
     /**
      * Internal server error
      */
@@ -2647,6 +3085,96 @@ export type ListActualsResponses = {
 
 export type ListActualsResponse = ListActualsResponses[keyof ListActualsResponses];
 
+export type CreateActualData = {
+    body: CreateActualInput;
+    path: {
+        /**
+         * Project identifier (alias or ID)
+         */
+        projectId: string;
+    };
+    query?: never;
+    url: '/projects/{projectId}/actuals';
+};
+
+export type CreateActualErrors = {
+    /**
+     * Bad request - invalid parameters or request body
+     */
+    400: _Error;
+    /**
+     * Unauthorized - invalid or missing API key
+     */
+    401: _Error;
+    /**
+     * Resource not found
+     */
+    404: _Error;
+    /**
+     * Internal server error
+     */
+    500: _Error;
+};
+
+export type CreateActualError = CreateActualErrors[keyof CreateActualErrors];
+
+export type CreateActualResponses = {
+    /**
+     * Actual created successfully
+     */
+    201: Actual;
+};
+
+export type CreateActualResponse = CreateActualResponses[keyof CreateActualResponses];
+
+export type BatchCreateActualsData = {
+    body: {
+        /**
+         * Replace existing project actuals before inserting new items
+         */
+        replace?: boolean;
+        actuals?: Array<CreateActualInput>;
+    };
+    path: {
+        /**
+         * Project identifier (alias or ID)
+         */
+        projectId: string;
+    };
+    query?: never;
+    url: '/projects/{projectId}/actuals:batch';
+};
+
+export type BatchCreateActualsErrors = {
+    /**
+     * Bad request - invalid parameters or request body
+     */
+    400: _Error;
+    /**
+     * Unauthorized - invalid or missing API key
+     */
+    401: _Error;
+    /**
+     * Resource not found
+     */
+    404: _Error;
+    /**
+     * Internal server error
+     */
+    500: _Error;
+};
+
+export type BatchCreateActualsError = BatchCreateActualsErrors[keyof BatchCreateActualsErrors];
+
+export type BatchCreateActualsResponses = {
+    /**
+     * Batch processed successfully
+     */
+    200: BatchActualsResponse;
+};
+
+export type BatchCreateActualsResponse = BatchCreateActualsResponses[keyof BatchCreateActualsResponses];
+
 export type DeleteActualData = {
     body?: never;
     path: {
@@ -2739,52 +3267,6 @@ export type GetActualResponses = {
 };
 
 export type GetActualResponse = GetActualResponses[keyof GetActualResponses];
-
-export type CreateActualData = {
-    body: CreateActualInput;
-    path: {
-        /**
-         * Project identifier (alias or ID)
-         */
-        projectId: string;
-        /**
-         * Actual identifier (alias or ID)
-         */
-        actualId: string;
-    };
-    query?: never;
-    url: '/projects/{projectId}/actuals/{actualId}';
-};
-
-export type CreateActualErrors = {
-    /**
-     * Bad request - invalid parameters or request body
-     */
-    400: _Error;
-    /**
-     * Unauthorized - invalid or missing API key
-     */
-    401: _Error;
-    /**
-     * Resource not found
-     */
-    404: _Error;
-    /**
-     * Internal server error
-     */
-    500: _Error;
-};
-
-export type CreateActualError = CreateActualErrors[keyof CreateActualErrors];
-
-export type CreateActualResponses = {
-    /**
-     * Actual created successfully
-     */
-    201: Actual;
-};
-
-export type CreateActualResponse = CreateActualResponses[keyof CreateActualResponses];
 
 export type UpdateActualData = {
     body: UpdateActualInput;
@@ -3270,7 +3752,7 @@ export type CreateBudgetPhaseResponses = {
     /**
      * Created budget phase
      */
-    201: Phase;
+    201: CreatePhaseResponse;
 };
 
 export type CreateBudgetPhaseResponse = CreateBudgetPhaseResponses[keyof CreateBudgetPhaseResponses];
@@ -3405,7 +3887,7 @@ export type UpdateBudgetPhaseResponses = {
     /**
      * Updated budget phase
      */
-    200: Phase;
+    200: UpdatePhaseResponse;
 };
 
 export type UpdateBudgetPhaseResponse = UpdateBudgetPhaseResponses[keyof UpdateBudgetPhaseResponses];
@@ -3492,7 +3974,7 @@ export type CreateBudgetFringeResponses = {
     /**
      * Created fringe benefit
      */
-    201: Fringe;
+    201: CreateFringeResponse;
 };
 
 export type CreateBudgetFringeResponse = CreateBudgetFringeResponses[keyof CreateBudgetFringeResponses];
@@ -3627,7 +4109,7 @@ export type UpdateBudgetFringeResponses = {
     /**
      * Updated fringe benefit
      */
-    200: Fringe;
+    200: UpdateFringeResponse;
 };
 
 export type UpdateBudgetFringeResponse = UpdateBudgetFringeResponses[keyof UpdateBudgetFringeResponses];
@@ -3714,7 +4196,7 @@ export type CreateBudgetGlobalResponses = {
     /**
      * Created global variable
      */
-    201: Global;
+    201: CreateGlobalResponse;
 };
 
 export type CreateBudgetGlobalResponse = CreateBudgetGlobalResponses[keyof CreateBudgetGlobalResponses];
@@ -3849,7 +4331,7 @@ export type UpdateBudgetGlobalResponses = {
     /**
      * Updated global variable
      */
-    200: Global;
+    200: UpdateGlobalResponse;
 };
 
 export type UpdateBudgetGlobalResponse = UpdateBudgetGlobalResponses[keyof UpdateBudgetGlobalResponses];

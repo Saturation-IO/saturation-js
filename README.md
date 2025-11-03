@@ -799,6 +799,7 @@ For complete API documentation, see the [API Reference](https://api.saturation.i
 - `listProjectActuals(projectId, params?)` - List actuals
 - `getActual(projectId, actualId, params?)` - Get actual details
 - `createActual(projectId, data)` - Create actual
+- `batchCreateActuals(projectId, data)` - Batch create actuals
 - `updateActual(projectId, actualId, data)` - Update actual
 - `deleteActual(projectId, actualId)` - Delete actual
 - `uploadActualAttachment(projectId, actualId, file, filename)` - Add attachment

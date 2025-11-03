@@ -468,8 +468,8 @@ export const getActualTool = (saturation: Saturation) =>
 export const createActualTool = (saturation: Saturation) =>
   tool({
     description: "Create an actual.",
-    inputSchema: z.object({ projectId: z.string(), actualId: z.string(), data: CreateActualInputSchema }),
-    execute: safe(async ({ projectId, actualId, data }) => saturation.createActual(projectId, actualId, data)),
+    inputSchema: z.object({ projectId: z.string(), data: CreateActualInputSchema }),
+    execute: safe(async ({ projectId, data }) => saturation.createActual(projectId, data)),
   })
 
 export const updateActualTool = (saturation: Saturation) =>

@@ -68,6 +68,13 @@ export class Saturation {
     this.client = createClient(config);
   }
 
+  private ensureValue<T>(value: T | null | undefined, message: string): T {
+    if (value == null) {
+      throw new Error(message);
+    }
+    return value;
+  }
+
   // Projects
 
   async listProjects(
@@ -209,17 +216,25 @@ export class Saturation {
     return result.data as Types.Actual;
   }
 
-  async createActual(
-    projectId: string,
-    actualId: string,
-    data: Types.CreateActualInput,
-  ): Promise<Types.Actual> {
+  async createActual(projectId: string, data: Types.CreateActualInput): Promise<Types.Actual> {
     const result = await sdk.createActual({
       client: this.client,
-      path: { projectId, actualId },
+      path: { projectId },
       body: data,
     });
     return result.data as Types.Actual;
+  }
+
+  async batchCreateActuals(
+    projectId: string,
+    data: Types.BatchCreateActualsData['body'],
+  ): Promise<Types.BatchActualsResponse> {
+    const result = await sdk.batchCreateActuals({
+      client: this.client,
+      path: { projectId },
+      body: data,
+    });
+    return this.ensureValue(result.data, 'Failed to batch create actuals');
   }
 
   async updateActual(
@@ -361,7 +376,8 @@ export class Saturation {
       path: { projectId },
       body: data,
     });
-    return result.data as Types.Phase;
+    const phase = this.ensureValue(result.data?.phase, 'Failed to create budget phase');
+    return phase as unknown as Types.Phase;
   }
 
   async updateBudgetPhase(
@@ -374,7 +390,8 @@ export class Saturation {
       path: { projectId, phaseId },
       body: data,
     });
-    return result.data as Types.Phase;
+    const phase = this.ensureValue(result.data?.phase, 'Failed to update budget phase');
+    return phase as unknown as Types.Phase;
   }
 
   async deleteBudgetPhase(projectId: string, phaseId: string): Promise<void> {
@@ -420,7 +437,7 @@ export class Saturation {
       path: { projectId },
       body: data,
     });
-    return result.data as Types.Fringe;
+    return this.ensureValue(result.data?.fringe, 'Failed to create budget fringe');
   }
 
   async updateBudgetFringe(
@@ -433,7 +450,7 @@ export class Saturation {
       path: { projectId, fringeId },
       body: data,
     });
-    return result.data as Types.Fringe;
+    return this.ensureValue(result.data?.fringe, 'Failed to update budget fringe');
   }
 
   async deleteBudgetFringe(projectId: string, fringeId: string): Promise<void> {
@@ -479,7 +496,7 @@ export class Saturation {
       path: { projectId },
       body: data,
     });
-    return result.data as Types.Global;
+    return this.ensureValue(result.data?.global, 'Failed to create budget global');
   }
 
   async updateBudgetGlobal(
@@ -492,7 +509,7 @@ export class Saturation {
       path: { projectId, globalId },
       body: data,
     });
-    return result.data as Types.Global;
+    return this.ensureValue(result.data?.global, 'Failed to update budget global');
   }
 
   async deleteBudgetGlobal(projectId: string, globalId: string): Promise<void> {

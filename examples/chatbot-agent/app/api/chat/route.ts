@@ -60,7 +60,7 @@ Core capabilities and tools
 - Globals: listBudgetGlobals(projectId, idMode?), getBudgetGlobal(projectId, globalId, idMode?), createBudgetGlobal(projectId, data), updateBudgetGlobal(projectId, globalId, data), deleteBudgetGlobal(projectId, globalId).
   • Define formula variables (symbol, formula, unit) to reuse in lines.
 
-- Actuals: listActuals(projectId), getActual(projectId, actualId), createActual(projectId, actualId, data), updateActual(projectId, actualId, data), deleteActual(projectId, actualId).
+- Actuals: listActuals(projectId), getActual(projectId, actualId), createActual(projectId, data), batchCreateActuals(projectId, data), updateActual(projectId, actualId, data), deleteActual(projectId, actualId).
   • Track real spend with amount, date, accounts, tags, PO link, contact.
 
 - Purchase Orders: listPurchaseOrders(projectId), getPurchaseOrder(projectId, purchaseOrderId), createPurchaseOrder(projectId, purchaseOrderId, data), updatePurchaseOrder(projectId, purchaseOrderId, data), deletePurchaseOrder(projectId, purchaseOrderId).

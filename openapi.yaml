@@ -246,6 +246,12 @@
             $ref: '#/components/responses/Unauthorized'
           '404':
             $ref: '#/components/responses/NotFound'
+          '413':
+            description: Payload too large
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
           '500':
             $ref: '#/components/responses/InternalServerError'
 
@@ -547,10 +553,12 @@
                 updateDescription:
                   summary: Update line description
                   value:
+                    type: line
                     description: "Director - Christopher Nolan"
                 updatePhaseData:
                   summary: Update phase data
                   value:
+                    type: line
                     phaseData:
                       estimate:
                         quantity: 15
@@ -558,6 +566,7 @@
                 convertToAccount:
                   summary: Convert line to account
                   value:
+                    type: line
                     convertToAccount: true
                     description: "Above-the-Line Personnel"
         responses:
@@ -683,6 +692,78 @@
           '500':
             $ref: '#/components/responses/InternalServerError'
 
+      post:
+        operationId: createActual
+        summary: Create actual
+        description: Create a new actual entry for a project
+        tags:
+          - Actuals
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateActualInput'
+        responses:
+          '201':
+            description: Actual created successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Actual'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /projects/{projectId}/actuals:batch:
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+
+      post:
+        operationId: batchCreateActuals
+        summary: Batch create actuals
+        description: Create multiple actual entries in a single request
+        tags:
+          - Actuals
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  replace:
+                    type: boolean
+                    default: false
+                    description: Replace existing project actuals before inserting new items
+                  actuals:
+                    type: array
+                    maxItems: 5000
+                    items:
+                      $ref: '#/components/schemas/CreateActualInput'
+                required:
+                  - items
+        responses:
+          '200':
+            description: Batch processed successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/BatchActualsResponse'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
     /projects/{projectId}/actuals/{actualId}:
       parameters:
         - $ref: '#/components/parameters/ProjectId'
@@ -727,35 +808,6 @@
             $ref: '#/components/responses/NotFound'
           '500':
             $ref: '#/components/responses/InternalServerError'
-      
-      post:
-        operationId: createActual
-        summary: Create actual
-        description: Create a new actual entry for a project
-        tags:
-          - Actuals
-        requestBody:
-          required: true
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CreateActualInput'
-        responses:
-          '201':
-            description: Actual created successfully
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/Actual'
-          '400':
-            $ref: '#/components/responses/BadRequest'
-          '401':
-            $ref: '#/components/responses/Unauthorized'
-          '404':
-            $ref: '#/components/responses/NotFound'
-          '500':
-            $ref: '#/components/responses/InternalServerError'
-      
       put:
         operationId: updateActual
         summary: Update actual
@@ -1154,7 +1206,7 @@
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/Phase'
+                  $ref: '#/components/schemas/CreatePhaseResponse'
           '400':
             $ref: '#/components/responses/BadRequest'
           '401':
@@ -1227,7 +1279,7 @@
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/Phase'
+                  $ref: '#/components/schemas/UpdatePhaseResponse'
           '400':
             $ref: '#/components/responses/BadRequest'
           '401':
@@ -1318,7 +1370,7 @@
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/Fringe'
+                  $ref: '#/components/schemas/CreateFringeResponse'
           '400':
             $ref: '#/components/responses/BadRequest'
           '401':
@@ -1377,7 +1429,7 @@
                 updateRate:
                   summary: Update fringe rate
                   value:
-                    rate: 0.065
+                    rate: 6.5
                 updateDescription:
                   summary: Update fringe description
                   value:
@@ -1388,7 +1440,7 @@
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/Fringe'
+                  $ref: '#/components/schemas/UpdateFringeResponse'
           '400':
             $ref: '#/components/responses/BadRequest'
           '401':
@@ -1478,7 +1530,7 @@
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/Global'
+                  $ref: '#/components/schemas/CreateGlobalResponse'
           '400':
             $ref: '#/components/responses/BadRequest'
           '401':
@@ -1548,7 +1600,7 @@
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/Global'
+                  $ref: '#/components/schemas/UpdateGlobalResponse'
           '400':
             $ref: '#/components/responses/BadRequest'
           '401':
@@ -3156,10 +3208,28 @@
                   type: string
                   description: Line description
                   example: "Camera Equipment Rental"
+                includeAccounts:
+                  type: array
+                  items:
+                    type: string
+                  description: Optional list of account IDs that a markup line should apply to
+                  example: ["1000", "2000"]
                 phaseData:
                   type: object
-                  description: Phase-specific data
-                  additionalProperties: true
+                  description: Phase-specific data. For line items, values use CreatePhaseData; for markup lines, values use CreateMarkupPhaseData.
+                  additionalProperties:
+                    oneOf:
+                      - $ref: '#/components/schemas/CreatePhaseData'
+                      - $ref: '#/components/schemas/CreateMarkupPhaseData'
+            example:
+              - type: markup
+                description: Profit (10%)
+                includeAccounts: ["1000", "2000"]
+                phaseData:
+                  estimate:
+                    type: percent
+                    amount: 10
+                    excludeFringes: true
           insert:
             type: object
             description: Where to insert the new lines
@@ -3179,6 +3249,308 @@
             default: user
             description: ID interpretation mode - "user" for human-friendly IDs (default), "system" for database IDs
             example: user
+
+      UpdatePhaseData:
+        type: object
+        description: Phase-specific data object for updating non-markup budget line calculations
+        additionalProperties: false
+        properties:
+          fringes:
+            type: array
+            items:
+              type: string
+            description: Fringe benefit identifiers to apply to the phase
+            example: ["FICA", "HEALTH"]
+          date:
+            type: string
+            format: date
+            nullable: true
+            description: Phase-specific date (set to null to remove)
+            example: "2024-04-30"
+          quantity:
+            oneOf:
+              - type: number
+              - type: string
+              - enum: [null]
+            description: Quantity value or formula string (set to null to remove)
+            example: "=hours_per_week * 4"
+          unit:
+            type: string
+            nullable: true
+            description: Unit of measurement (set to null to remove)
+            example: hours
+          rate:
+            oneOf:
+              - type: number
+              - type: string
+              - enum: [null]
+            description: Rate value or formula string (set to null to remove)
+            example: 150.0
+          multiplier:
+            oneOf:
+              - type: number
+              - type: string
+              - enum: [null]
+            description: Multiplier value or formula string (set to null to remove)
+            example: 1.1
+          overtime:
+            oneOf:
+              - $ref: '#/components/schemas/UpdateOvertimeDetail'
+              - enum: [null]
+            description: Partial overtime configuration (set to null to remove)
+
+      UpdateMarkupPhaseData:
+        type: object
+        description: Phase-specific markup configuration for update requests
+        additionalProperties: false
+        properties:
+          type:
+            type: string
+            enum: [flat, percent]
+            description: Markup calculation type
+            example: percent
+          amount:
+            type: number
+            nullable: true
+            description: Markup amount (currency for flat, percentage for percent). Set to null to clear the amount.
+            example: 12.5
+          excludeFringes:
+            type: boolean
+            description: Whether to exclude fringe totals from the markup base
+            example: true
+
+      UpdateOvertimeDetail:
+        type: object
+        description: Partial overtime configuration updates applied to a phase
+        additionalProperties: false
+        properties:
+          mode:
+            type: string
+            enum: [formula, flat]
+            description: Overtime calculation mode
+            example: formula
+          flatAmount:
+            type: number
+            nullable: true
+            description: Fixed overtime amount when using flat mode
+            example: 5000
+          overtimeHours:
+            type: number
+            nullable: true
+            description: Number of overtime hours to apply
+            example: 20
+          baseHours:
+            type: number
+            nullable: true
+            description: Regular hours before overtime
+            example: 40
+          multipliers:
+            type: array
+            items:
+              type: object
+              properties:
+                threshold:
+                  type: number
+                  description: Hour threshold for this multiplier
+                  example: 40
+                multiplier:
+                  type: number
+                  description: Multiplier rate applied after the threshold
+                  example: 1.5
+            description: Overtime multiplier thresholds
+
+      UpdateBudgetLineBase:
+        type: object
+        description: Shared fields for all budget line update payloads
+        properties:
+          description:
+            type: string
+            nullable: true
+            description: Updated line description (set to null to remove)
+            example: "Director - Christopher Nolan"
+          idMode:
+            type: string
+            enum: [user, system]
+            default: user
+            description: ID interpretation mode - "user" for human-friendly IDs (default), "system" for database IDs
+            example: user
+
+      UpdateBudgetLineItemRequest:
+        type: object
+        allOf:
+          - $ref: '#/components/schemas/UpdateBudgetLineBase'
+          - type: object
+            required:
+              - type
+            properties:
+              type:
+                type: string
+                enum: [line]
+                description: Discriminator identifying a standard budget line item update
+                example: line
+              accountId:
+                type: string
+                nullable: true
+                description: Updated account ID (set to null to remove)
+                example: "1100"
+              convertToAccount:
+                type: boolean
+                description: Convert this line item to an account container
+                example: false
+              phaseData:
+                type: object
+                description: Updated phase-specific data for the line item (partial updates supported)
+                additionalProperties:
+                  $ref: '#/components/schemas/UpdatePhaseData'
+
+      UpdateBudgetMarkupLineRequest:
+        type: object
+        allOf:
+          - $ref: '#/components/schemas/UpdateBudgetLineBase'
+          - type: object
+            required:
+              - type
+            properties:
+              type:
+                type: string
+                enum: [markup]
+                description: Discriminator identifying a markup line update
+                example: markup
+              accountId:
+                type: string
+                nullable: true
+                description: Updated account ID associated with the markup (set to null to remove)
+                example: "1000"
+              includeAccounts:
+                type: array
+                items:
+                  type: string
+                description: Account IDs the markup should explicitly apply to (empty array clears the selection)
+                example: ["1000", "2000"]
+              phaseData:
+                type: object
+                description: Updated markup configuration per phase (partial updates supported)
+                additionalProperties:
+                  $ref: '#/components/schemas/UpdateMarkupPhaseData'
+
+      UpdateBudgetSubtotalLineRequest:
+        type: object
+        allOf:
+          - $ref: '#/components/schemas/UpdateBudgetLineBase'
+          - type: object
+            required:
+              - type
+            properties:
+              type:
+                type: string
+                enum: [subtotal]
+                description: Discriminator identifying a subtotal line update
+                example: subtotal
+              color:
+                type: string
+                nullable: true
+                description: Updated subtotal color (set to null to revert to default)
+                example: "amber"
+
+      CreatePhaseData:
+        type: object
+        description: Phase-specific data payload for creating line items
+        additionalProperties: false
+        properties:
+          fringes:
+            type: array
+            items:
+              type: string
+            description: Fringe benefit IDs or symbols applied to this phase
+            example: ["fica", "health"]
+          date:
+            type: object
+            properties:
+              startDate:
+                type: string
+                format: date
+                nullable: true
+                example: "2024-03-01"
+              endDate:
+                type: string
+                format: date
+                nullable: true
+                example: "2024-03-31"
+            description: Optional start/end date for the phase data
+          quantity:
+            oneOf:
+              - type: number
+              - type: string
+            description: Quantity value or formula string (e.g., "=hours_per_week * 4")
+            example: 160
+          unit:
+            type: string
+            description: Unit of measurement for the quantity
+            example: hours
+          rate:
+            oneOf:
+              - type: number
+              - type: string
+            description: Rate value or formula string
+            example: 125.0
+          multiplier:
+            oneOf:
+              - type: number
+              - type: string
+            description: Multiplier value or formula string
+            example: 1.1
+          overtime:
+            $ref: '#/components/schemas/OvertimeDetail'
+            description: Optional overtime configuration
+
+      CreateMarkupPhaseData:
+        type: object
+        description: Phase-specific markup configuration for create requests
+        additionalProperties: false
+        properties:
+          type:
+            type: string
+            enum: [flat, percent]
+            description: Markup calculation type
+            example: percent
+          amount:
+            type: number
+            nullable: true
+            description: Markup amount (currency for flat, percentage for percent)
+            example: 10
+          excludeFringes:
+            type: boolean
+            description: Whether to exclude fringe totals from the markup base
+            example: true
+        required:
+          - type
+
+      ResolutionWarning:
+        type: object
+        description: Warning generated when user-provided identifiers must be resolved to fallback IDs
+        properties:
+          type:
+            type: string
+            enum: [account, phase, line, fringe]
+            description: Type of identifier that generated the warning
+            example: account
+          message:
+            type: string
+            description: Human-readable warning message
+            example: Provided account alias "Payroll" could not be resolved; using system ID.
+          userProvidedId:
+            type: string
+            description: Original identifier supplied in the request
+            example: Payroll
+          fallbackId:
+            type: string
+            nullable: true
+            description: Fallback identifier used when resolution failed
+            example: acc_123abc
+        required:
+          - type
+          - message
+          - userProvidedId
 
       Budget:
         type: object
@@ -3641,6 +4013,42 @@
           - isLocked
           - lastModified
 
+      CreatePhaseResponse:
+        type: object
+        properties:
+          phase:
+            type: object
+            allOf:
+              - $ref: '#/components/schemas/Phase'
+            nullable: true
+            description: The created budget phase, or null if creation failed
+          warnings:
+            type: array
+            description: Warnings generated during writes
+            items:
+              $ref: '#/components/schemas/ResolutionWarning'
+        required:
+          - phase
+          - warnings
+
+      UpdatePhaseResponse:
+        type: object
+        properties:
+          phase:
+            type: object
+            allOf:
+              - $ref: '#/components/schemas/Phase'
+            nullable: true
+            description: The updated budget phase, or null if not found
+          warnings:
+            type: array
+            description: Warnings generated during update
+            items:
+              $ref: '#/components/schemas/ResolutionWarning'
+        required:
+          - phase
+          - warnings
+
       Fringe:
         type: object
         properties:
@@ -3666,8 +4074,8 @@
           rate:
             type: number
             nullable: true
-            description: Fringe rate (decimal for percent, amount for flat)
-            example: 0.0765
+            description: Fringe rate. If units is percent, the value will be percentage (e.g. 7.65 for 7.65%). If units is flat or total, the value will be the amount (e.g. 1000 for $1000).
+            example: 7.65
           cutoff:
             type: number
             nullable: true
@@ -3682,6 +4090,42 @@
           - id
           - units
           - lastModified
+
+      CreateFringeResponse:
+        type: object
+        properties:
+          fringe:
+            type: object
+            allOf:
+              - $ref: '#/components/schemas/Fringe'
+            nullable: true
+            description: The created fringe benefit, or null if creation failed
+          warnings:
+            type: array
+            description: Warnings generated during writes
+            items:
+              $ref: '#/components/schemas/ResolutionWarning'
+        required:
+          - fringe
+          - warnings
+
+      UpdateFringeResponse:
+        type: object
+        properties:
+          fringe:
+            type: object
+            allOf:
+              - $ref: '#/components/schemas/Fringe'
+            nullable: true
+            description: The updated fringe benefit, or null if not found
+          warnings:
+            type: array
+            description: Warnings generated during update
+            items:
+              $ref: '#/components/schemas/ResolutionWarning'
+        required:
+          - fringe
+          - warnings
 
       Global:
         type: object
@@ -3719,6 +4163,42 @@
           - id
           - lastModified
 
+      CreateGlobalResponse:
+        type: object
+        properties:
+          global:
+            type: object
+            allOf:
+              - $ref: '#/components/schemas/Global'
+            nullable: true
+            description: The created global variable, or null if creation failed
+          warnings:
+            type: array
+            description: Warnings generated during writes
+            items:
+              $ref: '#/components/schemas/ResolutionWarning'
+        required:
+          - global
+          - warnings
+
+      UpdateGlobalResponse:
+        type: object
+        properties:
+          global:
+            type: object
+            allOf:
+              - $ref: '#/components/schemas/Global'
+            nullable: true
+            description: The updated global variable, or null if not found
+          warnings:
+            type: array
+            description: Warnings generated during update
+            items:
+              $ref: '#/components/schemas/ResolutionWarning'
+        required:
+          - global
+          - warnings
+
       Actual:
         type: object
         properties:
@@ -3729,7 +4209,7 @@
           description:
             type: string
             nullable: true
-            description: Actual entry description
+            description: Human-readable description of the actual entry
             example: Camera rental for shoot days
           amount:
             type: number
@@ -3743,6 +4223,8 @@
             nullable: true
             description: Actual entry date
             example: "2024-03-15T12:00:00Z"
+          mode:
+            $ref: '#/components/schemas/ActualMode'
           accountId:
             description: Associated account ID(s)
             oneOf:
@@ -3751,19 +4233,26 @@
               - type: array
                 items:
                   type: string
+          accountPath:
+            description: Account path(s) for the actual entry
+            oneOf:
+              - type: string
                 nullable: true
-          expanded:
-            type: boolean
-            description: Whether this actual has sub-actuals
-            example: false
+              - type: array
+                items:
+                  type: string
           type:
             type: string
+            allOf:
+              - $ref: '#/components/schemas/ActualType'
+            nullable: true
             description: Actual entry type
-            example: invoice
+            example: Invoice
           attachments:
             type: array
             items:
               $ref: '#/components/schemas/File'
+            nullable: true
             description: Attached files
           ref:
             type: string
@@ -3777,8 +4266,11 @@
             example: pay-xyz-789
           status:
             type: string
+            allOf:
+              - $ref: '#/components/schemas/ActualStatus'
+            nullable: true
             description: Actual entry status
-            example: completed
+            example: Pending
           notes:
             type: string
             nullable: true
@@ -3800,14 +4292,21 @@
             description: Associated transaction ID
             example: txn-abc-123
           contact:
-            $ref: '#/components/schemas/Contact'
+            type: object
+            allOf:
+              - $ref: '#/components/schemas/Contact'
+            nullable: true
           subactuals:
             type: array
             items:
               $ref: '#/components/schemas/SubActual'
-            description: Sub-actual entries
+            nullable: true
+            description: Sub-actual line items
           account:
-            $ref: '#/components/schemas/BudgetLine'
+            type: object
+            allOf:
+              - $ref: '#/components/schemas/BudgetLine'
+            nullable: true
           lastModified:
             type: string
             format: date-time
@@ -3815,7 +4314,7 @@
             example: "2024-03-15T14:30:00Z"
         required:
           - id
-          - expanded
+          - mode
           - lastModified
 
       SubActual:
@@ -3825,6 +4324,11 @@
             type: string
             description: Sub-actual identifier
             example: subactual-001
+          lineId:
+            type: string
+            nullable: true
+            description: Line identifier for ordering and referencing
+            example: A-10
           description:
             type: string
             nullable: true
@@ -3833,21 +4337,38 @@
           amount:
             type: number
             format: float
+            nullable: true
             description: Sub-actual amount
             example: 2500.00
-          date:
-            type: string
-            format: date-time
-            nullable: true
-            description: Sub-actual date
-            example: "2024-03-10T09:00:00Z"
           accountId:
             type: string
             nullable: true
             description: Associated account ID
             example: /marketing/social-media
+          accountPath:
+            type: string
+            nullable: true
+            description: Associated account path
+            example: /production/camera/rentals
+          quantity:
+            type: number
+            format: float
+            description: Quantity used for the line item
+            example: 4
+          unit:
+            type: string
+            description: Unit of measure for the quantity
+            example: Day
+          rate:
+            type: number
+            format: float
+            description: Rate applied to the quantity
+            example: 625.00
           account:
-            $ref: '#/components/schemas/BudgetLine'
+            type: object
+            allOf:
+              - $ref: '#/components/schemas/BudgetLine'
+            nullable: true
           lastModified:
             type: string
             format: date-time
@@ -3855,7 +4376,6 @@
             example: "2024-03-15T14:30:00Z"
         required:
           - id
-          - amount
           - lastModified
 
       Contact:
@@ -4356,156 +4876,359 @@
             description: Associated account ID
             example: /production/lighting
 
+      ActualType:
+        type: string
+        description: Type of actual transaction indicating payment method or source
+        enum: [SaturationACH, SaturationPCard, SaturationWire, ACH, Cash, Check, CreditCard, Wire, ETransfer, Invoice, Projection, TimeCard]
+        example: Invoice
+
+      ActualStatus:
+        type: string
+        description: Workflow status of the actual transaction
+        enum: [Unpaid, Pending, Paid, Refund, NeedsReview]
+        example: Pending
+
+      ActualMode:
+        type: string
+        description: Mode of the actual transaction
+        enum: [default, split]
+        example: default
+
+      UnitType:
+        type: string
+        description: Supported unit of measure for quantity-based line items
+        enum: [Allow, Day, HalfDay, Each, Episodes, Fare, Flat, Foot, Hour, Minute, Month, Night, Percent, Person, SQFT, Unit, Week]
+        example: Hour
+
+      AddSubActualInput:
+        type: object
+        description: Input for creating a new sub-actual line item
+        properties:
+          number:
+            type: string
+            description: Line reference number
+            example: SA-001
+          description:
+            type: string
+            description: Sub-actual description
+            example: Weekly camera package rental
+          amount:
+            type: number
+            format: float
+            description: Amount for the line item
+            example: 3500.00
+          accountId:
+            type: string
+            description: Account ID or alias for this line item
+            example: /production/camera
+          notes:
+            type: string
+            description: Additional notes for the line item
+            example: Includes insurance add-on
+          quantity:
+            type: number
+            format: float
+            description: Quantity used for the line item
+            example: 5
+          unit:
+            $ref: '#/components/schemas/UnitType'
+          rate:
+            type: number
+            format: float
+            description: Rate applied to the quantity
+            example: 700.00
+
+      UpdateSubActualInput:
+        type: object
+        description: Input for updating an existing sub-actual line item
+        required:
+          - id
+        properties:
+          id:
+            type: string
+            description: Sub-actual identifier
+            example: subactual-001
+          number:
+            type: string
+            description: Line reference number
+            example: SA-001
+          description:
+            type: string
+            description: Sub-actual description
+            example: Grip truck labor
+          amount:
+            type: number
+            format: float
+            description: Amount for the line item
+            example: 1250.00
+          accountId:
+            type: string
+            description: Account ID or alias for this line item
+            example: /production/grip
+          notes:
+            type: string
+            description: Additional notes for the line item
+            example: Includes overtime charges
+          quantity:
+            type: number
+            format: float
+            description: Quantity used for the line item
+            example: 3
+          unit:
+            $ref: '#/components/schemas/UnitType'
+          rate:
+            type: number
+            format: float
+            description: Rate applied to the quantity
+            example: 450.00
+
+      RemoveSubActualInput:
+        type: object
+        description: Input for removing an existing sub-actual line item
+        required:
+          - id
+          - remove
+        properties:
+          id:
+            type: string
+            description: Sub-actual identifier
+            example: subactual-002
+          remove:
+            type: boolean
+            enum: [true]
+            description: Flag indicating the sub-actual should be removed
+            example: true
+
+      SubActualWriteOperation:
+        description: Sub-actual mutation payload supporting add, update, and remove operations
+        oneOf:
+          - $ref: '#/components/schemas/AddSubActualInput'
+          - $ref: '#/components/schemas/UpdateSubActualInput'
+          - $ref: '#/components/schemas/RemoveSubActualInput'
+
       CreateActualInput:
         type: object
         description: Input for creating a new actual entry
         properties:
+          type:
+            allOf:
+              - $ref: '#/components/schemas/ActualType'
+            description: Type of actual transaction indicating payment method or source
+            example: Invoice
           description:
             type: string
-            description: Actual entry description
+            description: Human-readable name for the actual entry
             example: Camera rental invoice payment
+          contactId:
+            type: string
+            description: Associated contact ID
+            example: contact-studio-001
+          date:
+            type: string
+            format: date-time
+            description: Actual date (ISO 8601)
+            example: "2024-03-25T11:00:00Z"
           amount:
             type: number
             format: float
             description: Actual amount
             example: 7500.00
-          date:
-            type: string
-            format: date-time
-            description: Actual date
-            example: "2024-03-25T11:00:00Z"
           accountId:
-            oneOf:
-              - type: string
-              - type: array
-                items:
-                  type: string
-            description: Associated account ID(s)
+            type: string
+            description: Account ID or alias to assign the actual to
             example: /production/camera
-          ref:
-            type: string
-            description: Reference identifier
-            example: INV-2024-0420
-          payId:
-            type: string
-            description: Payment identifier
-            example: pay-abc-456
           status:
-            type: string
-            description: Actual entry status
-            example: pending
+            allOf:
+              - $ref: '#/components/schemas/ActualStatus'
+            description: Workflow status to set on the new actual entry
+            example: Pending
           notes:
             type: string
             description: Additional notes
             example: Week 1 camera rental
+          number:
+            type: string
+            description: External reference number or user-supplied actual number
+            example: ACT-2024-0315
           tags:
             type: array
             items:
               type: string
             description: Associated tags
             example: ["equipment", "week-1"]
-          purchaseOrderId:
+          payId:
             type: string
-            description: Associated purchase order ID
-            example: po-2024-001
-          transactionId:
+            description: Payment identifier
+            example: pay-abc-456
+          suggestedTotal:
+            type: number
+            format: float
+            description: Suggested total amount for validation purposes
+            example: 7500.00
+          split:
+            type: boolean
+            description: Whether to create the actual in split mode with sub-actuals
+            example: false
+          subActuals:
+            type: array
+            description: Sub-actual line items to create with the parent actual
+            items:
+              $ref: '#/components/schemas/AddSubActualInput'
+          after:
             type: string
-            description: Associated transaction ID
-            example: txn-def-789
-          contactId:
+            description: Position the new actual after the specified actual ID
+            example: actual-002
+          before:
             type: string
-            description: Associated contact ID
-            example: contact-studio-001
+            description: Position the new actual before the specified actual ID
+            example: actual-005
         required:
           - description
-          - amount
-          - date
 
       UpdateActualInput:
         type: object
         description: Input for updating an existing actual entry
         properties:
+          type:
+            allOf:
+              - $ref: '#/components/schemas/ActualType'
+            description: Updated transaction type for the actual entry
+            example: Wire
           description:
             type: string
-            description: Actual entry description
+            description: Updated name or description for the actual entry
             example: Camera rental invoice - adjusted
+          contactId:
+            type: string
+            description: Associated contact ID
+            example: contact-studio-002
+          date:
+            type: string
+            format: date-time
+            description: Actual date (ISO 8601)
+            example: "2024-03-26T11:00:00Z"
           amount:
             type: number
             format: float
             description: Actual amount
             example: 8000.00
-          date:
-            type: string
-            format: date-time
-            description: Actual date
-            example: "2024-03-26T11:00:00Z"
           accountId:
-            oneOf:
-              - type: string
-              - type: array
-                items:
-                  type: string
-            description: Associated account ID(s)
+            type: string
+            description: Account ID or alias to assign the actual to
             example: /production/camera
-          ref:
-            type: string
-            description: Reference identifier
-            example: INV-2024-0421
-          payId:
-            type: string
-            description: Payment identifier
-            example: pay-abc-457
           status:
-            type: string
-            description: Actual entry status
-            example: completed
+            allOf:
+              - $ref: '#/components/schemas/ActualStatus'
+            description: Updated workflow status for the actual entry
+            example: Paid
           notes:
             type: string
             description: Additional notes
             example: Week 1 camera rental - added extra day
+          number:
+            type: string
+            description: External reference number or user-supplied actual number
+            example: ACT-2024-0315
           tags:
             type: array
             items:
               type: string
             description: Associated tags
             example: ["equipment", "week-1", "adjusted"]
-          purchaseOrderId:
+          payId:
             type: string
-            description: Associated purchase order ID
-            example: po-2024-002
-          transactionId:
+            description: Payment identifier
+            example: pay-abc-457
+          suggestedTotal:
+            type: number
+            format: float
+            description: Suggested total amount for validation purposes
+            example: 8200.00
+          split:
+            type: boolean
+            description: Toggle split mode for the actual
+            example: true
+          subActuals:
+            type: array
+            description: Batch operations to add, update, or remove sub-actual line items
+            items:
+              $ref: '#/components/schemas/SubActualWriteOperation'
+          after:
             type: string
-            description: Associated transaction ID
-            example: txn-ghi-012
-          contactId:
+            description: Position the actual after the specified actual ID
+            example: actual-003
+          before:
             type: string
-            description: Associated contact ID
-            example: contact-studio-002
+            description: Position the actual before the specified actual ID
+            example: actual-004
+
+      BatchActualsSummary:
+        type: object
+        description: Aggregate statistics captured during batch processing
+        properties:
+          inserted:
+            type: integer
+            format: int32
+            description: Number of items inserted without field drops
+            example: 8          
+          deleted:
+            type: integer
+            format: int32
+            description: Number of existing actuals deleted when replace=true
+            example: 10
+          errors:
+            type: integer
+            format: int32
+            description: Number of items that failed and were not written
+            example: 1
+          processed:
+            type: integer
+            format: int32
+            description: Number of items processed (successful, partial, or failed)
+            example: 11
+          received:
+            type: integer
+            format: int32
+            description: Number of items received in the request payload
+            example: 11
+        required:
+          - inserted
+          - deleted
+          - errors
+          - processed
+          - received
+
+      BatchActualsResponse:
+        type: object
+        description: Response payload for batch actual creation
+        properties:
+          summary:
+            $ref: '#/components/schemas/BatchActualsSummary'
+        required:
+          - summary
 
       UpdateTransactionInput:
         type: object
         description: Input for updating an existing transaction
         properties:
-          projectId:
-            type: string
-            description: Associated project ID
-            example: nike-swoosh-commercial
-          accountId:
-            type: string
-            description: Associated account ID
-            example: /production/equipment
           contactId:
             type: string
-            description: Associated contact ID
+            nullable: true
+            description: |
+              Optional contact identifier. Accepts either a system ID or contact alias. Set to null to remove the existing association.
             example: contact-studio-001
-          description:
+          projectId:
             type: string
-            description: Transaction description
-            example: ARRI RENTAL - Equipment
-          notes:
+            nullable: true
+            description: |
+              Optional project identifier. Accepts a system ID or project alias. Set to null to clear the project link.
+            example: proj_12345
+          accountId:
             type: string
-            description: Additional notes
-            example: Camera and lighting equipment for week 2
+            nullable: true
+            description: |
+              Optional budget line identifier (system ID or user-facing account code). Set to null to remove the association.
+            example: /production/equipment
 
       PurchaseOrderItem:
         type: object
@@ -4658,7 +5381,7 @@
         properties:
           id:
             type: string
-            description: File identifier (DigitalOcean Spaces object key)
+            description: File identifier (Use this to download the file through files endpoint)
             example: files/2024/03/budget-report.pdf
           name:
             type: string
@@ -4964,11 +5687,11 @@
             type: string
             description: Unique item identifier
             example: item-001
-          name:
+          identifier:
             type: string
             nullable: true
-            description: Item display name
-            example: Director of Photography
+            description: Item identifier
+            example: DoP
           emoji:
             type: string
             nullable: true
@@ -4978,7 +5701,7 @@
             type: string
             nullable: true
             description: Item description
-            example: Cinematography and camera operation
+            example: Director of Photography
           note:
             type: string
             nullable: true
@@ -5000,16 +5723,6 @@
             enum: [hour, day, week, month, year, each, sqft, sqm, lnft, lnm]
             description: Unit of measurement
             example: hour
-          multiplier:
-            type: number
-            nullable: true
-            description: Rate multiplier
-            example: 1.5
-          contactId:
-            type: string
-            nullable: true
-            description: Associated contact ID
-            example: contact-dp-001
           # Expandable fields
           contact:
             $ref: '#/components/schemas/Contact'
@@ -5021,10 +5734,10 @@
         type: object
         description: Input for creating a new rate
         properties:
-          name:
+          identifier:
             type: string
-            description: Rate name
-            example: Director of Photography
+            description: Rate identifier
+            example: DoP
           emoji:
             type: string
             description: Rate emoji or icon
@@ -5032,7 +5745,7 @@
           description:
             type: string
             description: Rate description
-            example: Cinematography and camera operation
+            example: Director of Photography
           note:
             type: string
             description: Additional notes
@@ -5050,20 +5763,12 @@
             enum: [hour, day, week, month, year, each, sqft, sqm, lnft, lnm]
             description: Unit of measurement
             example: hour
-          multiplier:
-            type: number
-            description: Rate multiplier
-            example: 1.5
-          contactId:
-            type: string
-            description: Associated contact ID
-            example: contact-dp-001
 
       UpdateRateInput:
         type: object
         description: Input for updating a rate
         properties:
-          name:
+          identifier:
             type: string
             description: Updated rate name
             example: Gaffer
@@ -5092,14 +5797,6 @@
             enum: [hour, day, week, month, year, each, sqft, sqm, lnft, lnm]
             description: Updated unit of measurement
             example: hour
-          multiplier:
-            type: number
-            description: Updated rate multiplier
-            example: 1.75
-          contactId:
-            type: string
-            description: Updated associated contact/vendor ID
-            example: contact-gaffer-001
 
       # ========================================
       # TAG SCHEMAS
@@ -5294,8 +5991,8 @@
             example: "percent"
           rate:
             type: number
-            description: Fringe rate (decimal for percent, amount for flat)
-            example: 0.062
+            description: Fringe rate. If units is percent, the value will be percentage (e.g. 7.65 for 7.65%). If units is flat or total, the value will be the amount (e.g. 1000 for $1000).
+            example: 7.65
           cutoff:
             type: number
             nullable: true
@@ -5404,62 +6101,13 @@
             example: user
 
       UpdateBudgetLineRequest:
-        type: object
         description: Request schema for updating an existing budget line
-        properties:
-          description:
-            type: string
-            nullable: true
-            description: Updated line description (set to null to remove)
-            example: "Director - Christopher Nolan"
-          accountId:
-            type: string
-            nullable: true
-            description: Updated account ID (set to null to remove)
-            example: "1100"
-          convertToAccount:
-            type: boolean
-            description: Convert this line to an account type
-            default: false
-            example: false
-          phaseData:
-            type: object
-            description: Updated phase-specific data (partial updates supported)
-            additionalProperties:
-              type: object
-              properties:
-                quantity:
-                  type: number
-                  nullable: true
-                  description: Updated quantity
-                  example: 15
-                unit:
-                  type: string
-                  nullable: true
-                  description: Updated unit
-                  example: "days"
-                rate:
-                  type: number
-                  nullable: true
-                  description: Updated rate
-                  example: 30000
-                multiplier:
-                  type: number
-                  nullable: true
-                  description: Updated multiplier
-                  example: 1.5
-                fringes:
-                  type: array
-                  items:
-                    type: string
-                  description: Fringe IDs to apply
-                  example: ["FICA", "HEALTH"]
-          idMode:
-            type: string
-            enum: [user, system]
-            default: user
-            description: ID interpretation mode - "user" for human-friendly IDs (default), "system" for database IDs
-            example: user
+        oneOf:
+          - $ref: '#/components/schemas/UpdateBudgetLineItemRequest'
+          - $ref: '#/components/schemas/UpdateBudgetMarkupLineRequest'
+          - $ref: '#/components/schemas/UpdateBudgetSubtotalLineRequest'
+        discriminator:
+          propertyName: type
 
       TagTotals:
         type: object
