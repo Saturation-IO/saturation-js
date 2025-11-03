@@ -5,15 +5,17 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/sonner';
 import { useSaturation } from '@/contexts/SaturationContext';
 import { fetchBudget, budgetToCsv, type BudgetColumn } from '@/lib/budgetCsv';
+import type { Project } from '@saturation-api/js';
 
 type Props = {
   projectId?: string;
   projectName?: string;
   columns?: string[];
   phases?: string[];
+  ensureLatestProjects?: () => Promise<Project[] | undefined>;
 };
 
-export function ExportCsvButton({ projectId, projectName, columns, phases }: Props) {
+export function ExportCsvButton({ projectId, projectName, columns, phases, ensureLatestProjects }: Props) {
   const saturation = useSaturation();
   const [loading, setLoading] = useState(false);
   // no-op
@@ -25,7 +27,18 @@ export function ExportCsvButton({ projectId, projectName, columns, phases }: Pro
     }
     try {
       setLoading(true);
-      toast('Export started', { description: 'Loading budget…' });
+      toast('Export started', { description: ensureLatestProjects ? 'Refreshing project data…' : 'Loading budget…' });
+      let activeProjectName = projectName;
+      if (ensureLatestProjects) {
+        const projects = await ensureLatestProjects();
+        const selected = projects?.find((proj) => proj.id === projectId);
+        if (!selected) {
+          throw new Error('Selected project is no longer available. Please pick another project and try again.');
+        }
+        if (selected.name) {
+          activeProjectName = selected.name;
+        }
+      }
       const budget = await fetchBudget(saturation, projectId);
       const csv = budgetToCsv(budget, {
         includeHeaders: true,
@@ -36,7 +49,7 @@ export function ExportCsvButton({ projectId, projectName, columns, phases }: Pro
       const count = Math.max(0, lines.length - 1); // exclude header
 
       // Trigger file download
-      const name = (projectName?.trim()?.replace(/\s+/g, '_') || 'project') + '_budget.csv';
+      const name = (activeProjectName?.trim()?.replace(/\s+/g, '_') || 'project') + '_budget.csv';
       const safeName = name.replace(/[^a-zA-Z0-9._-]/g, '_');
       // Add BOM for better CSV handling in Excel
       const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
