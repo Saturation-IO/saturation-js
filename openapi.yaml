@@ -720,7 +720,7 @@
           '500':
             $ref: '#/components/responses/InternalServerError'
 
-    /projects/{projectId}/actuals:batch:
+    /projects/{projectId}/actuals/batch:
       parameters:
         - $ref: '#/components/parameters/ProjectId'
 
@@ -747,7 +747,7 @@
                     items:
                       $ref: '#/components/schemas/CreateActualInput'
                 required:
-                  - items
+                  - actuals
         responses:
           '200':
             description: Batch processed successfully
@@ -761,6 +761,12 @@
             $ref: '#/components/responses/Unauthorized'
           '404':
             $ref: '#/components/responses/NotFound'
+          '413':
+            description: Payload too large
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
           '500':
             $ref: '#/components/responses/InternalServerError'
 

@@ -274,7 +274,7 @@ export const batchCreateActuals = <ThrowOnError extends boolean = false>(options
                 type: 'apiKey'
             }
         ],
-        url: '/projects/{projectId}/actuals:batch',
+        url: '/projects/{projectId}/actuals/batch',
         ...options,
         headers: {
             'Content-Type': 'application/json',

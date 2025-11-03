@@ -3142,7 +3142,7 @@ export type BatchCreateActualsData = {
         projectId: string;
     };
     query?: never;
-    url: '/projects/{projectId}/actuals:batch';
+    url: '/projects/{projectId}/actuals/batch';
 };
 
 export type BatchCreateActualsErrors = {

@@ -1,14 +1,16 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import type { Project } from '@saturation-api/js';
+import type { ActualStatus, CreateActualInput, Project } from '@saturation-api/js';
 import { useSaturation } from '@/contexts/SaturationContext';
 import { CsvDropzone, type CsvData } from '@/components/import/CsvDropzone';
+import { ProjectPicker } from '@/components/import/ProjectPicker';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { toast } from '@/components/ui/sonner';
 
 type ActualFieldKey =
   | 'description'
@@ -25,7 +27,6 @@ type ActualFieldKey =
 type ActualFieldConfig = {
   key: ActualFieldKey;
   label: string;
-  required?: boolean;
   description: string;
 };
 
@@ -46,19 +47,16 @@ const ACTUAL_FIELD_CONFIG: ActualFieldConfig[] = [
   {
     key: 'description',
     label: 'Description',
-    required: true,
     description: 'Text that will appear on the actual line item.',
   },
   {
     key: 'amount',
     label: 'Amount',
-    required: true,
     description: 'Numeric amount in the project currency (e.g. 1234.56).',
   },
   {
     key: 'date',
     label: 'Date',
-    required: true,
     description: 'Transaction date. Use ISO format (YYYY-MM-DD) for best results.',
   },
   {
@@ -194,6 +192,35 @@ const sanitizeStoredMapping = (input: ActualFieldMapping, columnCount: number): 
   return safeMapping;
 };
 
+const STATUS_NORMALIZATION: Record<string, ActualStatus> = {
+  unpaid: 'Unpaid',
+  pending: 'Pending',
+  awaitingpayment: 'Pending',
+  awaiting: 'Pending',
+  paid: 'Paid',
+  complete: 'Paid',
+  completed: 'Paid',
+  refund: 'Refund',
+  refunded: 'Refund',
+  needsreview: 'NeedsReview',
+  review: 'NeedsReview',
+  'needs review': 'NeedsReview',
+};
+
+const normalizeStatusValue = (value: string): ActualStatus | undefined => {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  const key = trimmed.toLowerCase();
+  if (STATUS_NORMALIZATION[key]) {
+    return STATUS_NORMALIZATION[key];
+  }
+  return (['Unpaid', 'Pending', 'Paid', 'Refund', 'NeedsReview'] as ActualStatus[]).find(
+    (status) => status.toLowerCase() === key,
+  );
+};
+
 export default function ActualImportPage() {
   const router = useRouter();
   const saturation = useSaturation();
@@ -206,6 +233,7 @@ export default function ActualImportPage() {
   const [mapping, setMapping] = useState<ActualFieldMapping>(() => createEmptyMapping());
   const [importFirstRow, setImportFirstRow] = useState(false);
   const [replaceExistingActuals, setReplaceExistingActuals] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   const selectedProject = useMemo(
     () => projects.find((project) => project.id === selectedProjectId),
@@ -226,9 +254,16 @@ export default function ActualImportPage() {
         setError(null);
         const res = await saturation.listProjects();
         const list = res.projects || [];
-        setProjects(list);
-        if (list.length > 0) {
-          setSelectedProjectId(list[0].id);
+        const sorted = [...list].sort((a, b) => {
+          const nameA = (a.name ?? a.id ?? '').toLowerCase();
+          const nameB = (b.name ?? b.id ?? '').toLowerCase();
+          if (nameA < nameB) return -1;
+          if (nameA > nameB) return 1;
+          return 0;
+        });
+        setProjects(sorted);
+        if (sorted.length > 0) {
+          setSelectedProjectId(sorted[0].id);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load projects');
@@ -256,9 +291,6 @@ export default function ActualImportPage() {
 
   useEffect(() => {
     if (!csvData) {
-      setMapping(createEmptyMapping());
-      setImportFirstRow(false);
-      setReplaceExistingActuals(false);
       return;
     }
 
@@ -275,15 +307,33 @@ export default function ActualImportPage() {
 
     const storedEntry = storedPreferences?.[signature];
     if (storedEntry) {
-      setMapping(sanitizeStoredMapping(storedEntry.mapping, csvData.columns.length));
-      setImportFirstRow(Boolean(storedEntry.importFirstRow));
-      setReplaceExistingActuals(Boolean(storedEntry.replaceExistingActuals));
+      const sanitized = sanitizeStoredMapping(storedEntry.mapping, csvData.columns.length);
+      setMapping((prev) => {
+        const mappingChanged = (Object.keys(sanitized) as ActualFieldKey[]).some(
+          (field) => sanitized[field] !== prev[field],
+        );
+        return mappingChanged ? sanitized : prev;
+      });
+      setImportFirstRow((prev) => {
+        const next = Boolean(storedEntry.importFirstRow);
+        return prev === next ? prev : next;
+      });
+      setReplaceExistingActuals((prev) => {
+        const next = Boolean(storedEntry.replaceExistingActuals);
+        return prev === next ? prev : next;
+      });
       return;
     }
 
-    setMapping(guessMapping(csvData.columns));
-    setImportFirstRow(false);
-    setReplaceExistingActuals(false);
+    const guessed = guessMapping(csvData.columns);
+    setMapping((prev) => {
+      const mappingChanged = (Object.keys(guessed) as ActualFieldKey[]).some(
+        (field) => guessed[field] !== prev[field],
+      );
+      return mappingChanged ? guessed : prev;
+    });
+    setImportFirstRow((prev) => (prev ? false : prev));
+    setReplaceExistingActuals((prev) => (prev ? false : prev));
   }, [csvData]);
 
   useEffect(() => {
@@ -323,11 +373,31 @@ export default function ActualImportPage() {
     return importFirstRow ? [csvData.columns, ...csvData.rows] : csvData.rows;
   }, [csvData, importFirstRow]);
 
-  const requiredFieldsMissing = useMemo(() => {
-    return ACTUAL_FIELD_CONFIG.some(
-      (field) => field.required && (mapping[field.key] === null || mapping[field.key] === undefined),
+  const rowsAvailableForImport = useMemo(() => {
+    return Math.min(5, previewRows.length);
+  }, [previewRows]);
+
+  const canImport = useMemo(() => {
+    return Boolean(
+      selectedProjectId &&
+        csvData &&
+        rowsAvailableForImport > 0 &&
+        !isImporting,
     );
-  }, [mapping]);
+  }, [csvData, isImporting, rowsAvailableForImport, selectedProjectId]);
+
+  const importDisabledReason = useMemo(() => {
+    if (!csvData) {
+      return 'Upload a CSV file before importing.';
+    }
+    if (!selectedProjectId) {
+      return 'Select a project to choose an import destination.';
+    }
+    if (rowsAvailableForImport === 0) {
+      return 'The uploaded CSV does not contain any data rows.';
+    }
+    return undefined;
+  }, [csvData, rowsAvailableForImport, selectedProjectId]);
 
   const mappingPreview = useMemo(() => {
     if (previewRows.length === 0) {
@@ -346,6 +416,149 @@ export default function ActualImportPage() {
 
     return preview;
   }, [mapping, previewRows]);
+
+  const handleImportActuals = useCallback(async () => {
+    if (!csvData || !selectedProjectId) {
+      toast.error('Select a project and upload a CSV before importing.');
+      return;
+    }
+
+    const rows = previewRows.slice(0, 5);
+    if (rows.length === 0) {
+      toast.error('No rows available to import.');
+      return;
+    }
+
+    const getCellValue = (row: string[], field: ActualFieldKey) => {
+      const index = mapping[field];
+      if (index === null || index === undefined) {
+        return '';
+      }
+      return row[index] ?? '';
+    };
+
+    const parseAmount = (value: string) => {
+      const sanitized = value.replace(/[^0-9.,-]/g, '').replace(/,/g, '');
+      if (!sanitized) {
+        return Number.NaN;
+      }
+      return Number.parseFloat(sanitized);
+    };
+
+    const toIsoDate = (value: string) => {
+      const trimmed = value.trim();
+      if (!trimmed) {
+        return '';
+      }
+
+      if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+        return trimmed;
+      }
+
+      const parsed = new Date(trimmed);
+      if (Number.isNaN(parsed.getTime())) {
+        return trimmed;
+      }
+      return parsed.toISOString().slice(0, 10);
+    };
+
+    const actuals: CreateActualInput[] = [];
+    rows.forEach((row, rowIndex) => {
+      const description = getCellValue(row, 'description').trim();
+      const amountRaw = getCellValue(row, 'amount');
+      const amount = parseAmount(amountRaw);
+      const date = toIsoDate(getCellValue(row, 'date'));
+
+      if (!description || !date || !Number.isFinite(amount)) {
+        console.warn('Skipping row due to missing required fields', { rowIndex, description, amountRaw, date });
+        return;
+      }
+
+      const actual: CreateActualInput = {
+        description,
+        amount,
+        date,
+      };
+
+      const accountRaw = getCellValue(row, 'accountId').trim();
+      if (accountRaw) {
+        const accountId = accountRaw.split(/[;,]/)[0]?.trim();
+        if (accountId) {
+          actual.accountId = accountId;
+        }
+      }
+
+      const referenceNumber = getCellValue(row, 'ref').trim();
+      if (referenceNumber) {
+        actual.number = referenceNumber;
+      }
+
+      const payId = getCellValue(row, 'payId').trim();
+      if (payId) {
+        actual.payId = payId;
+      }
+
+      const status = getCellValue(row, 'status').trim();
+      if (status) {
+        const normalized = normalizeStatusValue(status);
+        if (normalized) {
+          actual.status = normalized;
+        }
+      }
+
+      const notes = getCellValue(row, 'notes').trim();
+      if (notes) {
+        actual.notes = notes;
+      }
+
+      const tagsRaw = getCellValue(row, 'tags').trim();
+      if (tagsRaw) {
+        const tags = tagsRaw
+          .split(',')
+          .map((tag) => tag.trim())
+          .filter(Boolean);
+        if (tags.length > 0) {
+          actual.tags = tags;
+        }
+      }
+      actuals.push(actual);
+    });
+
+    if (actuals.length === 0) {
+      toast.error('No valid rows found in the first five rows of the CSV.');
+      return;
+    }
+
+    setIsImporting(true);
+
+    try {
+      const response = await saturation.batchCreateActuals(selectedProjectId, {
+        replace: replaceExistingActuals,
+        actuals,
+      });
+
+      const summary = response?.summary;
+      if (summary) {
+        toast.success(
+          `Imported ${summary.inserted} of ${summary.received} actual${summary.received === 1 ? '' : 's'} (processed ${summary.processed}, errors ${summary.errors}).`,
+        );
+      } else {
+        toast.success(`Imported ${actuals.length} actual${actuals.length === 1 ? '' : 's'} (first 5 rows).`);
+      }
+    } catch (error) {
+      console.error('Failed to import actuals', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to import actuals.');
+    } finally {
+      setIsImporting(false);
+    }
+  }, [
+    csvData,
+    mapping,
+    previewRows,
+    saturation,
+    replaceExistingActuals,
+    selectedProjectId,
+  ]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -367,29 +580,14 @@ export default function ActualImportPage() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              {loading ? (
-                <select className="h-9 rounded-md border bg-transparent px-3 text-sm" disabled>
-                  <option>Loading projects...</option>
-                </select>
-              ) : error ? (
-                <div className="text-sm text-red-600">{error}</div>
-              ) : projects.length === 0 ? (
-                <div className="text-sm text-muted-foreground">No projects found</div>
-              ) : (
-                <select
-                  className="h-9 rounded-md border bg-transparent px-3 text-sm"
-                  value={selectedProjectId}
-                  onChange={(event) => setSelectedProjectId(event.target.value)}
-                >
-                  {projects.map((project) => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
+            <ProjectPicker
+              projects={projects}
+              value={selectedProjectId}
+              onChange={setSelectedProjectId}
+              loading={loading}
+              error={error}
+              className="max-w-full sm:max-w-xl"
+            />
           </div>
         </div>
       </header>
@@ -493,21 +691,11 @@ export default function ActualImportPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 pt-6">
-                {requiredFieldsMissing && (
-                  <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                    Description, Amount, and Date are required before importing.
-                  </div>
-                )}
                 <div className="grid gap-6 md:grid-cols-2">
                   {ACTUAL_FIELD_CONFIG.map((field) => (
                     <div key={field.key} className="space-y-2">
                       <Label htmlFor={`mapping-${field.key}`} className="flex items-center gap-2 text-sm font-medium">
                         {field.label}
-                        {field.required && (
-                          <span className="rounded-sm bg-red-100 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-red-600">
-                            Required
-                          </span>
-                        )}
                       </Label>
                       <select
                         id={`mapping-${field.key}`}
@@ -596,6 +784,21 @@ export default function ActualImportPage() {
                       before importing.
                     </p>
                   </div>
+                </div>
+                <div className="rounded-lg border border-dashed p-4">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div className="text-xs text-muted-foreground">
+                      Imports the first {rowsAvailableForImport || 0} row{rowsAvailableForImport === 1 ? '' : 's'} for testing.
+                    </div>
+                    <Button type="button" onClick={handleImportActuals} disabled={!canImport}>
+                      {isImporting
+                        ? 'Importing…'
+                        : `Import ${rowsAvailableForImport || 0} Actual${rowsAvailableForImport === 1 ? '' : 's'}`}
+                    </Button>
+                  </div>
+                  {importDisabledReason && !isImporting && (
+                    <p className="mt-2 text-xs text-amber-600">{importDisabledReason}</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
