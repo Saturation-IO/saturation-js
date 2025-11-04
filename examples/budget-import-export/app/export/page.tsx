@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useSaturation } from '@/contexts/SaturationContext';
@@ -9,7 +9,7 @@ import { ColumnsMultiSelect, type ColumnKey } from '@/components/export/ColumnsM
 import { PhasesMultiSelect } from '@/components/export/PhasesMultiSelect';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import type { Project } from '@saturation-api/js';
+import type { Phase, Project } from '@saturation-api/js';
 
 export default function ExportPage() {
   const router = useRouter();
@@ -31,27 +31,54 @@ export default function ExportPage() {
     }
   }, [router]);
 
-  // Load projects
-  useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const res = await saturation.listProjects();
-        const list = res.projects || [];
-        setProjects(list);
-        if (list.length > 0) {
-          setSelectedProjectId(list[0].id);
+  const loadProjects = useCallback(async (): Promise<Project[]> => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await saturation.listProjects();
+      const list = res.projects || [];
+      setProjects(list);
+      setSelectedProjectId((current) => {
+        if (current && list.some((project) => project.id === current)) {
+          return current;
         }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load projects');
-        console.error('Error loading projects', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProjects();
+        return list[0]?.id ?? '';
+      });
+      return list;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load projects';
+      setError(message);
+      console.error('Error loading projects', err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   }, [saturation]);
+
+  useEffect(() => {
+    loadProjects().catch(() => undefined);
+  }, [loadProjects]);
+
+  useEffect(() => {
+    if (selectedProjectId) {
+      setPhaseSelection([]);
+    }
+  }, [selectedProjectId]);
+
+  const handlePhasesLoaded = useCallback((phases: Phase[]) => {
+    const aliases = (phases ?? []).map((phase) => phase.alias).filter(Boolean);
+    if (aliases.length === 0) return;
+    setPhaseSelection((current) => {
+      if (current.length === 0) return aliases;
+      const aliasSet = new Set(aliases);
+      const retained = current.filter((alias) => aliasSet.has(alias));
+      const merged = [...retained, ...aliases.filter((alias) => !retained.includes(alias))];
+      const unchanged = merged.length === current.length && merged.every((alias, idx) => alias === current[idx]);
+      return unchanged ? current : merged;
+    });
+  }, []);
+
+  const selectedProject = projects.find((p) => p.id === selectedProjectId);
 
   return (
     <div className="min-h-screen bg-background">
@@ -110,7 +137,7 @@ export default function ExportPage() {
               <CardDescription>
                 {selectedProjectId ? (
                   <span>
-                    Ready to export data for project: <span className="font-medium">{projects.find(p => p.id === selectedProjectId)?.name}</span>
+                    Ready to export data for project: <span className="font-medium">{selectedProject?.name ?? 'Unknown project'}</span>
                   </span>
                 ) : (
                   <span>Select a project to continue.</span>
@@ -123,6 +150,7 @@ export default function ExportPage() {
                 projectId={selectedProjectId}
                 value={phaseSelection}
                 onChange={setPhaseSelection}
+                onLoaded={handlePhasesLoaded}
               />
             </CardContent>
             <CardFooter className="justify-between border-t">
@@ -132,9 +160,10 @@ export default function ExportPage() {
               <div className="flex items-center gap-3">
                 <ExportCsvButton
                   projectId={selectedProjectId}
-                  projectName={projects.find(p => p.id === selectedProjectId)?.name || undefined}
+                  projectName={selectedProject?.name || undefined}
                   columns={columnSelection}
                   phases={phaseSelection}
+                  ensureLatestProjects={loadProjects}
                 />
                 <Button variant="outline" disabled={!selectedProjectId}>
                   Export to Google Sheets
