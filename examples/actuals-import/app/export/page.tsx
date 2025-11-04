@@ -646,17 +646,22 @@ export default function ActualImportPage() {
                 </p>
               </div>
             </div>
-            <ProjectPicker
-              projects={projects}
-              value={selectedProjectId}
-              onChange={(projectId) => {
-                setSelectedProjectId(projectId);
-                localStorage.setItem(LAST_PROJECT_STORAGE_KEY, projectId);
-              }}
-              loading={loading}
-              error={error}
-              className="max-w-full sm:max-w-xl"
-            />
+            <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-4">
+              <div className="text-xs text-muted-foreground">
+                {csvData ? `CSV: ${csvData.fileName}` : 'No file selected'}
+              </div>
+              <ProjectPicker
+                projects={projects}
+                value={selectedProjectId}
+                onChange={(projectId) => {
+                  setSelectedProjectId(projectId);
+                  localStorage.setItem(LAST_PROJECT_STORAGE_KEY, projectId);
+                }}
+                loading={loading}
+                error={error}
+                className="w-full sm:w-72"
+              />
+            </div>
           </div>
         </div>
       </header>
@@ -856,14 +861,34 @@ export default function ActualImportPage() {
                 </div>
                 <div className="rounded-lg border border-dashed p-4">
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div className="text-xs text-muted-foreground">
-                      Ready to import {rowsAvailableForImport} row{rowsAvailableForImport === 1 ? '' : 's'} from this CSV.
+                    <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                      <span>
+                        Ready to import {rowsAvailableForImport} row{rowsAvailableForImport === 1 ? '' : 's'}.
+                      </span>
+                      {csvData && (
+                        <span className="text-[11px] uppercase tracking-wide text-muted-foreground/80">
+                          {csvData.fileName}
+                        </span>
+                      )}
                     </div>
-                    <Button type="button" onClick={handleImportActuals} disabled={!canImport}>
-                      {isImporting
-                        ? 'Importing…'
-                        : `Import ${rowsAvailableForImport} Actual${rowsAvailableForImport === 1 ? '' : 's'}`}
-                    </Button>
+                    <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3">
+                      <ProjectPicker
+                        projects={projects}
+                        value={selectedProjectId}
+                        onChange={(projectId) => {
+                          setSelectedProjectId(projectId);
+                          localStorage.setItem(LAST_PROJECT_STORAGE_KEY, projectId);
+                        }}
+                        loading={loading}
+                        error={error}
+                        className="w-full sm:w-64"
+                      />
+                      <Button type="button" onClick={handleImportActuals} disabled={!canImport}>
+                        {isImporting
+                          ? 'Importing…'
+                          : `Import ${rowsAvailableForImport} Actual${rowsAvailableForImport === 1 ? '' : 's'}`}
+                      </Button>
+                    </div>
                   </div>
                   {importDisabledReason && !isImporting && (
                     <p className="mt-2 text-xs text-amber-600">{importDisabledReason}</p>
