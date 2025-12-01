@@ -36,11 +36,12 @@ export function PhasesMultiSelect({ projectId, value, onChange, onLoaded, hideIn
         setError(null);
         // Load phases list from SDK
         const { phases } = await saturation.listBudgetPhases(projectId);
-        setPhases(phases ?? []);
-        onLoaded?.(phases ?? []);
+        const visiblePhases = (phases ?? []).filter((phase) => !phase.isHidden);
+        setPhases(visiblePhases);
+        onLoaded?.(visiblePhases);
         // Initialize selection to all phases if empty
         if ((value ?? []).length === 0) {
-          const all = new Set((phases ?? []).map((p) => p.alias));
+          const all = new Set(visiblePhases.map((p) => p.alias));
           // Defer notifying parent to after paint to avoid setState-during-render warnings
           setTimeout(() => onChange?.(Array.from(all)), 0);
         }
@@ -78,7 +79,7 @@ export function PhasesMultiSelect({ projectId, value, onChange, onLoaded, hideIn
           Phases
         </Label>
         <p className="text-xs text-muted-foreground mt-1">
-          Choose which phases to include.
+          Choose which phases to include. Only phases that are not hidden are shown below.
         </p>
       </div>
       {error ? (
