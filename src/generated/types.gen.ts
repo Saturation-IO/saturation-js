@@ -127,6 +127,110 @@ export type UpdateProjectInput = {
     labels?: Array<string>;
 };
 
+export type ParsedAttachment = {
+    /**
+     * Attachment identifier
+     */
+    id: string;
+    /**
+     * Original file name
+     */
+    name: string;
+    /**
+     * File MIME type
+     */
+    type: string;
+    /**
+     * File size in bytes
+     */
+    size: number;
+    document: ParsedAttachmentDocument;
+    /**
+     * OCR text when `includeRawText` is true
+     */
+    rawText?: string | null;
+};
+
+/**
+ * Structured document fields extracted from an attachment
+ */
+export type ParsedAttachmentDocument = {
+    documentType?: 'invoice' | 'receipt' | 'statement' | 'timesheet' | 'purchaseOrder' | 'contract' | 'other';
+    vendorName?: string | null;
+    title?: string | null;
+    currency?: string | null;
+    total?: number | null;
+    invoiceNumber?: string | null;
+    poNumber?: string | null;
+    invoiceDate?: string | null;
+    dueDate?: string | null;
+    lineItems?: Array<ParsedAttachmentLineItem> | null;
+    merchantName?: string | null;
+    purchaseDate?: string | null;
+    paymentMethod?: string | null;
+    last4?: string | null;
+    subtotal?: number | null;
+    tax?: number | null;
+    tip?: number | null;
+    statementDate?: string | null;
+    periodStart?: string | null;
+    periodEnd?: string | null;
+    openingBalance?: number | null;
+    closingBalance?: number | null;
+    transactions?: Array<ParsedAttachmentTransaction> | null;
+    personName?: string | null;
+    totalHours?: number | null;
+    totalAmount?: number | null;
+    entries?: Array<ParsedAttachmentTimesheetEntry> | null;
+    issueDate?: string | null;
+    buyerName?: string | null;
+    buyerAddress?: string | null;
+    vendorAddress?: string | null;
+    amountAuthorized?: number | null;
+    partyAName?: string | null;
+    partyBName?: string | null;
+    effectiveDate?: string | null;
+    endDate?: string | null;
+    autoRenew?: boolean | null;
+    totalContractValue?: number | null;
+    paymentTerms?: string | null;
+    governingLaw?: string | null;
+    signatures?: Array<ParsedAttachmentSignature> | null;
+    summary?: string | null;
+};
+
+export type ParsedAttachmentLineItem = {
+    description?: string | null;
+    quantity?: number | null;
+    unit?: string | null;
+    unitPrice?: number | null;
+    lineTotal?: number | null;
+};
+
+export type ParsedAttachmentTransaction = {
+    date?: string | null;
+    description?: string | null;
+    reference?: string | null;
+    amount?: number | null;
+    balance?: number | null;
+};
+
+export type ParsedAttachmentTimesheetEntry = {
+    date?: string | null;
+    projectName?: string | null;
+    role?: string | null;
+    task?: string | null;
+    hours?: number | null;
+    rate?: number | null;
+    amount?: number | null;
+};
+
+export type ParsedAttachmentSignature = {
+    name?: string | null;
+    title?: string | null;
+    date?: string | null;
+};
+
 /**
  * Request body for creating budget lines within an account.
  * If the target account doesn't exist, it will be automatically created along with any necessary parent accounts.
@@ -765,9 +869,7 @@ export type CreatePhaseResponse = {
     /**
      * The created budget phase, or null if creation failed
      */
-    phase: (Phase & {
-        type: 'CreatePhaseResponse';
-    }) | null;
+    phase: Phase | null;
     /**
      * Warnings generated during writes
      */
@@ -778,9 +880,7 @@ export type UpdatePhaseResponse = {
     /**
      * The updated budget phase, or null if not found
      */
-    phase: (Phase & {
-        type: 'UpdatePhaseResponse';
-    }) | null;
+    phase: Phase | null;
     /**
      * Warnings generated during update
      */
@@ -1033,9 +1133,9 @@ export type Contact = {
      */
     company?: string | null;
     /**
-     * Contact type (Person, Company, etc.)
+     * Contact classification
      */
-    type?: string | null;
+    type?: 'Contractor' | 'Employee' | 'Company';
     /**
      * Contact job title
      */
@@ -1048,27 +1148,36 @@ export type Contact = {
      * Last modification time (ISO 8601)
      */
     lastModified: string;
+    /**
+     * Returned when `expands` includes `secureInfo`.
+     */
     secureInfo?: ContactSecureInfo;
+    /**
+     * Returned when `expands` includes `origin`.
+     */
     origin?: ContactOrigin;
     /**
-     * Startwork agreements
+     * Returned when `expands` includes `startwork`.
      */
     startwork?: Array<ContactStartwork>;
-    linkedUser?: ContactUser;
     /**
-     * Banking information
+     * Workspace user linked to the contact. Returned when `expands` includes `linkedUser`.
      */
-    bankInfo?: Array<ContactBankAccount>;
+    linkedUser?: ContactUser | null;
     /**
-     * Tax documents
+     * Stripe/Plaid banking sources. Returned when `expands` includes `bankInfo`.
+     */
+    bankInfo?: Array<ContactBankAccount> | null;
+    /**
+     * Returned when `expands` includes `taxDocuments`.
      */
     taxDocuments?: Array<File>;
     /**
-     * File attachments
+     * Returned when `expands` includes `attachments`.
      */
     attachments?: Array<File>;
     /**
-     * Associated projects
+     * Associated projects keyed by project alias (`idMode=user`) or ID (`idMode=system`). Returned when `expands` includes `projects`.
      */
     projects?: {
         [key: string]: ContactProject;
@@ -1094,12 +1203,12 @@ export type ContactOrigin = {
     /**
      * How the contact was created
      */
-    origin?: 'onboarding' | 'manual';
+    origin?: 'onboarding' | 'manual' | 'api';
     /**
      * Contact creation timestamp
      */
     createdAt?: string | null;
-    createdByUser?: ContactUser;
+    createdByUser?: ContactUser | null;
 };
 
 export type ContactStartwork = {
@@ -1138,23 +1247,88 @@ export type ContactBankAccount = {
      */
     id: string;
     /**
+     * Account holder type
+     */
+    accountHolderType: 'individual' | 'company';
+    /**
      * Bank name
      */
     bankName: string;
     /**
-     * Account type (checking, savings, etc.)
+     * Account type
      */
-    accountType: string;
+    accountType: 'checking' | 'savings';
     /**
      * Last 4 digits of account number
      */
-    accountLast4: string;
+    accountLast4?: string | null;
+    /**
+     * Routing number (masked when unavailable)
+     */
+    routingNumber?: string | null;
+    /**
+     * Bank metadata from Plaid/Stripe
+     */
+    detailInfo?: {
+        /**
+         * External bank identifier
+         */
+        id?: string;
+        /**
+         * Bank display name
+         */
+        name?: string;
+        /**
+         * Logo URL if provided by Plaid/Stripe
+         */
+        logo?: string | null;
+    } | null;
+};
+
+/**
+ * Bank account payload used when attaching new payment methods to a contact
+ */
+export type ContactBankAccountCreate = {
+    /**
+     * Whether the account belongs to an individual or company
+     */
+    accountHolderType: 'individual' | 'company';
+    /**
+     * Bank account type
+     */
+    accountType: 'checking' | 'savings';
+    /**
+     * 9-digit routing number
+     */
+    routingNumber: string;
+    /**
+     * Bank account number
+     */
+    accountNumber: string;
+};
+
+/**
+ * Update operations for contact bank accounts
+ */
+export type ContactBankAccountUpdate = {
+    /**
+     * New bank accounts to add
+     */
+    add?: Array<ContactBankAccountCreate>;
+    /**
+     * Bank account IDs to remove
+     */
+    remove?: Array<string>;
 };
 
 /**
  * Input for creating a new contact
  */
 export type CreateContactInput = {
+    /**
+     * Display title or label shown in lists
+     */
+    contactTitle?: string;
     /**
      * Contact name
      */
@@ -1168,9 +1342,9 @@ export type CreateContactInput = {
      */
     company?: string;
     /**
-     * Contact type
+     * Contact classification
      */
-    type?: 'Person' | 'Company';
+    type?: 'Contractor' | 'Employee' | 'Company';
     /**
      * Job title
      */
@@ -1188,51 +1362,63 @@ export type CreateContactInput = {
      */
     address?: string;
     /**
-     * Last 4 digits of tax ID
+     * Tax identifier (SSN/EIN). Stored securely; only the last four digits are returned.
      */
-    taxIdLast4?: string;
+    taxId?: string;
+    /**
+     * Optional bank accounts to add during creation
+     */
+    paymentAccount?: Array<ContactBankAccountCreate>;
 };
 
 /**
- * Input for updating an existing contact
+ * Input for updating an existing contact. Provide `null` to clear a field.
  */
 export type UpdateContactInput = {
     /**
+     * Display title or label
+     */
+    contactTitle?: string | null;
+    /**
      * Contact name
      */
-    name?: string;
+    name?: string | null;
     /**
      * Contact email address
      */
-    email?: string;
+    email?: string | null;
     /**
      * Company name
      */
-    company?: string;
+    company?: string | null;
     /**
-     * Contact type
+     * Contact classification
      */
-    type?: 'Person' | 'Company';
+    type?: 'Contractor' | 'Employee' | 'Company';
     /**
      * Job title
      */
-    jobTitle?: string;
+    jobTitle?: string | null;
     /**
      * Hourly rate
      */
-    rate?: number;
+    rate?: number | null;
     /**
      * Phone number
      */
-    phone?: string;
+    phone?: string | null;
     /**
      * Physical address
      */
-    address?: string;
+    address?: string | null;
     /**
-     * Last 4 digits of tax ID
+     * Tax identifier (SSN/EIN). Provide the full value; it is stored securely.
      */
-    taxIdLast4?: string;
+    taxId?: string | null;
+    /**
+     * Bank account operations to add/remove payment methods
+     */
+    paymentAccount?: ContactBankAccountUpdate | null;
 };
 
 export type ContactProject = {
@@ -1245,28 +1431,28 @@ export type ContactProject = {
      */
     name: string;
     /**
-     * Project alias
+     * Account assignments within the project. Returned when `expands` includes `projects.accounts`.
      */
-    alias: string;
-    /**
-     * Associated accounts within this project
-     */
-    accounts?: Array<ContactProjectAccount>;
+    accounts?: Array<ContactAccount>;
 };
 
-export type ContactProjectAccount = {
+export type ContactAccount = {
     /**
-     * Account identifier
+     * Contact account entry type
      */
-    accountId: string;
+    type: 'account' | 'markup' | 'line' | 'fringes';
     /**
-     * Account number
+     * Unique identifier for this project account mapping
      */
-    accountNumber: string;
+    id: string;
     /**
-     * Account name
+     * Budget account identifier
      */
-    accountName: string;
+    accountId: string | null;
+    /**
+     * Account description or markup label
+     */
+    description: string | null;
 };
 
 export type PurchaseOrder = {
@@ -1428,6 +1614,11 @@ export type ActualType = 'SaturationACH' | 'SaturationPCard' | 'SaturationWire' 
  * Workflow status of the actual transaction
  */
 export type ActualStatus = 'Unpaid' | 'Pending' | 'Paid' | 'Refund' | 'NeedsReview';
+
+/**
+ * Source system that created the actual
+ */
+export type ActualSource = 'ai';
 
 /**
  * Mode of the actual transaction
@@ -1600,6 +1791,10 @@ export type CreateActualInput = {
      * Position the new actual before the specified actual ID
      */
     before?: string;
+    /**
+     * Source system that created the actual. When set to 'ai', the actual will be marked as AI-created.
+     */
+    source?: ActualSource;
 };
 
 /**
@@ -2523,6 +2718,20 @@ export type EndDate = string;
  */
 export type HasAttachments = boolean;
 
+/**
+ * Fields to expand in the contact response. Expansions load additional related data on demand:
+ * - `secureInfo`: Contact's secure/private information (address, phone, tax ID last4)
+ * - `origin`: Creation source, timestamp, and user
+ * - `projects`: Associated projects keyed by alias (user mode) or ID (system mode)
+ * - `projects.accounts`: Project account breakdowns (requires including `projects`)
+ * - `startwork`: Startwork agreements and signature metadata
+ * - `taxDocuments`: W-9/1099 files linked to the contact
+ * - `attachments`: General attachments uploaded to the contact
+ * - `bankInfo`: Banking details sourced from Stripe/Plaid
+ * - `linkedUser`: Workspace user linked to the contact
+ */
+export type ContactExpands = Array<'secureInfo' | 'origin' | 'projects' | 'projects.accounts' | 'startwork' | 'taxDocuments' | 'attachments' | 'bankInfo' | 'linkedUser'>;
+
 export type ListProjectsData = {
     body?: never;
     path?: never;
@@ -3017,7 +3226,7 @@ export type ListActualsData = {
     };
     query?: {
         /**
-         * Filter by account ID(s) or codes
+         * Filter by account ID(s) or codes. Matches contacts linked to the specified account or any of its child accounts.
          */
         accountId?: string | Array<string>;
         /**
@@ -3133,7 +3342,7 @@ export type BatchCreateActualsData = {
          * Replace existing project actuals before inserting new items
          */
         replace?: boolean;
-        actuals?: Array<CreateActualInput>;
+        actuals: Array<CreateActualInput>;
     };
     path: {
         /**
@@ -3158,6 +3367,10 @@ export type BatchCreateActualsErrors = {
      * Resource not found
      */
     404: _Error;
+    /**
+     * Payload too large
+     */
+    413: _Error;
     /**
      * Internal server error
      */
@@ -3375,7 +3588,7 @@ export type ListPurchaseOrdersData = {
     };
     query?: {
         /**
-         * Filter by account ID(s) or codes
+         * Filter by account ID(s) or codes. Matches contacts linked to those accounts or any of their subaccounts.
          */
         accountId?: string | Array<string>;
         /**
@@ -4996,17 +5209,17 @@ export type ListContactsData = {
     path?: never;
     query?: {
         /**
-         * Filter by project IDs or aliases
+         * Filter by project alias or ID. Accepts a single value or multiple `projectId` query params.
          */
-        projectIds?: Array<string>;
+        projectId?: string | Array<string>;
         /**
-         * Filter by account ID(s) or codes
+         * Filter by account ID(s) or codes. Matches contacts linked to those accounts or any of their subaccounts.
          */
         accountId?: string | Array<string>;
         /**
-         * Filter by contact origin
+         * Filter by how the contact was created
          */
-        origin?: Array<'onboarding' | 'manual'>;
+        origin?: Array<'onboarding' | 'manual' | 'api'>;
         /**
          * Filter by linked user presence
          */
@@ -5028,7 +5241,16 @@ export type ListContactsData = {
          */
         title?: string;
         /**
-         * Include related data in the response
+         * Fields to expand in the contact response. Expansions load additional related data on demand:
+         * - `secureInfo`: Contact's secure/private information (address, phone, tax ID last4)
+         * - `origin`: Creation source, timestamp, and user
+         * - `projects`: Associated projects keyed by alias (user mode) or ID (system mode)
+         * - `projects.accounts`: Project account breakdowns (requires including `projects`)
+         * - `startwork`: Startwork agreements and signature metadata
+         * - `taxDocuments`: W-9/1099 files linked to the contact
+         * - `attachments`: General attachments uploaded to the contact
+         * - `bankInfo`: Banking details sourced from Stripe/Plaid
+         * - `linkedUser`: Workspace user linked to the contact
          */
         expands?: Array<'secureInfo' | 'origin' | 'projects' | 'projects.accounts' | 'startwork' | 'taxDocuments' | 'attachments' | 'bankInfo' | 'linkedUser'>;
         /**
@@ -5066,7 +5288,21 @@ export type ListContactsResponse = ListContactsResponses[keyof ListContactsRespo
 export type CreateContactData = {
     body: CreateContactInput;
     path?: never;
-    query?: never;
+    query?: {
+        /**
+         * Fields to expand in the contact response. Expansions load additional related data on demand:
+         * - `secureInfo`: Contact's secure/private information (address, phone, tax ID last4)
+         * - `origin`: Creation source, timestamp, and user
+         * - `projects`: Associated projects keyed by alias (user mode) or ID (system mode)
+         * - `projects.accounts`: Project account breakdowns (requires including `projects`)
+         * - `startwork`: Startwork agreements and signature metadata
+         * - `taxDocuments`: W-9/1099 files linked to the contact
+         * - `attachments`: General attachments uploaded to the contact
+         * - `bankInfo`: Banking details sourced from Stripe/Plaid
+         * - `linkedUser`: Workspace user linked to the contact
+         */
+        expands?: Array<'secureInfo' | 'origin' | 'projects' | 'projects.accounts' | 'startwork' | 'taxDocuments' | 'attachments' | 'bankInfo' | 'linkedUser'>;
+    };
     url: '/contacts';
 };
 
@@ -5106,9 +5342,18 @@ export type GetContactData = {
     };
     query?: {
         /**
-         * ID interpretation mode. Controls how path and query parameter IDs (like lineId, accountId, phaseId) are interpreted - 'user' for human-readable IDs (account codes, phase names), 'system' for database IDs (UUIDs/nanoids). Also affects the format of IDs in responses.
+         * Fields to expand in the contact response. Expansions load additional related data on demand:
+         * - `secureInfo`: Contact's secure/private information (address, phone, tax ID last4)
+         * - `origin`: Creation source, timestamp, and user
+         * - `projects`: Associated projects keyed by alias (user mode) or ID (system mode)
+         * - `projects.accounts`: Project account breakdowns (requires including `projects`)
+         * - `startwork`: Startwork agreements and signature metadata
+         * - `taxDocuments`: W-9/1099 files linked to the contact
+         * - `attachments`: General attachments uploaded to the contact
+         * - `bankInfo`: Banking details sourced from Stripe/Plaid
+         * - `linkedUser`: Workspace user linked to the contact
          */
-        idMode?: 'user' | 'system';
+        expands?: Array<'secureInfo' | 'origin' | 'projects' | 'projects.accounts' | 'startwork' | 'taxDocuments' | 'attachments' | 'bankInfo' | 'linkedUser'>;
     };
     url: '/contacts/{contactId}';
 };
@@ -5147,7 +5392,21 @@ export type UpdateContactData = {
          */
         contactId: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Fields to expand in the contact response. Expansions load additional related data on demand:
+         * - `secureInfo`: Contact's secure/private information (address, phone, tax ID last4)
+         * - `origin`: Creation source, timestamp, and user
+         * - `projects`: Associated projects keyed by alias (user mode) or ID (system mode)
+         * - `projects.accounts`: Project account breakdowns (requires including `projects`)
+         * - `startwork`: Startwork agreements and signature metadata
+         * - `taxDocuments`: W-9/1099 files linked to the contact
+         * - `attachments`: General attachments uploaded to the contact
+         * - `bankInfo`: Banking details sourced from Stripe/Plaid
+         * - `linkedUser`: Workspace user linked to the contact
+         */
+        expands?: Array<'secureInfo' | 'origin' | 'projects' | 'projects.accounts' | 'startwork' | 'taxDocuments' | 'attachments' | 'bankInfo' | 'linkedUser'>;
+    };
     url: '/contacts/{contactId}';
 };
 
@@ -5511,6 +5770,64 @@ export type UploadTransactionAttachmentResponses = {
 
 export type UploadTransactionAttachmentResponse = UploadTransactionAttachmentResponses[keyof UploadTransactionAttachmentResponses];
 
+export type ParseTransactionAttachmentsData = {
+    body: {
+        /**
+         * Optional attachment IDs to parse. When omitted, every attachment on the transaction is parsed.
+         *
+         */
+        attachmentIds?: Array<string>;
+        /**
+         * Include the full OCR text (when available) in each response item.
+         */
+        includeRawText?: boolean;
+        /**
+         * Re-run parsing even if cached results exist.
+         */
+        forceReparse?: boolean;
+    };
+    path: {
+        /**
+         * Transaction identifier
+         */
+        transactionId: string;
+    };
+    query?: never;
+    url: '/transactions/{transactionId}/attachments/parse';
+};
+
+export type ParseTransactionAttachmentsErrors = {
+    /**
+     * Bad request - invalid parameters or request body
+     */
+    400: _Error;
+    /**
+     * Unauthorized - invalid or missing API key
+     */
+    401: _Error;
+    /**
+     * Resource not found
+     */
+    404: _Error;
+    /**
+     * Internal server error
+     */
+    500: _Error;
+};
+
+export type ParseTransactionAttachmentsError = ParseTransactionAttachmentsErrors[keyof ParseTransactionAttachmentsErrors];
+
+export type ParseTransactionAttachmentsResponses = {
+    /**
+     * Structured attachment data
+     */
+    200: {
+        attachments?: Array<ParsedAttachment>;
+    };
+};
+
+export type ParseTransactionAttachmentsResponse = ParseTransactionAttachmentsResponses[keyof ParseTransactionAttachmentsResponses];
+
 export type ListWorkspaceRatesData = {
     body?: never;
     path?: never;
@@ -5764,6 +6081,68 @@ export type GetPublicRatesResponses = {
 };
 
 export type GetPublicRatesResponse = GetPublicRatesResponses[keyof GetPublicRatesResponses];
+
+export type ParseActualAttachmentsData = {
+    body: {
+        /**
+         * Optional attachment IDs to parse. When omitted, every attachment on the actual is parsed.
+         *
+         */
+        attachmentIds?: Array<string>;
+        /**
+         * Include the full OCR text (when available) in each response item.
+         */
+        includeRawText?: boolean;
+        /**
+         * Re-run parsing even if cached results exist.
+         */
+        forceReparse?: boolean;
+    };
+    path: {
+        /**
+         * Project identifier (alias or ID)
+         */
+        projectId: string;
+        /**
+         * Actual ID
+         */
+        actualId: string;
+    };
+    query?: never;
+    url: '/projects/{projectId}/actuals/{actualId}/attachments/parse';
+};
+
+export type ParseActualAttachmentsErrors = {
+    /**
+     * Bad request - invalid parameters or request body
+     */
+    400: _Error;
+    /**
+     * Unauthorized - invalid or missing API key
+     */
+    401: _Error;
+    /**
+     * Resource not found
+     */
+    404: _Error;
+    /**
+     * Internal server error
+     */
+    500: _Error;
+};
+
+export type ParseActualAttachmentsError = ParseActualAttachmentsErrors[keyof ParseActualAttachmentsErrors];
+
+export type ParseActualAttachmentsResponses = {
+    /**
+     * Structured attachment data
+     */
+    200: {
+        attachments?: Array<ParsedAttachment>;
+    };
+};
+
+export type ParseActualAttachmentsResponse = ParseActualAttachmentsResponses[keyof ParseActualAttachmentsResponses];
 
 export type ClientOptions = {
     baseUrl: 'https://api.saturation.io/api/v1' | (string & {});

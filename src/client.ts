@@ -270,6 +270,40 @@ export class Saturation {
     return result.data as Types.File;
   }
 
+  /**
+   * Register an attachment to an actual by file record ID.
+   * Used when a file has already been uploaded to storage via presigned URL.
+   * Internal API - not documented in OpenAPI spec.
+   */
+  async registerActualAttachment(
+    projectId: string,
+    actualId: string,
+    fileRecordId: string,
+  ): Promise<Types.File> {
+    const response = await this.client.post({
+      url: `/projects/${projectId}/actuals/${actualId}/attachment/register`,
+      body: JSON.stringify({ fileRecordId }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data as unknown as Types.File;
+  }
+
+  /**
+   * Remove an attachment from an actual.
+   * Internal API - not documented in OpenAPI spec.
+   */
+  async removeActualAttachment(
+    projectId: string,
+    actualId: string,
+    fileId: string,
+  ): Promise<void> {
+    await this.client.delete({
+      url: `/projects/${projectId}/actuals/${actualId}/attachment/${fileId}`,
+    });
+  }
+
   // Purchase Orders
 
   async listPurchaseOrders(

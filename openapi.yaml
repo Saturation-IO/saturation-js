@@ -621,7 +621,7 @@
         parameters:
           - name: accountId
             in: query
-            description: Filter by account ID(s) or codes
+            description: Filter by account ID(s) or codes. Matches contacts linked to the specified account or any of its child accounts.
             schema:
               oneOf:
                 - type: string
@@ -740,6 +740,7 @@
                   replace:
                     type: boolean
                     default: false
+                    example: false
                     description: Replace existing project actuals before inserting new items
                   actuals:
                     type: array
@@ -919,7 +920,7 @@
         parameters:
           - name: accountId
             in: query
-            description: Filter by account ID(s) or codes
+            description: Filter by account ID(s) or codes. Matches contacts linked to those accounts or any of their subaccounts.
             schema:
               oneOf:
                 - type: string
@@ -2193,20 +2194,22 @@
         description: Retrieve contacts with optional filtering
         tags:
           - Contacts
-        parameters:        
-          - name: projectIds
+        parameters:
+          - name: projectId
             in: query
-            description: Filter by project IDs or aliases
+            description: Filter by project alias or ID. Accepts a single value or multiple `projectId` query params.
             schema:
-              type: array
-              items:
-                type: string
+              oneOf:
+                - type: string
+                - type: array
+                  items:
+                    type: string
             style: form
             explode: true
             example: ["nike-swoosh-commercial"]
           - name: accountId
             in: query
-            description: Filter by account ID(s) or codes
+            description: Filter by account ID(s) or codes. Matches contacts linked to those accounts or any of their subaccounts.
             schema:
               oneOf:
                 - type: string
@@ -2218,12 +2221,12 @@
             example: ["2150"]
           - name: origin
             in: query
-            description: Filter by contact origin
+            description: Filter by how the contact was created
             schema:
               type: array
               items:
                 type: string
-                enum: [onboarding, manual]
+                enum: [onboarding, manual, api]
             example: ["manual"]
             style: form
             explode: true
@@ -2252,18 +2255,7 @@
             schema:
               type: string
             example: "Producer"
-          - name: expands
-            in: query
-            description: Include related data in the response
-            schema:
-              type: array
-              items:
-                type: string
-                enum: [secureInfo, origin, projects, projects.accounts, startwork, taxDocuments, attachments, bankInfo, linkedUser]
-            style: form
-            explode: true
-            example: ["projects", "attachments"]
-            x-example-description: "Use as: expands[]=projects&expands[]=attachments"
+          - $ref: '#/components/parameters/ContactExpands'
           - $ref: '#/components/parameters/IdMode'
         responses:
           '200':
@@ -2288,6 +2280,8 @@
         description: Create a new contact
         tags:
           - Contacts
+        parameters:
+          - $ref: '#/components/parameters/ContactExpands'
         requestBody:
           required: true
           content:
@@ -2325,7 +2319,7 @@
         tags:
           - Contacts
         parameters:
-          - $ref: '#/components/parameters/IdMode'
+          - $ref: '#/components/parameters/ContactExpands'
         responses:
           '200':
             description: Contact details
@@ -2346,6 +2340,8 @@
         description: Update an existing contact
         tags:
           - Contacts
+        parameters:
+          - $ref: '#/components/parameters/ContactExpands'
         requestBody:
           required: true
           content:
@@ -2725,6 +2721,66 @@
           '500':
             $ref: '#/components/responses/InternalServerError'
 
+    /transactions/{transactionId}/attachments/parse:
+      post:
+        operationId: parseTransactionAttachments
+        summary: Parse transaction attachments
+        description: >
+          Extract structured document details (totals, merchants, dates, line items, etc.) from attachments linked to a transaction.
+          Useful for receipts, invoices, statements, and other supporting documents.
+        tags:
+          - Transactions
+        parameters:
+          - name: transactionId
+            in: path
+            required: true
+            description: Transaction identifier
+            schema:
+              type: string
+              example: txn-abc-123
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  attachmentIds:
+                    type: array
+                    description: >
+                      Optional attachment IDs to parse. When omitted, every attachment on the transaction is parsed.
+                    items:
+                      type: string
+                    example: ["att-001", "att-002"]
+                  includeRawText:
+                    type: boolean
+                    default: false
+                    description: Include the full OCR text (when available) in each response item.
+                  forceReparse:
+                    type: boolean
+                    default: false
+                    description: Re-run parsing even if cached results exist.
+        responses:
+          '200':
+            description: Structured attachment data
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    attachments:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/ParsedAttachment'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
     # ========================================
     # RATEPACK ENDPOINTS
     # ========================================
@@ -2966,6 +3022,68 @@
           '500':
             $ref: '#/components/responses/InternalServerError'
 
+    /projects/{projectId}/actuals/{actualId}/attachments/parse:
+      post:
+        operationId: parseActualAttachments
+        summary: Parse actual attachments
+        description: >
+          Extract structured document details (totals, vendors, dates, line items, etc.) from attachments on an actual.
+          Works with invoices, receipts, statements, timesheets, purchase orders, contracts, and miscellaneous uploads.
+        tags:
+          - Actuals
+        parameters:
+          - $ref: '#/components/parameters/ProjectId'
+          - name: actualId
+            in: path
+            required: true
+            description: Actual ID
+            schema:
+              type: string
+              example: actual-001
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  attachmentIds:
+                    type: array
+                    description: >
+                      Optional attachment IDs to parse. When omitted, every attachment on the actual is parsed.
+                    items:
+                      type: string
+                    example: ["att-001", "att-002"]
+                  includeRawText:
+                    type: boolean
+                    default: false
+                    description: Include the full OCR text (when available) in each response item.
+                    example: false
+                  forceReparse:
+                    type: boolean
+                    default: false
+                    description: Re-run parsing even if cached results exist.
+                    example: false
+        responses:
+          '200':
+            description: Structured attachment data
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    attachments:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/ParsedAttachment'
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
 
   components:
     securitySchemes:
@@ -3020,6 +3138,30 @@
         schema:
           type: boolean
         example: true
+      
+      ContactExpands:
+        name: expands
+        in: query
+        description: |-
+          Fields to expand in the contact response. Expansions load additional related data on demand:
+          - `secureInfo`: Contact's secure/private information (address, phone, tax ID last4)
+          - `origin`: Creation source, timestamp, and user
+          - `projects`: Associated projects keyed by alias (user mode) or ID (system mode)
+          - `projects.accounts`: Project account breakdowns (requires including `projects`)
+          - `startwork`: Startwork agreements and signature metadata
+          - `taxDocuments`: W-9/1099 files linked to the contact
+          - `attachments`: General attachments uploaded to the contact
+          - `bankInfo`: Banking details sourced from Stripe/Plaid
+          - `linkedUser`: Workspace user linked to the contact
+        schema:
+          type: array
+          items:
+            type: string
+            enum: [secureInfo, origin, projects, projects.accounts, startwork, taxDocuments, attachments, bankInfo, linkedUser]
+        style: form
+        explode: true
+        example: ["projects", "projects.accounts", "attachments"]
+        x-example-description: "Send as: expands=projects&expands=attachments"
 
     schemas:
       Project:
@@ -3182,6 +3324,313 @@
               type: string
             description: Labels for the project (replaces all existing labels)
             example: ["completed", "q4-2024"]
+
+      ParsedAttachment:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Attachment identifier
+            example: att-001
+          name:
+            type: string
+            description: Original file name
+            example: invoice-12345.pdf
+          type:
+            type: string
+            description: File MIME type
+            example: application/pdf
+          size:
+            type: integer
+            format: int64
+            description: File size in bytes
+            example: 245678
+          document:
+            $ref: '#/components/schemas/ParsedAttachmentDocument'
+          rawText:
+            type: string
+            nullable: true
+            description: OCR text when `includeRawText` is true
+            example: "INVOICE\nAcme Corp\nInvoice #12345..."
+        required:
+          - id
+          - name
+          - type
+          - size
+          - document
+
+      ParsedAttachmentDocument:
+        type: object
+        description: Structured document fields extracted from an attachment
+        properties:
+          documentType:
+            type: string
+            enum: [invoice, receipt, statement, timesheet, purchaseOrder, contract, other]
+            example: invoice
+          vendorName:
+            type: string
+            nullable: true
+            example: Acme Corp
+          title:
+            type: string
+            nullable: true
+            example: Monthly Services Invoice
+          currency:
+            type: string
+            nullable: true
+            example: USD
+          total:
+            type: number
+            nullable: true
+            example: 5250.00
+          invoiceNumber:
+            type: string
+            nullable: true
+            example: INV-12345
+          poNumber:
+            type: string
+            nullable: true
+            example: PO-9876
+          invoiceDate:
+            type: string
+            nullable: true
+            example: "2024-03-15"
+          dueDate:
+            type: string
+            nullable: true
+            example: "2024-04-15"
+          lineItems:
+            type: array
+            nullable: true
+            items:
+              $ref: '#/components/schemas/ParsedAttachmentLineItem'
+          merchantName:
+            type: string
+            nullable: true
+            example: Coffee Shop
+          purchaseDate:
+            type: string
+            nullable: true
+            example: "2024-03-15"
+          paymentMethod:
+            type: string
+            nullable: true
+            example: Visa
+          last4:
+            type: string
+            nullable: true
+            example: "4242"
+          subtotal:
+            type: number
+            nullable: true
+            example: 45.00
+          tax:
+            type: number
+            nullable: true
+            example: 3.60
+          tip:
+            type: number
+            nullable: true
+            example: 9.00
+          statementDate:
+            type: string
+            nullable: true
+            example: "2024-03-31"
+          periodStart:
+            type: string
+            nullable: true
+            example: "2024-03-01"
+          periodEnd:
+            type: string
+            nullable: true
+            example: "2024-03-31"
+          openingBalance:
+            type: number
+            nullable: true
+            example: 10000.00
+          closingBalance:
+            type: number
+            nullable: true
+            example: 8500.00
+          transactions:
+            type: array
+            nullable: true
+            items:
+              $ref: '#/components/schemas/ParsedAttachmentTransaction'
+          personName:
+            type: string
+            nullable: true
+            example: John Doe
+          totalHours:
+            type: number
+            nullable: true
+            example: 40.5
+          totalAmount:
+            type: number
+            nullable: true
+            example: 2025.00
+          entries:
+            type: array
+            nullable: true
+            items:
+              $ref: '#/components/schemas/ParsedAttachmentTimesheetEntry'
+          issueDate:
+            type: string
+            nullable: true
+            example: "2024-03-01"
+          buyerName:
+            type: string
+            nullable: true
+            example: Production Inc
+          buyerAddress:
+            type: string
+            nullable: true
+            example: 123 Main St, Los Angeles, CA 90001
+          vendorAddress:
+            type: string
+            nullable: true
+            example: 456 Oak Ave, Burbank, CA 91501
+          amountAuthorized:
+            type: number
+            nullable: true
+            example: 50000.00
+          partyAName:
+            type: string
+            nullable: true
+            example: Production Company LLC
+          partyBName:
+            type: string
+            nullable: true
+            example: Equipment Rental Co
+          effectiveDate:
+            type: string
+            nullable: true
+            example: "2024-01-01"
+          endDate:
+            type: string
+            nullable: true
+            example: "2024-12-31"
+          autoRenew:
+            type: boolean
+            nullable: true
+            example: false
+          totalContractValue:
+            type: number
+            nullable: true
+            example: 120000.00
+          paymentTerms:
+            type: string
+            nullable: true
+            example: Net 30
+          governingLaw:
+            type: string
+            nullable: true
+            example: State of California
+          signatures:
+            type: array
+            nullable: true
+            items:
+              $ref: '#/components/schemas/ParsedAttachmentSignature'
+          summary:
+            type: string
+            nullable: true
+            example: General service agreement for equipment rental
+
+      ParsedAttachmentLineItem:
+        type: object
+        properties:
+          description:
+            type: string
+            nullable: true
+            example: Camera Package - Red Dragon
+          quantity:
+            type: number
+            nullable: true
+            example: 5
+          unit:
+            type: string
+            nullable: true
+            example: days
+          unitPrice:
+            type: number
+            nullable: true
+            example: 1000.00
+          lineTotal:
+            type: number
+            nullable: true
+            example: 5000.00
+
+      ParsedAttachmentTransaction:
+        type: object
+        properties:
+          date:
+            type: string
+            nullable: true
+            example: "2024-03-15"
+          description:
+            type: string
+            nullable: true
+            example: Equipment rental payment
+          reference:
+            type: string
+            nullable: true
+            example: CHK-1234
+          amount:
+            type: number
+            nullable: true
+            example: -1500.00
+          balance:
+            type: number
+            nullable: true
+            example: 8500.00
+
+      ParsedAttachmentTimesheetEntry:
+        type: object
+        properties:
+          date:
+            type: string
+            nullable: true
+            example: "2024-03-15"
+          projectName:
+            type: string
+            nullable: true
+            example: Nike Commercial
+          role:
+            type: string
+            nullable: true
+            example: Camera Operator
+          task:
+            type: string
+            nullable: true
+            example: Principal photography
+          hours:
+            type: number
+            nullable: true
+            example: 8.5
+          rate:
+            type: number
+            nullable: true
+            example: 50.00
+          amount:
+            type: number
+            nullable: true
+            example: 425.00
+
+      ParsedAttachmentSignature:
+        type: object
+        properties:
+          name:
+            type: string
+            nullable: true
+            example: Jane Smith
+          title:
+            type: string
+            nullable: true
+            example: Executive Producer
+          date:
+            type: string
+            nullable: true
+            example: "2024-03-01"
 
       CreateBudgetInput:
         type: object
@@ -3946,8 +4395,6 @@
 
       Phase:
         type: object
-        discriminator:
-          propertyName: type
         properties:
           type:
             type: string
@@ -4414,8 +4861,9 @@
           type:
             type: string
             nullable: true
-            description: Contact type (Person, Company, etc.)
-            example: Person
+            description: Contact classification
+            enum: [Contractor, Employee, Company]
+            example: Contractor
           jobTitle:
             type: string
             nullable: true
@@ -4433,36 +4881,46 @@
             description: Last modification time (ISO 8601)
             example: "2024-03-15T14:30:00Z"
           secureInfo:
-            $ref: '#/components/schemas/ContactSecureInfo'
+            allOf:
+              - $ref: '#/components/schemas/ContactSecureInfo'
+            description: Returned when `expands` includes `secureInfo`.
           origin:
-            $ref: '#/components/schemas/ContactOrigin'
+            allOf:
+              - $ref: '#/components/schemas/ContactOrigin'
+            description: Returned when `expands` includes `origin`.
           startwork:
             type: array
             items:
               $ref: '#/components/schemas/ContactStartwork'
-            description: Startwork agreements
+            description: Returned when `expands` includes `startwork`.
           linkedUser:
-            $ref: '#/components/schemas/ContactUser'
+            type: object
+            allOf:
+              - $ref: '#/components/schemas/ContactUser'
+            nullable: true
+            description: Workspace user linked to the contact. Returned when `expands` includes `linkedUser`.
           bankInfo:
             type: array
             items:
               $ref: '#/components/schemas/ContactBankAccount'
-            description: Banking information
+            nullable: true
+            description: Stripe/Plaid banking sources. Returned when `expands` includes `bankInfo`.
           taxDocuments:
             type: array
             items:
               $ref: '#/components/schemas/File'
-            description: Tax documents
+            description: Returned when `expands` includes `taxDocuments`.
           attachments:
             type: array
             items:
               $ref: '#/components/schemas/File'
-            description: File attachments
+            description: Returned when `expands` includes `attachments`.
           projects:
             type: object
             additionalProperties:
               $ref: '#/components/schemas/ContactProject'
-            description: Associated projects
+            description: |-
+              Associated projects keyed by project alias (`idMode=user`) or ID (`idMode=system`). Returned when `expands` includes `projects`.
         required:
           - id
           - lastModified
@@ -4492,7 +4950,7 @@
           origin:
             type: string
             nullable: true
-            enum: [onboarding, manual]
+            enum: [onboarding, manual, api]
             description: How the contact was created
             example: manual
           createdAt:
@@ -4502,7 +4960,10 @@
             description: Contact creation timestamp
             example: "2024-02-15T08:00:00Z"
           createdByUser:
-            $ref: '#/components/schemas/ContactUser'
+            type: object
+            allOf:
+              - $ref: '#/components/schemas/ContactUser'
+            nullable: true
 
       ContactStartwork:
         type: object
@@ -4552,28 +5013,105 @@
             type: string
             description: Bank account identifier
             example: bank-acc-001
+          accountHolderType:
+            type: string
+            description: Account holder type
+            enum: [individual, company]
+            example: individual
           bankName:
             type: string
             description: Bank name
             example: Chase Bank
           accountType:
             type: string
-            description: Account type (checking, savings, etc.)
+            description: Account type
+            enum: [checking, savings]
             example: checking
           accountLast4:
             type: string
+            nullable: true
             description: Last 4 digits of account number
             example: "4567"
+          routingNumber:
+            type: string
+            nullable: true
+            description: Routing number (masked when unavailable)
+            example: "021000021"
+          detailInfo:
+            type: object
+            nullable: true
+            description: Bank metadata from Plaid/Stripe
+            properties:
+              id:
+                type: string
+                description: External bank identifier
+                example: bank_123
+              name:
+                type: string
+                description: Bank display name
+                example: Chase
+              logo:
+                type: string
+                nullable: true
+                description: Logo URL if provided by Plaid/Stripe
+                example: https://plaid.com/logo.png
         required:
           - id
+          - accountHolderType
           - bankName
           - accountType
-          - accountLast4
+      
+      ContactBankAccountCreate:
+        type: object
+        description: Bank account payload used when attaching new payment methods to a contact
+        properties:
+          accountHolderType:
+            type: string
+            enum: [individual, company]
+            description: Whether the account belongs to an individual or company
+            example: individual
+          accountType:
+            type: string
+            enum: [checking, savings]
+            description: Bank account type
+            example: checking
+          routingNumber:
+            type: string
+            description: 9-digit routing number
+            example: "021000021"
+          accountNumber:
+            type: string
+            description: Bank account number
+            example: "987654321"
+        required:
+          - accountHolderType
+          - accountType
+          - routingNumber
+          - accountNumber
+      
+      ContactBankAccountUpdate:
+        type: object
+        description: Update operations for contact bank accounts
+        properties:
+          add:
+            type: array
+            description: New bank accounts to add
+            items:
+              $ref: '#/components/schemas/ContactBankAccountCreate'
+          remove:
+            type: array
+            description: Bank account IDs to remove
+            items:
+              type: string
 
       CreateContactInput:
         type: object
         description: Input for creating a new contact
         properties:
+          contactTitle:
+            type: string
+            description: Display title or label shown in lists
+            example: Sunset Studios - Production Company
           name:
             type: string
             description: Contact name
@@ -4588,9 +5126,9 @@
             example: Sunset Studios Inc.
           type:
             type: string
-            enum: [Person, Company]
-            description: Contact type
-            example: Company
+            enum: [Contractor, Employee, Company]
+            description: Contact classification
+            example: Contractor
           jobTitle:
             type: string
             description: Job title
@@ -4608,55 +5146,80 @@
             type: string
             description: Physical address
             example: 123 Sunset Blvd, Los Angeles, CA 90028
-          taxIdLast4:
+          taxId:
             type: string
-            description: Last 4 digits of tax ID
-            example: "4567"
+            description: Tax identifier (SSN/EIN). Stored securely; only the last four digits are returned.
+            example: "123-45-6789"
+          paymentAccount:
+            type: array
+            description: Optional bank accounts to add during creation
+            items:
+              $ref: '#/components/schemas/ContactBankAccountCreate'
         required:
           - name
 
       UpdateContactInput:
         type: object
-        description: Input for updating an existing contact
+        description: Input for updating an existing contact. Provide `null` to clear a field.
         properties:
+          contactTitle:
+            type: string
+            nullable: true
+            description: Display title or label
+            example: Sunset Studios - Production Company
           name:
             type: string
+            nullable: true
             description: Contact name
             example: Sunset Studios LLC
           email:
             type: string
+            nullable: true
             description: Contact email address
             example: info@sunsetstudios.com
           company:
             type: string
+            nullable: true
             description: Company name
             example: Sunset Studios LLC
           type:
             type: string
-            enum: [Person, Company]
-            description: Contact type
-            example: Company
+            enum: [Contractor, Employee, Company]
+            nullable: true
+            description: Contact classification
+            example: Contractor
           jobTitle:
             type: string
+            nullable: true
             description: Job title
             example: Senior Production Coordinator
           rate:
             type: number
             format: float
+            nullable: true
             description: Hourly rate
             example: 150.00
           phone:
             type: string
+            nullable: true
             description: Phone number
             example: 310-555-5678
           address:
             type: string
+            nullable: true
             description: Physical address
             example: 456 Hollywood Way, Los Angeles, CA 90028
-          taxIdLast4:
+          taxId:
             type: string
-            description: Last 4 digits of tax ID
-            example: "8901"
+            nullable: true
+            description: Tax identifier (SSN/EIN). Provide the full value; it is stored securely.
+            example: "123-45-6789"
+          paymentAccount:
+            type: object
+            nullable: true
+            description: Bank account operations to add/remove payment methods
+            allOf:
+              - $ref: '#/components/schemas/ContactBankAccountUpdate'
 
       ContactProject:
         type: object
@@ -4669,39 +5232,42 @@
             type: string
             description: Project name
             example: Q2 Marketing Campaign
-          alias:
-            type: string
-            description: Project alias
-            example: q2-marketing-campaign
           accounts:
             type: array
             items:
-              $ref: '#/components/schemas/ContactProjectAccount'
-            description: Associated accounts within this project
+              $ref: '#/components/schemas/ContactAccount'
+            description: Account assignments within the project. Returned when `expands` includes `projects.accounts`.
         required:
           - id
           - name
-          - alias
 
-      ContactProjectAccount:
+      ContactAccount:
         type: object
         properties:
+          type:
+            type: string
+            enum: [account, markup, line, fringes]
+            description: Contact account entry type
+            example: account
+          id:
+            type: string
+            description: Unique identifier for this project account mapping
+            example: account-map-123
           accountId:
             type: string
-            description: Account identifier
+            nullable: true
+            description: Budget account identifier
             example: /production/camera
-          accountNumber:
+          description:
             type: string
-            description: Account number
-            example: "5020"
-          accountName:
-            type: string
-            description: Account name
-            example: Digital Marketing
+            nullable: true
+            description: Account description or markup label
+            example: Camera Rentals
         required:
+          - type
+          - id
           - accountId
-          - accountNumber
-          - accountName
+          - description
 
       PurchaseOrder:
         type: object
@@ -4893,6 +5459,12 @@
         description: Workflow status of the actual transaction
         enum: [Unpaid, Pending, Paid, Refund, NeedsReview]
         example: Pending
+
+      ActualSource:
+        type: string
+        description: Source system that created the actual
+        enum: [ai]
+        example: ai
 
       ActualMode:
         type: string
@@ -5088,6 +5660,11 @@
             type: string
             description: Position the new actual before the specified actual ID
             example: actual-005
+          source:
+            allOf:
+              - $ref: '#/components/schemas/ActualSource'
+            description: Source system that created the actual. When set to 'ai', the actual will be marked as AI-created.
+            example: manual
         required:
           - description
 
