@@ -282,10 +282,7 @@ export class Saturation {
   ): Promise<Types.File> {
     const response = await this.client.post({
       url: `/projects/${projectId}/actuals/${actualId}/attachment/register`,
-      body: JSON.stringify({ fileRecordId }),
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      body: { fileRecordId },
     });
     return response.data as unknown as Types.File;
   }
