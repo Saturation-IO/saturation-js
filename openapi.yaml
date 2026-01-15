@@ -1,7 +1,7 @@
   openapi: 3.0.3
   info:
     title: ⚒️ API Reference
-    version: 1.0.1
+    version: 1.0.2
     description: |
       The **Saturation API** lets you work with your workspace data including projects, budgets, actuals, contacts, purchase orders, and attachments.
 
@@ -601,6 +601,93 @@
         responses:
           '204':
             description: Budget line deleted successfully
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /projects/{projectId}/budget/note:
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+
+      get:
+        operationId: getRootAccountNote
+        summary: Get root account note
+        description: |
+          Retrieve the note for the root account (project's budget note).
+
+          Notes are stored as rich text and can be returned in multiple formats:
+          - `html`: Rendered HTML from TipTap editor
+          - `json`: TipTap JSON document structure
+          - `text`: Plain text representation
+          - `all`: All three formats (default)
+        tags:
+          - Budget
+        parameters:
+          - $ref: '#/components/parameters/IdMode'
+          - name: format
+            in: query
+            description: Note format to return
+            schema:
+              type: string
+              enum: [json, html, text, all]
+              default: all
+        responses:
+          '200':
+            description: Root account note
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/BudgetNoteResponse'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalServerError'
+
+    /projects/{projectId}/budget/note/{lineId}:
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - name: lineId
+          in: path
+          required: true
+          description: Budget line identifier. Supports user-friendly IDs (account codes) or system IDs.
+          schema:
+            type: string
+
+      get:
+        operationId: getLineNote
+        summary: Get budget line note
+        description: |
+          Retrieve the note for a specific budget line.
+
+          Notes are only available for account-type lines. Subtotals, markups, and fringe lines
+          will return a null note.
+
+          The lineId parameter uses the same resolution logic as the getBudgetLine endpoint:
+          - With `idMode=user` (default): Account codes, subtotal aliases, or partial descriptions
+          - With `idMode=system`: System-generated IDs (UUIDs/nanoids)
+        tags:
+          - Budget
+        parameters:
+          - $ref: '#/components/parameters/IdMode'
+          - name: format
+            in: query
+            description: Note format to return
+            schema:
+              type: string
+              enum: [json, html, text, all]
+              default: all
+        responses:
+          '200':
+            description: Budget line note with line metadata
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/BudgetLineNoteResponse'
           '401':
             $ref: '#/components/responses/Unauthorized'
           '404':
@@ -4262,7 +4349,81 @@
                   additionalProperties:
                     $ref: '#/components/schemas/FringeBreakdown'
                 description: Detailed fringe calculations by phase and type
-      
+
+      NoteData:
+        type: object
+        description: Note content in multiple formats
+        properties:
+          id:
+            type: string
+            nullable: true
+            description: Unique note identifier
+            example: "note-abc123"
+          text:
+            type: string
+            nullable: true
+            description: Plain text representation of the note
+            example: "Budget notes for production department"
+          html:
+            type: string
+            nullable: true
+            description: HTML rendered from TipTap editor
+            example: "<p>Budget notes for <strong>production</strong> department</p>"
+          json:
+            type: string
+            nullable: true
+            description: TipTap JSON document structure (stringified)
+            example: "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\"}]}"
+
+      BudgetNoteResponse:
+        type: object
+        properties:
+          note:
+            allOf:
+              - $ref: '#/components/schemas/NoteData'
+            nullable: true
+            description: Note data, or null if no note exists
+
+      NoteLineMetadata:
+        type: object
+        description: Metadata about the resolved budget line
+        properties:
+          id:
+            type: string
+            description: System ID of the line
+            example: "line-xyz789"
+          accountId:
+            type: string
+            nullable: true
+            description: User-friendly account ID (if applicable)
+            example: "1000"
+          type:
+            type: string
+            enum: [account, subtotal, markup, fringeLine]
+            description: Type of budget line
+            example: "account"
+          path:
+            type: string
+            description: Hierarchical path in budget tree
+            example: "/1000/1100"
+        required:
+          - id
+          - type
+          - path
+
+      BudgetLineNoteResponse:
+        type: object
+        properties:
+          note:
+            allOf:
+              - $ref: '#/components/schemas/NoteData'
+            nullable: true
+            description: Note data, or null if no note exists or line type doesn't support notes
+          line:
+            $ref: '#/components/schemas/NoteLineMetadata'
+        required:
+          - line
+
       LinePhaseData:
         type: object
         properties:

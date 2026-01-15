@@ -705,6 +705,65 @@ export type BudgetFringeLine = BudgetLine & {
     };
 };
 
+/**
+ * Note content in multiple formats
+ */
+export type NoteData = {
+    /**
+     * Unique note identifier
+     */
+    id?: string | null;
+    /**
+     * Plain text representation of the note
+     */
+    text?: string | null;
+    /**
+     * HTML rendered from TipTap editor
+     */
+    html?: string | null;
+    /**
+     * TipTap JSON document structure (stringified)
+     */
+    json?: string | null;
+};
+
+export type BudgetNoteResponse = {
+    /**
+     * Note data, or null if no note exists
+     */
+    note?: NoteData | null;
+};
+
+/**
+ * Metadata about the resolved budget line
+ */
+export type NoteLineMetadata = {
+    /**
+     * System ID of the line
+     */
+    id: string;
+    /**
+     * User-friendly account ID (if applicable)
+     */
+    accountId?: string | null;
+    /**
+     * Type of budget line
+     */
+    type: 'account' | 'subtotal' | 'markup' | 'fringeLine';
+    /**
+     * Hierarchical path in budget tree
+     */
+    path: string;
+};
+
+export type BudgetLineNoteResponse = {
+    /**
+     * Note data, or null if no note exists or line type doesn't support notes
+     */
+    note?: NoteData | null;
+    line: NoteLineMetadata;
+};
+
 export type LinePhaseData = {
     /**
      * Quantity value for calculations
@@ -3215,6 +3274,104 @@ export type UpdateBudgetLineResponses = {
 };
 
 export type UpdateBudgetLineResponse = UpdateBudgetLineResponses[keyof UpdateBudgetLineResponses];
+
+export type GetRootAccountNoteData = {
+    body?: never;
+    path: {
+        /**
+         * Project identifier (alias or ID)
+         */
+        projectId: string;
+    };
+    query?: {
+        /**
+         * ID interpretation mode. Controls how path and query parameter IDs (like lineId, accountId, phaseId) are interpreted - 'user' for human-readable IDs (account codes, phase names), 'system' for database IDs (UUIDs/nanoids). Also affects the format of IDs in responses.
+         */
+        idMode?: 'user' | 'system';
+        /**
+         * Note format to return
+         */
+        format?: 'json' | 'html' | 'text' | 'all';
+    };
+    url: '/projects/{projectId}/budget/note';
+};
+
+export type GetRootAccountNoteErrors = {
+    /**
+     * Unauthorized - invalid or missing API key
+     */
+    401: _Error;
+    /**
+     * Resource not found
+     */
+    404: _Error;
+    /**
+     * Internal server error
+     */
+    500: _Error;
+};
+
+export type GetRootAccountNoteError = GetRootAccountNoteErrors[keyof GetRootAccountNoteErrors];
+
+export type GetRootAccountNoteResponses = {
+    /**
+     * Root account note
+     */
+    200: BudgetNoteResponse;
+};
+
+export type GetRootAccountNoteResponse = GetRootAccountNoteResponses[keyof GetRootAccountNoteResponses];
+
+export type GetLineNoteData = {
+    body?: never;
+    path: {
+        /**
+         * Project identifier (alias or ID)
+         */
+        projectId: string;
+        /**
+         * Budget line identifier. Supports user-friendly IDs (account codes) or system IDs.
+         */
+        lineId: string;
+    };
+    query?: {
+        /**
+         * ID interpretation mode. Controls how path and query parameter IDs (like lineId, accountId, phaseId) are interpreted - 'user' for human-readable IDs (account codes, phase names), 'system' for database IDs (UUIDs/nanoids). Also affects the format of IDs in responses.
+         */
+        idMode?: 'user' | 'system';
+        /**
+         * Note format to return
+         */
+        format?: 'json' | 'html' | 'text' | 'all';
+    };
+    url: '/projects/{projectId}/budget/note/{lineId}';
+};
+
+export type GetLineNoteErrors = {
+    /**
+     * Unauthorized - invalid or missing API key
+     */
+    401: _Error;
+    /**
+     * Resource not found
+     */
+    404: _Error;
+    /**
+     * Internal server error
+     */
+    500: _Error;
+};
+
+export type GetLineNoteError = GetLineNoteErrors[keyof GetLineNoteErrors];
+
+export type GetLineNoteResponses = {
+    /**
+     * Budget line note with line metadata
+     */
+    200: BudgetLineNoteResponse;
+};
+
+export type GetLineNoteResponse = GetLineNoteResponses[keyof GetLineNoteResponses];
 
 export type ListActualsData = {
     body?: never;

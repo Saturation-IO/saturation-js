@@ -189,6 +189,31 @@ export class Saturation {
     return result.data as { budgetLines: Types.AccountSummary[] };
   }
 
+  async getRootAccountNote(
+    projectId: string,
+    params?: Types.GetRootAccountNoteData['query'],
+  ): Promise<Types.BudgetNoteResponse> {
+    const result = await sdk.getRootAccountNote({
+      client: this.client,
+      path: { projectId },
+      query: params,
+    });
+    return result.data as Types.BudgetNoteResponse;
+  }
+
+  async getLineNote(
+    projectId: string,
+    lineId: string,
+    params?: Types.GetLineNoteData['query'],
+  ): Promise<Types.BudgetLineNoteResponse> {
+    const result = await sdk.getLineNote({
+      client: this.client,
+      path: { projectId, lineId },
+      query: params,
+    });
+    return result.data as Types.BudgetLineNoteResponse;
+  }
+
   // Actuals
 
   async listActuals(
