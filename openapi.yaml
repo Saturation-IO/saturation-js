@@ -372,6 +372,26 @@
             explode: true
             example: ["phases", "lines.contact"]
             x-example-description: "Use as: expands[]=phases&expands[]=lines.contact"
+          - name: actualDateRange[from]
+            in: query
+            description: |
+              Start date (inclusive) for filtering actual totals.
+              When provided, only actuals on or after this date will be included in the actual phase totals.
+              Use ISO 8601 date format (YYYY-MM-DD).
+            schema:
+              type: string
+              format: date
+            example: "2024-01-01"
+          - name: actualDateRange[to]
+            in: query
+            description: |
+              End date (inclusive) for filtering actual totals.
+              When provided, only actuals on or before this date will be included in the actual phase totals.
+              Use ISO 8601 date format (YYYY-MM-DD).
+            schema:
+              type: string
+              format: date
+            example: "2024-03-31"
           - $ref: '#/components/parameters/IdMode'
         responses:
           '200':

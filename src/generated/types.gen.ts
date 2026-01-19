@@ -3044,6 +3044,20 @@ export type GetBudgetData = {
          */
         expands?: Array<'fringes' | 'phases' | 'globals' | 'lines.contact' | 'lines.phaseData'>;
         /**
+         * Start date (inclusive) for filtering actual totals.
+         * When provided, only actuals on or after this date will be included in the actual phase totals.
+         * Use ISO 8601 date format (YYYY-MM-DD).
+         *
+         */
+        'actualDateRange[from]'?: string;
+        /**
+         * End date (inclusive) for filtering actual totals.
+         * When provided, only actuals on or before this date will be included in the actual phase totals.
+         * Use ISO 8601 date format (YYYY-MM-DD).
+         *
+         */
+        'actualDateRange[to]'?: string;
+        /**
          * ID interpretation mode. Controls how path and query parameter IDs (like lineId, accountId, phaseId) are interpreted - 'user' for human-readable IDs (account codes, phase names), 'system' for database IDs (UUIDs/nanoids). Also affects the format of IDs in responses.
          */
         idMode?: 'user' | 'system';
