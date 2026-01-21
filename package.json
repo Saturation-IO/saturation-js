@@ -62,7 +62,7 @@
     "node-fetch": "^3.3.2"
   },
   "devDependencies": {
-    "@hey-api/openapi-ts": "^0.80.8",
+    "@hey-api/openapi-ts": "^0.90.6",
     "@types/jest": "^29.5.12",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.11.30",
