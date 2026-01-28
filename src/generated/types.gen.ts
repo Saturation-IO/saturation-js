@@ -635,6 +635,12 @@ export type BudgetLine = {
         [key: string]: LinePhaseData;
     };
     /**
+     * Note content for this line item
+     * @expandable - Only included when "lines.notes" is in the expands parameter
+     *
+     */
+    note?: NoteData | null;
+    /**
      * Last modification time (ISO 8601)
      */
     lastModified?: string;
@@ -3042,7 +3048,7 @@ export type GetBudgetData = {
         /**
          * Include related data in the response
          */
-        expands?: Array<'fringes' | 'phases' | 'globals' | 'lines.contact' | 'lines.phaseData'>;
+        expands?: Array<'fringes' | 'phases' | 'globals' | 'lines.contact' | 'lines.phaseData' | 'lines.notes'>;
         /**
          * Start date (inclusive) for filtering actual totals.
          * When provided, only actuals on or after this date will be included in the actual phase totals.

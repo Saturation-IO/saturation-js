@@ -367,7 +367,7 @@
               type: array
               items:
                 type: string
-                enum: [fringes, phases, globals, lines.contact, lines.phaseData]
+                enum: [fringes, phases, globals, lines.contact, lines.phaseData, lines.notes]
             style: form
             explode: true
             example: ["phases", "lines.contact"]
@@ -4281,6 +4281,13 @@
             additionalProperties:
               $ref: '#/components/schemas/LinePhaseData'
             description: Detailed phase-specific data (expandable)
+          note:
+            allOf:
+              - $ref: '#/components/schemas/NoteData'
+            nullable: true
+            description: |
+              Note content for this line item
+              @expandable - Only included when "lines.notes" is in the expands parameter
           lastModified:
             type: string
             format: date-time
