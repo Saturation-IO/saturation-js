@@ -900,7 +900,7 @@ export type Phase = {
      */
     isLocked: boolean;
     /**
-     * Currency configuration (for estimate phases)
+     * Currency configuration (resolved from reference phase for actual/committed)
      */
     currency?: {
         /**
@@ -915,6 +915,10 @@ export type Phase = {
          * Exchange rate multiplier
          */
         exchangeRate?: number | null;
+        /**
+         * Whether currency conversion is active
+         */
+        isConversionEnabled?: boolean | null;
     } | null;
     /**
      * Rollup operation (for rollup phases)

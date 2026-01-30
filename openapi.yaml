@@ -4629,7 +4629,11 @@
                 nullable: true
                 description: Exchange rate multiplier
                 example: 1.0
-            description: Currency configuration (for estimate phases)
+              isConversionEnabled:
+                type: boolean
+                nullable: true
+                description: Whether currency conversion is active
+            description: Currency configuration (resolved from reference phase for actual/committed/rollup)
           operation:
             type: string
             enum: [sum, difference]
